@@ -11,25 +11,26 @@ import SwiftUI
 @MainActor
 final class SettingsCoordinator: NSObject, NSWindowDelegate {
   private let configurationStore: any ConfigurationStoreProtocol
-  private let logMonitor: LogMonitor
+  private let logMonitor: LogMonitor?
 
-  private var windowController: NSWindowController?
+  private(set) var windowController: NSWindowController?
+  private var previousActivationPolicy: NSApplication.ActivationPolicy?
+  private var managesActivationPolicy = false
 
   init(
     configurationStore: any ConfigurationStoreProtocol,
-    logMonitor: LogMonitor
+    logMonitor: LogMonitor?
   ) {
     self.configurationStore = configurationStore
     self.logMonitor = logMonitor
   }
 
   func show() {
-    // Switch to regular app to show window, hide dock icon
-    NSApp.setActivationPolicy(.regular)
-    NSApp.activate(ignoringOtherApps: true)
+    prepareActivationPolicyIfNeeded()
 
     if let controller = windowController {
-      controller.window?.makeKeyAndOrderFront(nil)
+      controller.window?.orderFrontRegardless()
+      NSApp.activate(ignoringOtherApps: true)
       return
     }
 
@@ -46,8 +47,10 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
       defer: false
     )
     window.title = "Simmer Settings"
-    window.contentViewController = hostingController
     window.center()
+    window.isReleasedWhenClosed = false
+    window.collectionBehavior = [.fullScreenAuxiliary, .moveToActiveSpace]
+    window.contentViewController = hostingController
     window.delegate = self
 
     let controller = NSWindowController(window: window)
@@ -56,6 +59,7 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
     windowController = controller
 
     window.makeKeyAndOrderFront(nil)
+    NSApp.activate(ignoringOtherApps: true)
   }
 
   // MARK: - NSWindowDelegate
@@ -64,8 +68,25 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
     if let window = notification.object as? NSWindow,
        windowController?.window == window {
       windowController = nil
-      // Return to accessory mode to remove from dock
-      NSApp.setActivationPolicy(.accessory)
+      restoreActivationPolicyIfNeeded()
     }
+  }
+
+  // MARK: - Activation Policy Management
+
+  private func prepareActivationPolicyIfNeeded() {
+    let app = NSApplication.shared
+    guard app.activationPolicy != .regular else { return }
+
+    previousActivationPolicy = app.activationPolicy
+    managesActivationPolicy = true
+    app.setActivationPolicy(.regular)
+  }
+
+  private func restoreActivationPolicyIfNeeded() {
+    guard managesActivationPolicy, let previous = previousActivationPolicy else { return }
+    NSApplication.shared.setActivationPolicy(previous)
+    managesActivationPolicy = false
+    previousActivationPolicy = nil
   }
 }

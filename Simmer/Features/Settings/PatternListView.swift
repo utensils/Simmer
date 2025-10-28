@@ -14,7 +14,7 @@ struct PatternListView: View {
   @State private var editingPattern: LogPattern?
 
   init(
-    store: any ConfigurationStoreProtocol,
+    store: any ConfigurationStoreProtocol = ConfigurationStore(),
     logMonitor: LogMonitor? = nil
   ) {
     _viewModel = StateObject(
