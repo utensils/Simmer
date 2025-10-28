@@ -82,7 +82,7 @@
 - [X] T041 [US1] Implement MatchEventHandlerDelegate in LogMonitor to receive match events and trigger icon animations
 - [X] T042 [US1] Write LogMonitor tests in SimmerTests/MonitoringTests/LogMonitorTests.swift (single watcher coordination, match event flow)
 - [X] T043 [US1] Wire SimmerApp to instantiate MenuBarController and LogMonitor on launch
-- [ ] T044 [US1] Manual test: Create test log file, hardcode one pattern in LogMonitor init, run app, append matching line, verify icon animates
+- [X] T044 [US1] Manual test: Create test log file, hardcode one pattern in LogMonitor init, run app, append matching line, verify icon animates
 
 ## Phase 4: User Story 2 - Review Recent Matches (P2)
 
