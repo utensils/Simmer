@@ -1,5 +1,9 @@
 # Claude Code Instructions for Simmer
 
+## Rule #1: Concise Documentation
+
+Keep all project docs clean, concise, and to the point. Do not overwhelm with walls of text.
+
 ## Project Overview
 
 Simmer is a minimal macOS menu bar app for passive log monitoring with visual feedback. Read VISION.md, TECH_DESIGN.md, and STANDARDS.md before starting work.
