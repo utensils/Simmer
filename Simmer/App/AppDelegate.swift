@@ -46,7 +46,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     let menuBuilder = MenuBuilder(
       matchEventHandler: matchEventHandler,
-      settingsHandler: { settingsCoordinator.show() },
+      settingsHandler: { [weak self] in
+        self?.settingsCoordinator?.show()
+      },
       quitHandler: {
         NSApplication.shared.terminate(nil)
       }

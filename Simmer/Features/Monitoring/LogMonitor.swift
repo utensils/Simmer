@@ -178,7 +178,7 @@ final class LogMonitor: NSObject {
 
 extension LogMonitor: FileWatcherDelegate {
   func fileWatcher(_ watcher: FileWatching, didReadLines lines: [String]) {
-    guard var context = context(for: watcher), !lines.isEmpty else { return }
+    guard let context = context(for: watcher), !lines.isEmpty else { return }
 
     var nextLineNumber = context.lineCount
 

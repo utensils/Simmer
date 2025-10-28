@@ -11,7 +11,7 @@ import SwiftUI
 struct SettingsWindow: Scene {
   var body: some Scene {
     WindowGroup("Simmer Settings") {
-      PatternListView()
+      PatternListView(store: ConfigurationStore())
         .frame(minWidth: 600, minHeight: 400)
     }
     .windowResizability(.contentSize)

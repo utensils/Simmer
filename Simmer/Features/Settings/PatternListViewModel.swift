@@ -18,7 +18,7 @@ class PatternListViewModel: ObservableObject {
   private let logMonitor: LogMonitor?
 
   init(
-    store: any ConfigurationStoreProtocol = ConfigurationStore(),
+    store: any ConfigurationStoreProtocol,
     logMonitor: LogMonitor? = nil
   ) {
     self.store = store

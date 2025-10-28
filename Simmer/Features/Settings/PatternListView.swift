@@ -14,7 +14,7 @@ struct PatternListView: View {
   @State private var editingPattern: LogPattern?
 
   init(
-    store: any ConfigurationStoreProtocol = ConfigurationStore(),
+    store: any ConfigurationStoreProtocol,
     logMonitor: LogMonitor? = nil
   ) {
     _viewModel = StateObject(
@@ -157,11 +157,11 @@ private struct PatternRow: View {
 // MARK: - Previews
 
   #Preview("Empty State") {
-    PatternListView(store: PreviewConfigurationStore())
+    PatternListView(store: PreviewConfigurationStore(), logMonitor: nil)
   }
 
   #Preview("With Patterns") {
-    PatternListView(store: PreviewConfigurationStore())
+    PatternListView(store: PreviewConfigurationStore(), logMonitor: nil)
   }
 
 /// Mock store for previews with sample data.

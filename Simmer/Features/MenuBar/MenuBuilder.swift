@@ -14,15 +14,15 @@ final class MenuBuilder: NSObject {
   private let matchEventHandler: MatchEventHandler
   private let dateProvider: () -> Date
   private let historyLimit: Int
-  private let settingsHandler: () -> Void
-  private let quitHandler: () -> Void
+  private let settingsHandler: @MainActor () -> Void
+  private let quitHandler: @MainActor () -> Void
 
   init(
     matchEventHandler: MatchEventHandler,
     dateProvider: @escaping () -> Date = Date.init,
     historyLimit: Int = 10,
-    settingsHandler: @escaping () -> Void = MenuBuilder.defaultSettingsHandler,
-    quitHandler: @escaping () -> Void = MenuBuilder.defaultQuitHandler
+    settingsHandler: @escaping @MainActor () -> Void = MenuBuilder.defaultSettingsHandler,
+    quitHandler: @escaping @MainActor () -> Void = MenuBuilder.defaultQuitHandler
   ) {
     self.matchEventHandler = matchEventHandler
     self.dateProvider = dateProvider

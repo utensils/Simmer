@@ -96,7 +96,7 @@ final class FileWatcher: FileWatching {
 
     let position = fileSystem.lseek(descriptor, 0, SEEK_END)
     guard position >= 0 else {
-      fileSystem.close(descriptor)
+      _ = fileSystem.close(descriptor)
       throw FileWatcherError.fileDescriptorInvalid
     }
     readOffset = position
