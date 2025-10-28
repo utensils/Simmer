@@ -22,6 +22,7 @@ DerivedData/
 # Swift Package Manager
 .build/
 Packages/
+.swiftpm/
 *.xcodeproj/**/Package.resolved
 
 # Codex (ignore all except prompts)

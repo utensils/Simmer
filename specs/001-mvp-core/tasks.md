@@ -17,32 +17,32 @@
 
 **Purpose**: Project initialization and shared components used across all user stories
 
-- [ ] T001 Create Xcode project with macOS target, set deployment target to macOS 14.0+
-- [ ] T002 Configure Info.plist with LSUIElement=true for menu bar-only app
-- [ ] T003 Create directory structure: Simmer/{App,Features/{MenuBar,Monitoring,Patterns,Settings},Models,Services,Utilities}
-- [ ] T004 Create test directory structure: SimmerTests/{MenuBarTests,MonitoringTests,PatternsTests,ServicesTests,Mocks}
-- [ ] T005 Configure SwiftLint with .swiftlint.yml per STANDARDS.md (no force unwrap, no force cast, warnings as errors)
-- [ ] T006 [P] Create AnimationStyle enum in Simmer/Models/AnimationStyle.swift (cases: glow, pulse, blink)
-- [ ] T007 [P] Create CodableColor struct in Simmer/Utilities/CodableColor.swift with NSColor conversion methods
-- [ ] T008 [P] Create IconAnimationState enum in Simmer/Models/IconAnimationState.swift (idle, animating)
-- [ ] T009 [P] Create FileSystemProtocol in Simmer/Features/Monitoring/FileSystemProtocol.swift per contracts/internal-protocols.md
-- [ ] T010 [P] Create RealFileSystem conforming to FileSystemProtocol in Simmer/Features/Monitoring/RealFileSystem.swift
-- [ ] T011 [P] Create MockFileSystem conforming to FileSystemProtocol in SimmerTests/Mocks/MockFileSystem.swift
+- [X] T001 Create Xcode project with macOS target, set deployment target to macOS 14.0+
+- [X] T002 Configure Info.plist with LSUIElement=true for menu bar-only app
+- [X] T003 Create directory structure: Simmer/{App,Features/{MenuBar,Monitoring,Patterns,Settings},Models,Services,Utilities}
+- [X] T004 Create test directory structure: SimmerTests/{MenuBarTests,MonitoringTests,PatternsTests,ServicesTests,Mocks}
+- [X] T005 Configure SwiftLint with .swiftlint.yml per STANDARDS.md (no force unwrap, no force cast, warnings as errors)
+- [X] T006 [P] Create AnimationStyle enum in Simmer/Models/AnimationStyle.swift (cases: glow, pulse, blink)
+- [X] T007 [P] Create CodableColor struct in Simmer/Utilities/CodableColor.swift with NSColor conversion methods
+- [X] T008 [P] Create IconAnimationState enum in Simmer/Models/IconAnimationState.swift (idle, animating)
+- [X] T009 [P] Create FileSystemProtocol in Simmer/Features/Monitoring/FileSystemProtocol.swift per contracts/internal-protocols.md
+- [X] T010 [P] Create RealFileSystem conforming to FileSystemProtocol in Simmer/Features/Monitoring/RealFileSystem.swift
+- [X] T011 [P] Create MockFileSystem conforming to FileSystemProtocol in SimmerTests/Mocks/MockFileSystem.swift
 
 ## Phase 2: Foundational Components
 
 **Purpose**: Core components required by multiple user stories, must complete before story implementation
 
-- [ ] T012 [P] Create LogPattern model in Simmer/Models/LogPattern.swift with Codable conformance per data-model.md
-- [ ] T013 [P] Create MatchEvent model in Simmer/Models/MatchEvent.swift per data-model.md
-- [ ] T014 [P] Create ConfigurationStoreProtocol in Simmer/Services/ConfigurationStoreProtocol.swift
-- [ ] T015 Implement UserDefaultsStore conforming to ConfigurationStoreProtocol in Simmer/Services/ConfigurationStore.swift (load/save/update/delete patterns)
-- [ ] T016 Write tests for ConfigurationStore in SimmerTests/ServicesTests/ConfigurationStoreTests.swift (save, load, update, delete, persistence)
-- [ ] T017 [P] Create InMemoryStore conforming to ConfigurationStoreProtocol in SimmerTests/Mocks/InMemoryStore.swift for testing
-- [ ] T018 [P] Create PatternMatcherProtocol in Simmer/Features/Patterns/PatternMatcherProtocol.swift per contracts/internal-protocols.md
-- [ ] T019 Implement RegexPatternMatcher conforming to PatternMatcherProtocol in Simmer/Features/Patterns/PatternMatcher.swift using NSRegularExpression
-- [ ] T020 Write comprehensive tests for PatternMatcher in SimmerTests/PatternsTests/PatternMatcherTests.swift (100% coverage: empty strings, special chars, multiline, invalid regex)
-- [ ] T021 [P] Create MockPatternMatcher conforming to PatternMatcherProtocol in SimmerTests/Mocks/MockPatternMatcher.swift
+- [X] T012 [P] Create LogPattern model in Simmer/Models/LogPattern.swift with Codable conformance per data-model.md
+- [X] T013 [P] Create MatchEvent model in Simmer/Models/MatchEvent.swift per data-model.md
+- [X] T014 [P] Create ConfigurationStoreProtocol in Simmer/Services/ConfigurationStoreProtocol.swift
+- [X] T015 Implement UserDefaultsStore conforming to ConfigurationStoreProtocol in Simmer/Services/ConfigurationStore.swift (load/save/update/delete patterns)
+- [X] T016 Write tests for ConfigurationStore in SimmerTests/ServicesTests/ConfigurationStoreTests.swift (save, load, update, delete, persistence)
+- [X] T017 [P] Create InMemoryStore conforming to ConfigurationStoreProtocol in SimmerTests/Mocks/InMemoryStore.swift for testing
+- [X] T018 [P] Create PatternMatcherProtocol in Simmer/Features/Patterns/PatternMatcherProtocol.swift per contracts/internal-protocols.md
+- [X] T019 Implement RegexPatternMatcher conforming to PatternMatcherProtocol in Simmer/Features/Patterns/PatternMatcher.swift using NSRegularExpression
+- [X] T020 Write comprehensive tests for PatternMatcher in SimmerTests/PatternsTests/PatternMatcherTests.swift (100% coverage: empty strings, special chars, multiline, invalid regex)
+- [X] T021 [P] Create MockPatternMatcher conforming to PatternMatcherProtocol in SimmerTests/Mocks/MockPatternMatcher.swift
 
 ## Phase 3: User Story 1 - Monitor Single Log with Visual Feedback (P1)
 
@@ -54,18 +54,18 @@
 
 ### Models & Services
 
-- [ ] T022 [P] [US1] Create FileWatcherDelegate protocol in Simmer/Features/Monitoring/FileWatcherDelegate.swift per contracts/internal-protocols.md
-- [ ] T023 [US1] Implement FileWatcher class in Simmer/Features/Monitoring/FileWatcher.swift using DispatchSource.makeFileSystemObjectSource with .write and .extend event masks
-- [ ] T024 [US1] Write FileWatcher tests in SimmerTests/MonitoringTests/FileWatcherTests.swift (100% coverage: file appends, deletions, permission errors, rapid changes with MockFileSystem)
-- [ ] T025 [P] [US1] Create IconAnimatorDelegate protocol in Simmer/Features/MenuBar/IconAnimatorDelegate.swift per contracts/internal-protocols.md
+- [X] T022 [P] [US1] Create FileWatcherDelegate protocol in Simmer/Features/Monitoring/FileWatcherDelegate.swift per contracts/internal-protocols.md
+- [X] T023 [US1] Implement FileWatcher class in Simmer/Features/Monitoring/FileWatcher.swift using DispatchSource.makeFileSystemObjectSource with .write and .extend event masks
+- [X] T024 [US1] Write FileWatcher tests in SimmerTests/MonitoringTests/FileWatcherTests.swift (100% coverage: file appends, deletions, permission errors, rapid changes with MockFileSystem)
+- [X] T025 [P] [US1] Create IconAnimatorDelegate protocol in Simmer/Features/MenuBar/IconAnimatorDelegate.swift per contracts/internal-protocols.md
 
 ### Menu Bar Integration
 
-- [ ] T026 [US1] Implement IconAnimator class in Simmer/Features/MenuBar/IconAnimator.swift with Core Graphics frame generation at 60fps
-- [ ] T027 [US1] Implement glow animation style in IconAnimator (opacity interpolation 0.5→1.0→0.5, 2-second cycle)
-- [ ] T028 [US1] Implement pulse animation style in IconAnimator (scale 1.0→1.15→1.0 with opacity, 1.5-second cycle)
-- [ ] T029 [US1] Implement blink animation style in IconAnimator (hard on/off, 0.5-second intervals)
-- [ ] T030 [US1] Write IconAnimator tests in SimmerTests/MenuBarTests/IconAnimatorTests.swift (state machine transitions, frame generation timing)
+- [X] T026 [US1] Implement IconAnimator class in Simmer/Features/MenuBar/IconAnimator.swift with Core Graphics frame generation at 60fps
+- [X] T027 [US1] Implement glow animation style in IconAnimator (opacity interpolation 0.5→1.0→0.5, 2-second cycle)
+- [X] T028 [US1] Implement pulse animation style in IconAnimator (scale 1.0→1.15→1.0 with opacity, 1.5-second cycle)
+- [X] T029 [US1] Implement blink animation style in IconAnimator (hard on/off, 0.5-second intervals)
+- [X] T030 [US1] Write IconAnimator tests in SimmerTests/MenuBarTests/IconAnimatorTests.swift (state machine transitions, frame generation timing)
 - [ ] T031 [US1] Create MenuBarController class in Simmer/Features/MenuBar/MenuBarController.swift managing NSStatusItem
 - [ ] T032 [US1] Implement IconAnimatorDelegate in MenuBarController to update NSStatusItem.button?.image on frame updates
 - [ ] T033 [US1] Wire MenuBarController to IconAnimator in MenuBarController initializer
@@ -96,8 +96,8 @@
 
 ### Utilities & Menu Construction
 
-- [ ] T045 [P] [US2] Create RelativeTimeFormatter in Simmer/Utilities/RelativeTimeFormatter.swift to format timestamps as "2m ago", "1h ago"
-- [ ] T046 [US2] Write RelativeTimeFormatter tests in SimmerTests/UtilitiesTests/RelativeTimeFormatterTests.swift (seconds, minutes, hours, days formatting)
+- [X] T045 [P] [US2] Create RelativeTimeFormatter in Simmer/Utilities/RelativeTimeFormatter.swift to format timestamps as "2m ago", "1h ago"
+- [X] T046 [US2] Write RelativeTimeFormatter tests in SimmerTests/UtilitiesTests/RelativeTimeFormatterTests.swift (seconds, minutes, hours, days formatting)
 - [ ] T047 [US2] Create MenuBuilder class in Simmer/Features/MenuBar/MenuBuilder.swift to construct NSMenu from MatchEvent array
 - [ ] T048 [US2] Implement buildMatchHistoryMenu method in MenuBuilder querying MatchEventHandler for recent 10 matches
 - [ ] T049 [US2] Implement Clear All menu action in MenuBuilder calling MatchEventHandler.clearHistory()
@@ -120,9 +120,9 @@
 
 ### Validation & File Access
 
-- [ ] T056 [P] [US3] Create PatternValidator in Simmer/Features/Patterns/PatternValidator.swift with validateRegex method using NSRegularExpression syntax checking
-- [ ] T057 [US3] Write PatternValidator tests in SimmerTests/PatternsTests/PatternValidatorTests.swift (valid regex, invalid regex, empty patterns, special chars)
-- [ ] T058 [P] [US3] Create PathExpander utility in Simmer/Services/PathExpander.swift for tilde (~) and environment variable expansion
+- [X] T056 [P] [US3] Create PatternValidator in Simmer/Features/Patterns/PatternValidator.swift with validateRegex method using NSRegularExpression syntax checking
+- [X] T057 [US3] Write PatternValidator tests in SimmerTests/PatternsTests/PatternValidatorTests.swift (valid regex, invalid regex, empty patterns, special chars)
+- [X] T058 [P] [US3] Create PathExpander utility in Simmer/Services/PathExpander.swift for tilde (~) and environment variable expansion
 - [ ] T059 [P] [US3] Create FileAccessManager in Simmer/Features/Monitoring/FileAccessManager.swift for security-scoped bookmark creation/resolution
 - [ ] T060 [US3] Implement requestAccess method in FileAccessManager using NSOpenPanel for file selection
 - [ ] T061 [US3] Implement bookmarkData generation and storage in FileAccessManager (store in UserDefaults alongside pattern)
@@ -175,14 +175,14 @@
 
 ### Error Handling & Edge Cases
 
-- [ ] T086 [P] Implement file deletion handling in FileWatcher: catch .delete DispatchSource event, notify delegate with FileWatcherError.fileDeleted
-- [ ] T087 [P] Implement permission error handling in FileWatcher: catch open() errors, notify delegate with FileWatcherError.permissionDenied
+- [X] T086 [P] Implement file deletion handling in FileWatcher: catch .delete DispatchSource event, notify delegate with FileWatcherError.fileDeleted
+- [X] T087 [P] Implement permission error handling in FileWatcher: catch open() errors, notify delegate with FileWatcherError.permissionDenied
 - [ ] T088 Implement error UI alerts in LogMonitor for FileWatcherError cases: show NSAlert, disable affected pattern, update settings UI
-- [ ] T089 [P] Implement path expansion in PathExpander: replace ~ with NSHomeDirectory(), expand environment variables via ProcessInfo
+- [X] T089 [P] Implement path expansion in PathExpander: replace ~ with NSHomeDirectory(), expand environment variables via ProcessInfo
 - [ ] T090 Integrate PathExpander in PatternEditorView to expand logPath before saving
 - [ ] T091 Integrate PathExpander in FileWatcher to expand path before opening file descriptor
-- [ ] T092 [P] Implement incremental line reading in FileWatcher: maintain file position with lseek, only read new content (FR-023)
-- [ ] T093 [P] Implement match line truncation in MatchEvent init: limit matchedLine to 200 chars with "..." suffix per data-model.md
+- [X] T092 [P] Implement incremental line reading in FileWatcher: maintain file position with lseek, only read new content (FR-023)
+- [X] T093 [P] Implement match line truncation in MatchEvent init: limit matchedLine to 200 chars with "..." suffix per data-model.md
 
 ### Performance Optimization
 
