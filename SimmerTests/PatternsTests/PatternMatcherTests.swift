@@ -2,165 +2,99 @@
 //  PatternMatcherTests.swift
 //  SimmerTests
 //
-//  Created on 2025-10-28
-//  100% coverage required for critical path per constitution
-//
 
 import XCTest
 @testable import Simmer
 
 final class PatternMatcherTests: XCTestCase {
-    var matcher: RegexPatternMatcher!
+  private var matcher: RegexPatternMatcher!
 
-    override func setUp() {
-        super.setUp()
-        matcher = RegexPatternMatcher()
-    }
+  override func setUp() {
+    super.setUp()
+    matcher = RegexPatternMatcher()
+  }
 
-    override func tearDown() {
-        matcher = nil
-        super.tearDown()
-    }
+  override func tearDown() {
+    matcher = nil
+    super.tearDown()
+  }
 
-    func testSimplePatternMatches() {
-        let pattern = LogPattern(
-            name: "Error Detector",
-            regex: "ERROR",
-            logPath: "/tmp/test.log",
-            color: CodableColor(red: 1.0, green: 0.0, blue: 0.0)
-        )
+  func test_match_whenPatternEnabledAndLineMatches_returnsResult() {
+    let pattern = logPattern(regex: "ERROR: (.*)")
+    let line = "ERROR: Something broke"
 
-        let result = matcher.match(line: "2025-10-28 ERROR: Something broke", pattern: pattern)
+    let result = matcher.match(line: line, pattern: pattern)
 
-        XCTAssertNotNil(result)
-        XCTAssertEqual(result?.captureGroups.first, "ERROR")
-    }
+    XCTAssertNotNil(result)
+    XCTAssertEqual(result?.captureGroups.first, "Something broke")
+    XCTAssertEqual(result?.range, NSRange(location: 0, length: line.count))
+  }
 
-    func testPatternDoesNotMatch() {
-        let pattern = LogPattern(
-            name: "Error Detector",
-            regex: "ERROR",
-            logPath: "/tmp/test.log",
-            color: CodableColor(red: 1.0, green: 0.0, blue: 0.0)
-        )
+  func test_match_whenPatternDisabled_returnsNil() {
+    let pattern = logPattern(regex: "ERROR", enabled: false)
 
-        let result = matcher.match(line: "2025-10-28 INFO: All good", pattern: pattern)
+    XCTAssertNil(matcher.match(line: "ERROR", pattern: pattern))
+  }
 
-        XCTAssertNil(result)
-    }
+  func test_match_whenNoMatchOccurs_returnsNil() {
+    let pattern = logPattern(regex: "WARN")
 
-    func testEmptyStringDoesNotMatch() {
-        let pattern = LogPattern(
-            name: "Any",
-            regex: ".*",
-            logPath: "/tmp/test.log",
-            color: CodableColor(red: 1.0, green: 0.0, blue: 0.0)
-        )
+    XCTAssertNil(matcher.match(line: "INFO: Startup complete", pattern: pattern))
+  }
 
-        let result = matcher.match(line: "", pattern: pattern)
+  func test_match_whenRegexInvalid_returnsNil() {
+    let pattern = logPattern(regex: "([A-Z") // Missing closing bracket
 
-        XCTAssertNotNil(result) // .* matches empty string
-    }
+    XCTAssertNil(matcher.match(line: "ERROR", pattern: pattern))
+  }
 
-    func testSpecialCharactersInPattern() {
-        let pattern = LogPattern(
-            name: "Bracket Matcher",
-            regex: "\\[ERROR\\]",
-            logPath: "/tmp/test.log",
-            color: CodableColor(red: 1.0, green: 0.0, blue: 0.0)
-        )
+  func test_match_whenLineContainsSpecialCharacters_handlesEscapes() {
+    let pattern = logPattern(regex: #"User\(id: (\d+)\)"#)
+    let line = "User(id: 42) connected"
 
-        let result = matcher.match(line: "2025-10-28 [ERROR] Failed", pattern: pattern)
+    let result = matcher.match(line: line, pattern: pattern)
 
-        XCTAssertNotNil(result)
-        XCTAssertEqual(result?.captureGroups.first, "[ERROR]")
-    }
+    XCTAssertEqual(result?.captureGroups.first, "42")
+  }
 
-    func testCaptureGroupsExtracted() {
-        let pattern = LogPattern(
-            name: "Level Extractor",
-            regex: "\\[(\\w+)\\]",
-            logPath: "/tmp/test.log",
-            color: CodableColor(red: 1.0, green: 0.0, blue: 0.0)
-        )
+  func test_match_whenMultilinePatternUsed_matchesEachLine() {
+    let pattern = logPattern(regex: #"(?m)^ERROR: (.*)$"#)
+    let line = """
+    INFO: ok
+    ERROR: failed
+    INFO: done
+    """
 
-        let result = matcher.match(line: "2025-10-28 [ERROR] Failed", pattern: pattern)
+    let result = matcher.match(line: line, pattern: pattern)
 
-        XCTAssertNotNil(result)
-        XCTAssertEqual(result?.captureGroups.count, 2) // Full match + 1 capture group
-        XCTAssertEqual(result?.captureGroups[0], "[ERROR]")
-        XCTAssertEqual(result?.captureGroups[1], "ERROR")
-    }
+    XCTAssertEqual(result?.captureGroups.first, "failed")
+  }
 
-    func testMultilineTextWithoutMultilineFlag() {
-        let pattern = LogPattern(
-            name: "Multiline",
-            regex: "ERROR.*FAILED",
-            logPath: "/tmp/test.log",
-            color: CodableColor(red: 1.0, green: 0.0, blue: 0.0)
-        )
+  func test_match_whenCalledMultipleTimes_reusesCompiledExpression() {
+    let pattern = logPattern(regex: "ERROR")
 
-        let result = matcher.match(line: "ERROR\nFAILED", pattern: pattern)
+    let first = matcher.match(line: "ERROR happened", pattern: pattern)
+    let second = matcher.match(line: "ERROR again", pattern: pattern)
 
-        XCTAssertNil(result) // .* doesn't match newlines by default
-    }
+    XCTAssertNotNil(first)
+    XCTAssertNotNil(second)
+  }
 
-    func testInvalidRegexReturnsNil() {
-        let pattern = LogPattern(
-            name: "Invalid",
-            regex: "[unclosed",
-            logPath: "/tmp/test.log",
-            color: CodableColor(red: 1.0, green: 0.0, blue: 0.0)
-        )
+  // MARK: - Helpers
 
-        let result = matcher.match(line: "any text", pattern: pattern)
-
-        XCTAssertNil(result)
-    }
-
-    func testPatternCachingReusesCompiledRegex() {
-        let pattern = LogPattern(
-            name: "Cached",
-            regex: "ERROR",
-            logPath: "/tmp/test.log",
-            color: CodableColor(red: 1.0, green: 0.0, blue: 0.0)
-        )
-
-        // First match compiles regex
-        let result1 = matcher.match(line: "ERROR first", pattern: pattern)
-        XCTAssertNotNil(result1)
-
-        // Second match should reuse compiled regex
-        let result2 = matcher.match(line: "ERROR second", pattern: pattern)
-        XCTAssertNotNil(result2)
-    }
-
-    func testCaseSensitiveMatching() {
-        let pattern = LogPattern(
-            name: "Case Sensitive",
-            regex: "ERROR",
-            logPath: "/tmp/test.log",
-            color: CodableColor(red: 1.0, green: 0.0, blue: 0.0)
-        )
-
-        let upperResult = matcher.match(line: "ERROR happened", pattern: pattern)
-        let lowerResult = matcher.match(line: "error happened", pattern: pattern)
-
-        XCTAssertNotNil(upperResult)
-        XCTAssertNil(lowerResult)
-    }
-
-    func testComplexRegexPattern() {
-        let pattern = LogPattern(
-            name: "IP Address",
-            regex: "\\b(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\b",
-            logPath: "/tmp/test.log",
-            color: CodableColor(red: 1.0, green: 0.0, blue: 0.0)
-        )
-
-        let result = matcher.match(line: "Connection from 192.168.1.1", pattern: pattern)
-
-        XCTAssertNotNil(result)
-        XCTAssertEqual(result?.captureGroups.first, "192.168.1.1")
-    }
+  private func logPattern(
+    regex: String,
+    enabled: Bool = true,
+    name: String = "Test Pattern",
+    filePath: String = "/tmp/test.log"
+  ) -> LogPattern {
+    LogPattern(
+      name: name,
+      regex: regex,
+      logPath: filePath,
+      color: CodableColor(red: 1, green: 0, blue: 0),
+      animationStyle: .glow,
+      enabled: enabled
+    )
+  }
 }

@@ -9,9 +9,9 @@ import SwiftUI
 
 @main
 struct SimmerApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-        }
+  var body: some Scene {
+    WindowGroup {
+      ContentView()
     }
+  }
 }

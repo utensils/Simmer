@@ -2,23 +2,22 @@
 //  FileSystemProtocol.swift
 //  Simmer
 //
-//  Created on 2025-10-28
+//  Abstraction over POSIX file operations to enable deterministic tests.
 //
 
 import Foundation
 
-/// Abstraction over POSIX file I/O for mocking in FileWatcher tests
-/// Per contracts/internal-protocols.md
+/// Contracts the minimal file operations required by ``FileWatcher``.
 protocol FileSystemProtocol {
-    /// Open file at path with flags, returns file descriptor or -1 on error
-    func open(_ path: String, _ oflag: Int32) -> Int32
+  /// Opens a file descriptor for the provided path using the supplied flags.
+  func open(_ path: String, _ oflag: Int32) -> Int32
 
-    /// Read bytes from file descriptor into buffer
-    func read(_ fd: Int32, _ buffer: UnsafeMutableRawPointer, _ count: Int) -> Int
+  /// Reads up to `count` bytes from a file descriptor into `buffer`.
+  func read(_ fd: Int32, _ buffer: UnsafeMutableRawPointer, _ count: Int) -> Int
 
-    /// Close file descriptor
-    func close(_ fd: Int32) -> Int32
+  /// Closes an active file descriptor.
+  func close(_ fd: Int32) -> Int32
 
-    /// Get current file offset
-    func lseek(_ fd: Int32, _ offset: off_t, _ whence: Int32) -> off_t
+  /// Adjusts or returns a file descriptor's offset.
+  func lseek(_ fd: Int32, _ offset: off_t, _ whence: Int32) -> off_t
 }

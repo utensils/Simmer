@@ -2,219 +2,170 @@
 //  IconAnimatorTests.swift
 //  SimmerTests
 //
-//  Created on 2025-10-28
-//
 
-import AppKit
 import XCTest
 @testable import Simmer
 
 @MainActor
 final class IconAnimatorTests: XCTestCase {
-    private var scheduler: MockAnimationScheduler!
-    private var delegate: MockAnimatorDelegate!
-    private var animator: IconAnimator!
-    private var baselineCounts: [ColorChannel: Int] = [:]
+  private var timer: TestAnimationTimer!
+  private var clock: TestAnimationClock!
+  private var animator: IconAnimator!
+  private var delegate: TestIconAnimatorDelegate!
 
-    override func setUp() {
-        super.setUp()
-        scheduler = MockAnimationScheduler()
-        delegate = MockAnimatorDelegate()
-        animator = IconAnimator(scheduler: scheduler)
-        animator.delegate = delegate
+  override func setUp() {
+    super.setUp()
+    timer = TestAnimationTimer()
+    clock = TestAnimationClock()
+    delegate = TestIconAnimatorDelegate()
+    animator = IconAnimator(
+      timerFactory: { [unowned timer] in timer },
+      clock: clock
+    )
+    animator.delegate = delegate
+  }
 
-        baselineCounts[.red] = tintedPixelCount(in: animator.idleIcon, channel: .red) ?? 0
-        baselineCounts[.green] = tintedPixelCount(in: animator.idleIcon, channel: .green) ?? 0
-        baselineCounts[.blue] = tintedPixelCount(in: animator.idleIcon, channel: .blue) ?? 0
-    }
+  override func tearDown() {
+    animator.stopAnimation()
+    animator = nil
+    delegate = nil
+    timer = nil
+    clock = nil
+    super.tearDown()
+  }
 
-    override func tearDown() {
-        animator = nil
-        delegate = nil
-        scheduler = nil
-        baselineCounts = [:]
-        super.tearDown()
-    }
+  func test_startAnimation_notifiesDelegateAndGeneratesFrame() {
+    start(style: .glow)
 
-    func testStartAnimationNotifiesDelegateAndSchedulesFrames_glow() {
-        animator.startAnimation(style: .glow, color: CodableColor(red: 1, green: 0, blue: 0))
+    XCTAssertEqual(delegate.started.count, 1)
+    XCTAssertEqual(delegate.started.first?.0, .glow)
+    XCTAssertEqual(timer.interval ?? 0, 1.0 / 60.0, accuracy: 0.0001)
 
-        XCTAssertEqual(delegate.started.count, 1)
-        XCTAssertEqual(delegate.started.first?.style, .glow)
-        XCTAssertEqual(scheduler.interval, 1.0 / 60.0, accuracy: 0.0001)
-        XCTAssertGreaterThan(delegate.images.count, 0)
+    timer.fire()
+    XCTAssertNotNil(delegate.images.last)
+    XCTAssertEqual(animator.state, .animating(style: .glow, color: color()))
+    XCTAssertNotNil(animator.debugLastParameters)
+  }
 
-        scheduler.fire(times: 10)
-        advanceMainRunLoop(times: 10)
+  func test_glowAnimation_interpolatesOpacityOverCycle() {
+    start(style: .glow)
 
-        XCTAssertEqual(delegate.images.count, 11, "Initial frame plus 10 updates expected")
-        XCTAssertTrue(delegate.images.allSatisfy { $0.size == NSSize(width: 22, height: 22) })
+    timer.fire()
+    let startOpacity = animator.debugLastParameters?.opacity ?? 0
 
-        let reds = delegate.images.compactMap { centerComponentValue(of: $0, channel: .red) }
-        guard let minRed = reds.min(), let maxRed = reds.max() else {
-            return XCTFail("Failed to extract center color values")
-        }
-        XCTAssertGreaterThan(maxRed - minRed, 0.05, "Glow should noticeably change red intensity over time")
-        XCTAssertGreaterThan(minRed, 0.2)
-        XCTAssertLessThanOrEqual(maxRed, 1.0)
-    }
+    clock.advance(by: 1.0) // Halfway through 2s cycle
+    timer.fire()
+    let midOpacity = animator.debugLastParameters?.opacity ?? 0
+    XCTAssertGreaterThan(midOpacity, startOpacity)
 
-    func testPulseAnimationScalesTintedAreaOverTime() {
-        animator.startAnimation(style: .pulse, color: CodableColor(red: 0, green: 1, blue: 0))
+    clock.advance(by: 1.0)
+    timer.fire()
+    let endOpacity = animator.debugLastParameters?.opacity ?? 0
+    XCTAssertLessThan(endOpacity, midOpacity)
+  }
 
-        scheduler.fire(times: 30)
-        advanceMainRunLoop(times: 30)
+  func test_pulseAnimation_scalesIcon() {
+    start(style: .pulse)
 
-        let deltas = delegate.images.compactMap { tintedPixelCount(in: $0, channel: .green) }
-            .map { $0 - baselineCounts[.green, default: 0] }
-        guard let minPixels = deltas.min(), let maxPixels = deltas.max() else {
-            return XCTFail("No pixel data captured")
-        }
+    timer.fire()
+    let baseScale = animator.debugLastParameters?.scale ?? 0
 
-        XCTAssertGreaterThan(maxPixels - minPixels, 40, "Pulse should noticeably change tinted area across frames")
-    }
+    clock.advance(by: 0.75)
+    timer.fire()
+    let peakScale = animator.debugLastParameters?.scale ?? 0
 
-    func testBlinkAnimationAlternatesVisibility() {
-        animator.startAnimation(style: .blink, color: CodableColor(red: 0, green: 0, blue: 1))
+    XCTAssertGreaterThan(peakScale, baseScale)
+  }
 
-        scheduler.fire(times: 40)
-        advanceMainRunLoop(times: 40)
+  func test_blinkAnimation_togglesVisibilityEveryHalfSecond() {
+    start(style: .blink)
 
-        let blues = delegate.images.compactMap { centerComponentValue(of: $0, channel: .blue) }
-        guard let minBlue = blues.min(), let maxBlue = blues.max() else {
-            return XCTFail("Failed to extract blue component values")
-        }
-        let baselineBlue = centerComponentValue(of: animator.idleIcon, channel: .blue) ?? 0.25
-        XCTAssertLessThanOrEqual(minBlue, baselineBlue + 0.05, "Blink should include frames near baseline intensity")
-        XCTAssertGreaterThan(maxBlue, baselineBlue + 0.4, "Blink should include frames with strong tinted intensity")
-    }
+    timer.fire()
+    let firstVisible = animator.debugLastParameters?.visible
+    XCTAssertEqual(firstVisible, true)
 
-    func testStopAnimationResetsStateAndIcon() {
-        animator.startAnimation(style: .glow, color: CodableColor(red: 1, green: 0, blue: 0))
-        scheduler.fire(times: 5)
-        advanceMainRunLoop(times: 5)
+    clock.advance(by: 0.5)
+    timer.fire()
+    let secondVisible = animator.debugLastParameters?.visible
+    XCTAssertEqual(secondVisible, false)
 
-        animator.stopAnimation()
+    clock.advance(by: 0.5)
+    timer.fire()
+    let thirdVisible = animator.debugLastParameters?.visible
+    XCTAssertEqual(thirdVisible, true)
+  }
 
-        XCTAssertEqual(delegate.endedCount, 1)
-        XCTAssertEqual(animator.state, .idle)
-        guard let finalImage = delegate.images.last,
-              let idleData = animator.idleIcon.tiffRepresentation,
-              let finalData = finalImage.tiffRepresentation else {
-            return XCTFail("Missing image data for comparison")
-        }
-        XCTAssertEqual(finalData, idleData)
-    }
+  func test_stopAnimation_transitionsToIdleAndEnds() {
+    start(style: .pulse)
+    timer.fire()
+    animator.stopAnimation()
 
-    // MARK: - Helpers
+    XCTAssertEqual(animator.state, .idle)
+    XCTAssertEqual(delegate.endedCount, 1)
+    XCTAssertFalse(timer.isRunning)
+  }
 
-    private func centerComponentValue(of image: NSImage, channel: ColorChannel) -> CGFloat? {
-        guard let bitmap = bitmap(from: image),
-              let color = bitmap.colorAt(x: bitmap.pixelsWide / 2, y: bitmap.pixelsHigh / 2)?
-                .usingColorSpace(.deviceRGB) else { return nil }
-        switch channel {
-        case .red:
-            return color.redComponent
-        case .green:
-            return color.greenComponent
-        case .blue:
-            return color.blueComponent
-        }
-    }
+  // MARK: - Helpers
 
-    private func tintedPixelCount(in image: NSImage, channel: ColorChannel) -> Int? {
-        guard let bitmap = bitmap(from: image) else { return nil }
-        var count = 0
-        for x in 0..<bitmap.pixelsWide {
-            for y in 0..<bitmap.pixelsHigh {
-                guard let color = bitmap.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB) else { continue }
-                let value: CGFloat
-                switch channel {
-                case .red:
-                    value = color.redComponent
-                case .green:
-                    value = color.greenComponent
-                case .blue:
-                    value = color.blueComponent
-                }
-                if value > 0.35 {
-                    count += 1
-                }
-            }
-        }
-        return count
-    }
+  private func start(style: AnimationStyle) {
+    animator.startAnimation(style: style, color: color())
+  }
 
-    private func bitmap(from image: NSImage) -> NSBitmapImageRep? {
-        guard let data = image.tiffRepresentation else { return nil }
-        return NSBitmapImageRep(data: data)
-    }
-
-    private func advanceMainRunLoop(times: Int) {
-        for _ in 0..<max(1, times) {
-            RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.002))
-        }
-    }
+  private func color() -> CodableColor {
+    CodableColor(red: 0.9, green: 0.2, blue: 0.2)
+  }
 }
 
-private enum ColorChannel {
-    case red
-    case green
-    case blue
+@MainActor
+private final class TestAnimationTimer: AnimationTimer {
+  private(set) var interval: TimeInterval?
+  private(set) var handler: (() -> Void)?
+  private(set) var isRunning = false
+
+  func start(interval: TimeInterval, handler: @escaping @MainActor () -> Void) {
+    self.interval = interval
+    self.handler = handler
+    isRunning = true
+  }
+
+  func stop() {
+    isRunning = false
+    handler = nil
+  }
+
+  func fire() {
+    handler?()
+  }
 }
 
-// MARK: - Test Doubles
+@MainActor
+private final class TestAnimationClock: IconAnimatorClock {
+  private var current: TimeInterval = 0
 
-private final class MockAnimationScheduler: AnimationScheduler {
-    private var handler: (@MainActor () -> Void)?
-    private(set) var isRunning = false
-    private(set) var recordedInterval: TimeInterval = 0
+  func now() -> TimeInterval {
+    current
+  }
 
-    var interval: TimeInterval {
-        recordedInterval
-    }
-
-    func start(interval: TimeInterval, handler: @escaping @MainActor () -> Void) {
-        recordedInterval = interval
-        isRunning = true
-        self.handler = handler
-    }
-
-    func stop() {
-        isRunning = false
-        handler = nil
-        recordedInterval = 0
-    }
-
-    func fire(times: Int = 1) {
-        guard let handler, isRunning else { return }
-        for _ in 0..<times {
-            Task { @MainActor in
-                handler()
-            }
-        }
-    }
+  func advance(by delta: TimeInterval) {
+    current += delta
+  }
 }
 
-private final class MockAnimatorDelegate: IconAnimatorDelegate {
-    struct StartEvent {
-        let style: AnimationStyle
-        let color: CodableColor
-    }
+@MainActor
+private final class TestIconAnimatorDelegate: IconAnimatorDelegate {
+  private(set) var started: [(AnimationStyle, CodableColor)] = []
+  private(set) var endedCount = 0
+  private(set) var images: [NSImage] = []
 
-    private(set) var started: [StartEvent] = []
-    private(set) var images: [NSImage] = []
-    private(set) var endedCount = 0
+  func animationDidStart(style: AnimationStyle, color: CodableColor) {
+    started.append((style, color))
+  }
 
-    func animationDidStart(style: AnimationStyle, color: CodableColor) {
-        started.append(StartEvent(style: style, color: color))
-    }
+  func animationDidEnd() {
+    endedCount += 1
+  }
 
-    func animationDidEnd() {
-        endedCount += 1
-    }
-
-    func updateIcon(_ image: NSImage) {
-        images.append(image)
-    }
+  func updateIcon(_ image: NSImage) {
+    images.append(image)
+  }
 }

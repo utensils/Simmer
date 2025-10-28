@@ -2,30 +2,22 @@
 //  ConfigurationStoreProtocol.swift
 //  Simmer
 //
-//  Created on 2025-10-28
+//  Abstracts persistence for log pattern configurations.
 //
 
 import Foundation
 
-/// Abstract persistence layer for pattern configurations
-/// Per contracts/internal-protocols.md
+/// Describes persistence capabilities used by the monitoring coordinator.
 protocol ConfigurationStoreProtocol {
-    /// Load all patterns from storage
-    func loadPatterns() -> [LogPattern]
+  /// Loads all stored log patterns; returns an empty array when nothing is persisted.
+  func loadPatterns() -> [LogPattern]
 
-    /// Save patterns to storage, throws on encoding/write errors
-    func savePatterns(_ patterns: [LogPattern]) throws
+  /// Persists the supplied collection of patterns, overwriting previous state.
+  func savePatterns(_ patterns: [LogPattern]) throws
 
-    /// Delete specific pattern by ID
-    func deletePattern(id: UUID) throws
+  /// Removes the pattern with a matching identifier.
+  func deletePattern(id: UUID) throws
 
-    /// Update existing pattern
-    func updatePattern(_ pattern: LogPattern) throws
-}
-
-enum ConfigurationStoreError: Error {
-    case encodingFailed
-    case decodingFailed
-    case patternNotFound(UUID)
-    case saveFailed
+  /// Updates an existing pattern with new metadata.
+  func updatePattern(_ pattern: LogPattern) throws
 }

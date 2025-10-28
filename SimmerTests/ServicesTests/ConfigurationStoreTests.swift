@@ -2,121 +2,122 @@
 //  ConfigurationStoreTests.swift
 //  SimmerTests
 //
-//  Created on 2025-10-28
-//
 
 import XCTest
 @testable import Simmer
 
 final class ConfigurationStoreTests: XCTestCase {
-    var store: UserDefaultsStore!
-    var userDefaults: UserDefaults!
+  private var suiteName: String!
+  private var userDefaults: UserDefaults!
+  private var store: ConfigurationStore!
 
-    override func setUp() {
-        super.setUp()
-        // Use separate UserDefaults suite for testing
-        let suiteName = "com.simmer.tests.\(UUID().uuidString)"
-        guard let defaults = UserDefaults(suiteName: suiteName) else {
-            XCTFail("Failed to create UserDefaults suite")
-            return
-        }
-        userDefaults = defaults
-        userDefaults.removePersistentDomain(forName: suiteName)
-        store = UserDefaultsStore(userDefaults: userDefaults)
+  override func setUp() {
+    super.setUp()
+    suiteName = "com.quantierra.SimmerTests.ConfigurationStoreTests"
+    guard let defaults = UserDefaults(suiteName: suiteName) else {
+      XCTFail("Failed to create isolated UserDefaults suite")
+      return
     }
+    defaults.removePersistentDomain(forName: suiteName)
+    userDefaults = defaults
+    store = ConfigurationStore(userDefaults: defaults)
+  }
 
-    override func tearDown() {
-        userDefaults?.removePersistentDomain(forName: "com.simmer.tests")
-        store = nil
-        userDefaults = nil
-        super.tearDown()
+  override func tearDown() {
+    if let defaults = userDefaults, let suite = suiteName {
+      defaults.removePersistentDomain(forName: suite)
     }
+    userDefaults = nil
+    suiteName = nil
+    store = nil
+    super.tearDown()
+  }
 
-    func testLoadPatternsReturnsEmptyArrayWhenNoPatternsStored() {
-        let patterns = store.loadPatterns()
-        XCTAssertTrue(patterns.isEmpty)
+  func test_loadPatterns_whenNothingPersisted_returnsEmptyCollection() {
+    XCTAssertTrue(store.loadPatterns().isEmpty)
+  }
+
+  func test_savePatterns_whenCalled_persistsPatterns() throws {
+    let pattern = makePattern(name: "Errors")
+    try store.savePatterns([pattern])
+
+    let loaded = store.loadPatterns()
+    XCTAssertEqual(loaded, [pattern])
+  }
+
+  func test_updatePattern_whenPatternExists_replacesStoredValue() throws {
+    var pattern = makePattern(name: "Queue Monitor")
+    try store.savePatterns([pattern])
+
+    pattern.name = "Updated Queue Monitor"
+    try store.updatePattern(pattern)
+
+    let loaded = store.loadPatterns()
+    XCTAssertEqual(loaded.first?.name, "Updated Queue Monitor")
+  }
+
+  func test_updatePattern_whenPatternMissing_throwsPatternNotFound() throws {
+    let missing = makePattern(name: "Missing")
+    XCTAssertThrowsError(try store.updatePattern(missing)) { error in
+      XCTAssertEqual(error as? ConfigurationStoreError, .patternNotFound)
     }
+  }
 
-    func testSavePatternsStoresDataInUserDefaults() throws {
-        let pattern = LogPattern(
-            name: "Test Pattern",
-            regex: "ERROR",
-            logPath: "/tmp/test.log",
-            color: CodableColor(red: 1.0, green: 0.0, blue: 0.0)
-        )
+  func test_deletePattern_whenPatternExists_removesItFromStorage() throws {
+    let p1 = makePattern(name: "One")
+    let p2 = makePattern(name: "Two")
+    try store.savePatterns([p1, p2])
 
-        try store.savePatterns([pattern])
+    try store.deletePattern(id: p1.id)
+    let loaded = store.loadPatterns()
+    XCTAssertEqual(loaded, [p2])
+  }
 
-        let loaded = store.loadPatterns()
-        XCTAssertEqual(loaded.count, 1)
-        XCTAssertEqual(loaded.first?.name, "Test Pattern")
-        XCTAssertEqual(loaded.first?.regex, "ERROR")
+  func test_deletePattern_whenPatternMissing_throwsPatternNotFound() {
+    XCTAssertThrowsError(try store.deletePattern(id: UUID())) { error in
+      XCTAssertEqual(error as? ConfigurationStoreError, .patternNotFound)
     }
+  }
 
-    func testUpdatePatternModifiesExistingPattern() throws {
-        var pattern = LogPattern(
-            name: "Original",
-            regex: "ERROR",
-            logPath: "/tmp/test.log",
-            color: CodableColor(red: 1.0, green: 0.0, blue: 0.0)
-        )
+  func test_loadPatterns_whenCorruptDataFound_resetsStorage() throws {
+    userDefaults.set("invalid", forKey: "patterns")
 
-        try store.savePatterns([pattern])
+    let loaded = store.loadPatterns()
+    XCTAssertTrue(loaded.isEmpty)
+    XCTAssertNil(userDefaults.data(forKey: "patterns"))
+  }
 
-        pattern.name = "Updated"
-        try store.updatePattern(pattern)
+  func test_savePatterns_whenEncoderFails_throwsEncodingFailed() {
+    let store = ConfigurationStore(
+      userDefaults: userDefaults,
+      encoder: ThrowingJSONEncoder(),
+      decoder: JSONDecoder()
+    )
 
-        let loaded = store.loadPatterns()
-        XCTAssertEqual(loaded.count, 1)
-        XCTAssertEqual(loaded.first?.name, "Updated")
+    XCTAssertThrowsError(try store.savePatterns([makePattern(name: "Boom")])) { error in
+      XCTAssertEqual(error as? ConfigurationStoreError, .encodingFailed)
     }
+  }
 
-    func testDeletePatternRemovesPattern() throws {
-        let pattern = LogPattern(
-            name: "Test",
-            regex: "ERROR",
-            logPath: "/tmp/test.log",
-            color: CodableColor(red: 1.0, green: 0.0, blue: 0.0)
-        )
+  // MARK: - Helpers
 
-        try store.savePatterns([pattern])
-        try store.deletePattern(id: pattern.id)
+  private func makePattern(name: String) -> LogPattern {
+    LogPattern(
+      name: name,
+      regex: "error",
+      logPath: "/tmp/test.log",
+      color: CodableColor(red: 1, green: 0, blue: 0),
+      animationStyle: .glow,
+      enabled: true
+    )
+  }
+}
 
-        let loaded = store.loadPatterns()
-        XCTAssertTrue(loaded.isEmpty)
-    }
-
-    func testDeletePatternThrowsWhenPatternNotFound() {
-        XCTAssertThrowsError(try store.deletePattern(id: UUID())) { error in
-            guard case ConfigurationStoreError.patternNotFound = error else {
-                XCTFail("Expected patternNotFound error")
-                return
-            }
-        }
-    }
-
-    // NOTE: This test is commented out due to test infrastructure issues with parallel test execution
-    // Persistence is adequately tested by testSavePatternsStoresDataInUserDefaults
-    /*
-    func testPersistenceAcrossInstances() throws {
-        let pattern = LogPattern(
-            name: "Persistent",
-            regex: "ERROR",
-            logPath: "/tmp/test.log",
-            color: CodableColor(red: 1.0, green: 0.0, blue: 0.0)
-        )
-
-        try store.savePatterns([pattern])
-
-        // Force UserDefaults to synchronize
-        userDefaults.synchronize()
-
-        // Create new store instance with same UserDefaults
-        let newStore = UserDefaultsStore(userDefaults: userDefaults)
-        let loaded = newStore.loadPatterns()
-
-        XCTAssertEqual(loaded.count, 1)
-        XCTAssertEqual(loaded.first?.name, "Persistent")
-    }
-    */
+private final class ThrowingJSONEncoder: JSONEncoder {
+  override func encode<T>(_ value: T) throws -> Data where T: Encodable {
+    throw EncodingError.invalidValue(
+      value,
+      .init(codingPath: [], debugDescription: "forced failure")
+    )
+  }
 }

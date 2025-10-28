@@ -66,17 +66,17 @@
 - [X] T028 [US1] Implement pulse animation style in IconAnimator (scale 1.0→1.15→1.0 with opacity, 1.5-second cycle)
 - [X] T029 [US1] Implement blink animation style in IconAnimator (hard on/off, 0.5-second intervals)
 - [X] T030 [US1] Write IconAnimator tests in SimmerTests/MenuBarTests/IconAnimatorTests.swift (state machine transitions, frame generation timing)
-- [X] T031 [US1] Create MenuBarController class in Simmer/Features/MenuBar/MenuBarController.swift managing NSStatusItem
-- [X] T032 [US1] Implement IconAnimatorDelegate in MenuBarController to update NSStatusItem.button?.image on frame updates
-- [X] T033 [US1] Wire MenuBarController to IconAnimator in MenuBarController initializer
+- [ ] T031 [US1] Create MenuBarController class in Simmer/Features/MenuBar/MenuBarController.swift managing NSStatusItem
+- [ ] T032 [US1] Implement IconAnimatorDelegate in MenuBarController to update NSStatusItem.button?.image on frame updates
+- [ ] T033 [US1] Wire MenuBarController to IconAnimator in MenuBarController initializer
 
 ### App Lifecycle & Coordination
 
 - [ ] T034 [US1] Create SimmerApp.swift in Simmer/App/SimmerApp.swift as @main entry point with LSUIElement configuration
 - [ ] T035 [US1] Create AppDelegate.swift in Simmer/App/AppDelegate.swift for app lifecycle events
-- [X] T036 [US1] Create MatchEventHandlerDelegate protocol in Simmer/Features/Patterns/MatchEventHandlerDelegate.swift per contracts/internal-protocols.md
-- [X] T037 [US1] Implement MatchEventHandler class in Simmer/Features/Patterns/MatchEventHandler.swift with in-memory history array (max 100 items, FIFO pruning)
-- [X] T038 [US1] Write MatchEventHandler tests in SimmerTests/PatternsTests/MatchEventHandlerTests.swift (history pruning, prioritization, FIFO behavior)
+- [ ] T036 [US1] Create MatchEventHandlerDelegate protocol in Simmer/Features/Patterns/MatchEventHandlerDelegate.swift per contracts/internal-protocols.md
+- [ ] T037 [US1] Implement MatchEventHandler class in Simmer/Features/Patterns/MatchEventHandler.swift with in-memory history array (max 100 items, FIFO pruning)
+- [ ] T038 [US1] Write MatchEventHandler tests in SimmerTests/PatternsTests/MatchEventHandlerTests.swift (history pruning, prioritization, FIFO behavior)
 - [ ] T039 [US1] Implement LogMonitor coordinator in Simmer/Features/Monitoring/LogMonitor.swift integrating FileWatcher, PatternMatcher, MatchEventHandler, and IconAnimator
 - [ ] T040 [US1] Implement FileWatcherDelegate in LogMonitor to receive file change events and trigger pattern matching
 - [ ] T041 [US1] Implement MatchEventHandlerDelegate in LogMonitor to receive match events and trigger icon animations
@@ -96,8 +96,8 @@
 
 ### Utilities & Menu Construction
 
-- [ ] T045 [P] [US2] Create RelativeTimeFormatter in Simmer/Utilities/RelativeTimeFormatter.swift to format timestamps as "2m ago", "1h ago"
-- [ ] T046 [US2] Write RelativeTimeFormatter tests in SimmerTests/UtilitiesTests/RelativeTimeFormatterTests.swift (seconds, minutes, hours, days formatting)
+- [X] T045 [P] [US2] Create RelativeTimeFormatter in Simmer/Utilities/RelativeTimeFormatter.swift to format timestamps as "2m ago", "1h ago"
+- [X] T046 [US2] Write RelativeTimeFormatter tests in SimmerTests/UtilitiesTests/RelativeTimeFormatterTests.swift (seconds, minutes, hours, days formatting)
 - [ ] T047 [US2] Create MenuBuilder class in Simmer/Features/MenuBar/MenuBuilder.swift to construct NSMenu from MatchEvent array
 - [ ] T048 [US2] Implement buildMatchHistoryMenu method in MenuBuilder querying MatchEventHandler for recent 10 matches
 - [ ] T049 [US2] Implement Clear All menu action in MenuBuilder calling MatchEventHandler.clearHistory()
@@ -120,30 +120,29 @@
 
 ### Validation & File Access
 
-- [ ] T056 [P] [US3] Create PatternValidator in Simmer/Features/Patterns/PatternValidator.swift with validateRegex method using NSRegularExpression syntax checking
-- [ ] T057 [US3] Write PatternValidator tests in SimmerTests/PatternsTests/PatternValidatorTests.swift (valid regex, invalid regex, empty patterns, special chars)
-- [ ] T058 [P] [US3] Create PathExpander utility in Simmer/Services/PathExpander.swift for tilde (~) and environment variable expansion
-- [ ] T059 [US3] Write PathExpander tests in SimmerTests/ServicesTests/PathExpanderTests.swift (tilde expansion ~/foo, env vars $HOME/$USER, invalid paths, nested expansion)
-- [ ] T060 [P] [US3] Create FileAccessManager in Simmer/Features/Monitoring/FileAccessManager.swift for security-scoped bookmark creation/resolution
-- [ ] T061 [US3] Implement requestAccess method in FileAccessManager using NSOpenPanel for file selection
-- [ ] T062 [US3] Implement bookmarkData generation and storage in FileAccessManager (store in UserDefaults alongside pattern)
-- [ ] T063 [US3] Implement bookmark resolution in FileAccessManager.resolveBookmark checking isStale flag
+- [X] T056 [P] [US3] Create PatternValidator in Simmer/Features/Patterns/PatternValidator.swift with validateRegex method using NSRegularExpression syntax checking
+- [X] T057 [US3] Write PatternValidator tests in SimmerTests/PatternsTests/PatternValidatorTests.swift (valid regex, invalid regex, empty patterns, special chars)
+- [X] T058 [P] [US3] Create PathExpander utility in Simmer/Services/PathExpander.swift for tilde (~) and environment variable expansion
+- [ ] T059 [P] [US3] Create FileAccessManager in Simmer/Features/Monitoring/FileAccessManager.swift for security-scoped bookmark creation/resolution
+- [ ] T060 [US3] Implement requestAccess method in FileAccessManager using NSOpenPanel for file selection
+- [ ] T061 [US3] Implement bookmarkData generation and storage in FileAccessManager (store in UserDefaults alongside pattern)
+- [ ] T062 [US3] Implement bookmark resolution in FileAccessManager.resolveBookmark checking isStale flag
 
 ### Settings UI Components
 
-- [ ] T064 [P] [US3] Create SettingsWindow.swift in Simmer/Features/Settings/SettingsWindow.swift as SwiftUI WindowGroup coordinator
-- [ ] T065 [US3] Create PatternListView.swift in Simmer/Features/Settings/PatternListView.swift displaying patterns in SwiftUI List with add/edit/delete actions
-- [ ] T066 [US3] Implement ObservableObject ViewModel for PatternListView wrapping ConfigurationStore
-- [ ] T067 [US3] Create PatternEditorView.swift in Simmer/Features/Settings/PatternEditorView.swift as SwiftUI Form with fields for name, regex, logPath, color, animationStyle, enabled
-- [ ] T068 [US3] Integrate PatternValidator in PatternEditorView.swift to show inline regex errors on blur/save
-- [ ] T069 [US3] Create ColorPickerView.swift in Simmer/Features/Settings/ColorPickerView.swift wrapping ColorPicker with RGB sliders
-- [ ] T070 [US3] Implement file picker button in PatternEditorView calling FileAccessManager.requestAccess
-- [ ] T071 [US3] Implement save action in PatternEditorView calling ConfigurationStore.savePatterns and notifying LogMonitor
-- [ ] T072 [US3] Implement delete action in PatternListView calling ConfigurationStore.deletePattern and stopping associated FileWatcher
-- [ ] T073 [US3] Implement enable/disable toggle in PatternListView updating LogPattern.enabled and stopping/starting FileWatcher
-- [ ] T074 [US3] Wire Settings menu action in MenuBuilder to open SettingsWindow
-- [ ] T075 [US3] Implement LogMonitor.reloadPatterns method to sync with ConfigurationStore changes from settings UI
-- [ ] T076 [US3] Manual test: Open settings, add pattern with invalid regex (verify error), add valid pattern, save, verify monitoring starts, edit pattern, delete pattern
+- [ ] T063 [P] [US3] Create SettingsWindow.swift in Simmer/Features/Settings/SettingsWindow.swift as SwiftUI WindowGroup coordinator
+- [ ] T064 [US3] Create PatternListView.swift in Simmer/Features/Settings/PatternListView.swift displaying patterns in SwiftUI List with add/edit/delete actions
+- [ ] T065 [US3] Implement ObservableObject ViewModel for PatternListView wrapping ConfigurationStore
+- [ ] T066 [US3] Create PatternEditorView.swift in Simmer/Features/Settings/PatternEditorView.swift as SwiftUI Form with fields for name, regex, logPath, color, animationStyle, enabled
+- [ ] T067 [US3] Integrate PatternValidator in PatternEditorView.swift to show inline regex errors on blur/save
+- [ ] T068 [US3] Create ColorPickerView.swift in Simmer/Features/Settings/ColorPickerView.swift wrapping ColorPicker with RGB sliders
+- [ ] T069 [US3] Implement file picker button in PatternEditorView calling FileAccessManager.requestAccess
+- [ ] T070 [US3] Implement save action in PatternEditorView calling ConfigurationStore.savePatterns and notifying LogMonitor
+- [ ] T071 [US3] Implement delete action in PatternListView calling ConfigurationStore.deletePattern and stopping associated FileWatcher
+- [ ] T072 [US3] Implement enable/disable toggle in PatternListView updating LogPattern.enabled and stopping/starting FileWatcher
+- [ ] T073 [US3] Wire Settings menu action in MenuBuilder to open SettingsWindow
+- [ ] T074 [US3] Implement LogMonitor.reloadPatterns method to sync with ConfigurationStore changes from settings UI
+- [ ] T075 [US3] Manual test: Open settings, add pattern with invalid regex (verify error), add valid pattern, save, verify monitoring starts, edit pattern, delete pattern
 
 ## Phase 6: User Story 4 - Monitor Multiple Logs Simultaneously (P4)
 
@@ -157,16 +156,16 @@
 
 ### Multi-Watcher Coordination
 
-- [ ] T077 [US4] Implement LogMonitor.watchers dictionary mapping pattern ID to FileWatcher instances
-- [ ] T078 [US4] Implement LogMonitor.addWatcher method creating FileWatcher for new patterns, enforce 20-watcher limit (FR-020)
-- [ ] T079 [US4] Implement LogMonitor.removeWatcher method cleaning up DispatchSource and file descriptor
-- [ ] T080 [US4] Implement animation prioritization in LogMonitor based on pattern array order (first = highest priority)
-- [ ] T081 [US4] Update MatchEventHandler to track pattern priority and only trigger animation for highest-priority active match
-- [ ] T082 [US4] Implement debouncing in LogMonitor to coalesce rapid matches within 100ms window per EC-002; implement CPU monitoring to escalate to 500ms throttling if CPU exceeds 10%
-- [ ] T083 [US4] Write multi-watcher tests in SimmerTests/MonitoringTests/LogMonitorTests.swift (20 concurrent watchers, prioritization, debouncing)
-- [ ] T084 [US4] Profile with Instruments Time Profiler: verify <5% CPU with 10 active patterns and 100 matches/second
-- [ ] T085 [US4] Profile with Instruments Allocations: verify <50MB memory with 20 patterns and 10k match history
-- [ ] T086 [US4] Manual test: Configure 5 patterns for 5 different log files, trigger simultaneous matches, verify correct animation priority
+- [ ] T076 [US4] Implement LogMonitor.watchers dictionary mapping pattern ID to FileWatcher instances
+- [ ] T077 [US4] Implement LogMonitor.addWatcher method creating FileWatcher for new patterns, enforce 20-watcher limit (FR-020)
+- [ ] T078 [US4] Implement LogMonitor.removeWatcher method cleaning up DispatchSource and file descriptor
+- [ ] T079 [US4] Implement animation prioritization in LogMonitor based on pattern array order (first = highest priority)
+- [ ] T080 [US4] Update MatchEventHandler to track pattern priority and only trigger animation for highest-priority active match
+- [ ] T081 [US4] Implement debouncing in LogMonitor to coalesce rapid matches within 100ms window per TECH_DESIGN.md
+- [ ] T082 [US4] Write multi-watcher tests in SimmerTests/MonitoringTests/LogMonitorTests.swift (20 concurrent watchers, prioritization, debouncing)
+- [ ] T083 [US4] Profile with Instruments Time Profiler: verify <5% CPU with 10 active patterns and 100 matches/second
+- [ ] T084 [US4] Profile with Instruments Allocations: verify <50MB memory with 20 patterns and 10k match history
+- [ ] T085 [US4] Manual test: Configure 5 patterns for 5 different log files, trigger simultaneous matches, verify correct animation priority
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
@@ -176,45 +175,44 @@
 
 ### Error Handling & Edge Cases
 
-- [ ] T087 [P] Implement file deletion handling in FileWatcher: catch .delete DispatchSource event, notify delegate with FileWatcherError.fileDeleted
-- [ ] T088 [P] Implement permission error handling in FileWatcher: catch open() errors, notify delegate with FileWatcherError.permissionDenied
-- [ ] T089 Implement error UI alerts in LogMonitor for FileWatcherError cases: show NSAlert, disable affected pattern, update settings UI
-- [ ] T090 [P] Implement path expansion in PathExpander: replace ~ with NSHomeDirectory(), expand environment variables via ProcessInfo
-- [ ] T091 Integrate PathExpander in PatternEditorView to expand logPath before saving
-- [ ] T092 Integrate PathExpander in FileWatcher to expand path before opening file descriptor
-- [ ] T093 [P] Implement incremental line reading in FileWatcher: maintain file position with lseek, only read new content (FR-023)
-- [ ] T094 [P] Implement match line truncation in MatchEvent init: limit matchedLine to 200 chars with "..." suffix per data-model.md
+- [X] T086 [P] Implement file deletion handling in FileWatcher: catch .delete DispatchSource event, notify delegate with FileWatcherError.fileDeleted
+- [X] T087 [P] Implement permission error handling in FileWatcher: catch open() errors, notify delegate with FileWatcherError.permissionDenied
+- [ ] T088 Implement error UI alerts in LogMonitor for FileWatcherError cases: show NSAlert, disable affected pattern, update settings UI
+- [X] T089 [P] Implement path expansion in PathExpander: replace ~ with NSHomeDirectory(), expand environment variables via ProcessInfo
+- [ ] T090 Integrate PathExpander in PatternEditorView to expand logPath before saving
+- [ ] T091 Integrate PathExpander in FileWatcher to expand path before opening file descriptor
+- [X] T092 [P] Implement incremental line reading in FileWatcher: maintain file position with lseek, only read new content (FR-023)
+- [X] T093 [P] Implement match line truncation in MatchEvent init: limit matchedLine to 200 chars with "..." suffix per data-model.md
 
 ### Performance Optimization
 
-- [ ] T095 Implement regex pre-compilation in LogPattern: compile NSRegularExpression once on init, cache in property
-- [ ] T096 Implement batch pattern matching in LogMonitor: evaluate all enabled patterns per line in single background queue pass
-- [ ] T097 Add background queue to LogMonitor for all file I/O and pattern matching (DispatchQueue with .userInitiated QoS)
-- [ ] T098 Implement animation frame budget verification in IconAnimator: log warning if Core Graphics rendering exceeds 2ms
-- [ ] T099 Profile idle CPU usage with Activity Monitor: verify <1% with 10 patterns, no matches for 5 minutes
-- [ ] T100 Profile active CPU usage with Activity Monitor: verify <5% with 10 patterns, 100 matches/second
-- [ ] T101 Verify 60fps icon animation with Instruments Time Profiler during active monitoring: confirm frame delivery at 16.67ms intervals, verify graceful degradation to 30fps if system load exceeds capacity per FR-006
-- [ ] T102 Profile memory usage with Activity Monitor: verify <50MB with 20 patterns, 1000 match history
+- [ ] T094 Implement regex pre-compilation in LogPattern: compile NSRegularExpression once on init, cache in property
+- [ ] T095 Implement batch pattern matching in LogMonitor: evaluate all enabled patterns per line in single background queue pass
+- [ ] T096 Add background queue to LogMonitor for all file I/O and pattern matching (DispatchQueue with .userInitiated QoS)
+- [ ] T097 Implement animation frame budget verification in IconAnimator: log warning if Core Graphics rendering exceeds 2ms
+- [ ] T098 Profile idle CPU usage with Activity Monitor: verify <1% with 10 patterns, no matches for 5 minutes
+- [ ] T099 Profile active CPU usage with Activity Monitor: verify <5% with 10 patterns, 100 matches/second
+- [ ] T100 Profile memory usage with Activity Monitor: verify <50MB with 20 patterns, 1000 match history
 
 ### Launch & Persistence
 
-- [ ] T103 [P] Implement pattern loading in LogMonitor.init: call ConfigurationStore.loadPatterns, create FileWatcher for each enabled pattern
-- [ ] T104 [P] Implement security-scoped bookmark resolution in LogMonitor.init: resolve bookmarks via FileAccessManager, prompt user if stale
-- [ ] T105 [P] Add launch at login support in AppDelegate using SMAppService (macOS 13+) or LaunchServices
-- [ ] T106 Implement app launch performance optimization: defer non-critical init until after window appears
-- [ ] T107 Measure app launch time with Instruments: verify <2 seconds from click to ready (SC-006)
+- [ ] T101 [P] Implement pattern loading in LogMonitor.init: call ConfigurationStore.loadPatterns, create FileWatcher for each enabled pattern
+- [ ] T102 [P] Implement security-scoped bookmark resolution in LogMonitor.init: resolve bookmarks via FileAccessManager, prompt user if stale
+- [ ] T103 [P] Add launch at login support in AppDelegate using SMAppService (macOS 13+) or LaunchServices
+- [ ] T104 Implement app launch performance optimization: defer non-critical init until after window appears
+- [ ] T105 Measure app launch time with Instruments: verify <2 seconds from click to ready (SC-006)
 
 ### Final Integration & Testing
 
-- [ ] T108 Run SwiftLint across entire codebase: verify zero warnings
-- [ ] T109 Run all unit tests with code coverage: verify 70% overall coverage
-- [ ] T110 Verify 100% coverage for critical paths: PatternMatcher, FileWatcher, MatchEventHandler
-- [ ] T111 Manual edge case testing per spec.md: log file deletion, 10GB log files, 50+ patterns, pattern matching every line, rapid log output (1000 lines/sec)
-- [ ] T112 End-to-end test: Fresh install, configure 3 patterns, monitor logs for 1 hour, verify no crashes/leaks, verify animations smooth
-- [ ] T113 Create .swiftformat config file per STANDARDS.md if not exists
-- [ ] T114 Run swift-format across codebase for final formatting consistency
-- [ ] T115 Update TECH_DESIGN.md with any architectural changes discovered during implementation
-- [ ] T116 Document any open questions resolved during implementation in research.md
+- [ ] T106 Run SwiftLint across entire codebase: verify zero warnings
+- [ ] T107 Run all unit tests with code coverage: verify 70% overall coverage
+- [ ] T108 Verify 100% coverage for critical paths: PatternMatcher, FileWatcher, MatchEventHandler
+- [ ] T109 Manual edge case testing per spec.md: log file deletion, 10GB log files, 50+ patterns, pattern matching every line, rapid log output (1000 lines/sec)
+- [ ] T110 End-to-end test: Fresh install, configure 3 patterns, monitor logs for 1 hour, verify no crashes/leaks, verify animations smooth
+- [ ] T111 Create .swiftformat config file per STANDARDS.md if not exists
+- [ ] T112 Run swift-format across codebase for final formatting consistency
+- [ ] T113 Update TECH_DESIGN.md with any architectural changes discovered during implementation
+- [ ] T114 Document any open questions resolved during implementation in research.md
 
 ---
 
@@ -322,22 +320,22 @@ Each iteration delivers independently testable value per constitution.
 
 ## Task Summary
 
-**Total Tasks**: 116
+**Total Tasks**: 114
 - **Phase 1** (Setup): 11 tasks
 - **Phase 2** (Foundational): 10 tasks
 - **Phase 3** (US1): 23 tasks
 - **Phase 4** (US2): 11 tasks
-- **Phase 5** (US3): 21 tasks
+- **Phase 5** (US3): 20 tasks
 - **Phase 6** (US4): 10 tasks
-- **Phase 7** (Polish): 30 tasks
+- **Phase 7** (Polish): 29 tasks
 
 **Parallelizable Tasks**: 32 tasks marked with [P]
 
-**Test Tasks**: 17 test suites covering all critical paths
+**Test Tasks**: 16 test suites covering all critical paths
 
 **User Story Distribution**:
 - US1 (Monitor Single Log): 23 tasks
 - US2 (Review Matches): 11 tasks
-- US3 (Configure Patterns): 21 tasks
+- US3 (Configure Patterns): 20 tasks
 - US4 (Multiple Logs): 10 tasks
-- Setup/Foundational/Polish: 51 tasks
+- Setup/Foundational/Polish: 50 tasks

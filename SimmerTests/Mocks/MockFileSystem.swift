@@ -2,115 +2,170 @@
 //  MockFileSystem.swift
 //  SimmerTests
 //
-//  Created on 2025-10-28
+//  Test double for ``FileSystemProtocol`` that simulates POSIX semantics.
 //
 
+import Darwin
 import Foundation
 @testable import Simmer
 
-/// Mock file system for testing FileWatcher without disk I/O
-class MockFileSystem: FileSystemProtocol {
-    private var files: [Int32: MockFile] = [:]
-    private var nextFD: Int32 = 100
-    private var pathToFD: [String: Int32] = [:]
+final class MockFileSystem: FileSystemProtocol {
+  private struct DescriptorState {
+    let path: String
+    var offset: off_t
+  }
 
-    struct MockFile {
-        var path: String
-        var content: Data
-        var position: Int = 0
-        var isOpen: Bool = true
+  private var descriptors: [Int32: DescriptorState] = [:]
+  private var nextDescriptor: Int32 = 3
+
+  /// Backing store keyed by absolute file path.
+  var files: [String: Data] = [:]
+
+  /// Paths that should fail to open with the supplied errno value.
+  var openFailures: [String: Int32] = [:]
+
+  /// Descriptors that should fail future read operations with the supplied errno value.
+  var readFailures: [Int32: Int32] = [:]
+
+  /// Descriptors that should fail to close with the supplied errno value.
+  var closeFailures: [Int32: Int32] = [:]
+
+  /// Descriptors that should fail to seek with the supplied errno value.
+  var lseekFailures: [Int32: Int32] = [:]
+
+  func open(_ path: String, _ oflag: Int32) -> Int32 {
+    if let errnoValue = openFailures[path] {
+      Darwin.errno = errnoValue
+      return -1
     }
 
-    func simulateFileCreation(path: String, content: String = "") {
-        let data = content.data(using: .utf8) ?? Data()
-        let fd = nextFD
-        nextFD += 1
-
-        files[fd] = MockFile(path: path, content: data)
-        pathToFD[path] = fd
+    if files[path] == nil {
+      files[path] = Data()
     }
 
-    func simulateAppend(to path: String, content: String) {
-        guard let fd = pathToFD[path],
-              var file = files[fd] else { return }
+    let descriptor = nextDescriptor
+    nextDescriptor += 1
+    descriptors[descriptor] = DescriptorState(path: path, offset: 0)
+    return descriptor
+  }
 
-        let newData = content.data(using: .utf8) ?? Data()
-        file.content.append(newData)
-        files[fd] = file
+  func read(_ fd: Int32, _ buffer: UnsafeMutableRawPointer, _ count: Int) -> Int {
+    if let errnoValue = readFailures[fd] {
+      Darwin.errno = errnoValue
+      return -1
     }
 
-    func simulateFileDeletion(path: String) {
-        if let fd = pathToFD[path] {
-            files.removeValue(forKey: fd)
-            pathToFD.removeValue(forKey: path)
-        }
+    guard var state = descriptors[fd] else {
+      Darwin.errno = EBADF
+      return -1
     }
 
-    func invalidateDescriptor(for path: String) {
-        guard let fd = pathToFD[path],
-              var file = files[fd] else { return }
-        file.isOpen = false
-        files[fd] = file
+    guard let data = files[state.path] else {
+      Darwin.errno = ENOENT
+      return -1
     }
 
-    func open(_ path: String, _ oflag: Int32) -> Int32 {
-        if let fd = pathToFD[path] {
-            return fd
-        }
-
-        // File doesn't exist
-        return -1
+    let remaining = data.count - Int(state.offset)
+    if remaining <= 0 {
+      return 0
     }
 
-    func read(_ fd: Int32, _ buffer: UnsafeMutableRawPointer, _ count: Int) -> Int {
-        guard var file = files[fd], file.isOpen else {
-            return -1
-        }
+    let length = min(count, remaining)
+    let range = Int(state.offset)..<Int(state.offset) + length
+    let slice = data.subdata(in: range)
+    slice.copyBytes(to: buffer.assumingMemoryBound(to: UInt8.self), count: length)
+    state.offset += off_t(length)
+    descriptors[fd] = state
+    return length
+  }
 
-        let availableBytes = file.content.count - file.position
-        let bytesToRead = min(count, availableBytes)
-
-        guard bytesToRead > 0 else { return 0 }
-
-        let range = file.position..<(file.position + bytesToRead)
-        file.content.copyBytes(to: buffer.assumingMemoryBound(to: UInt8.self), from: range)
-
-        file.position += bytesToRead
-        files[fd] = file
-
-        return bytesToRead
+  func close(_ fd: Int32) -> Int32 {
+    if let errnoValue = closeFailures[fd] {
+      Darwin.errno = errnoValue
+      return -1
     }
 
-    func close(_ fd: Int32) -> Int32 {
-        guard var file = files[fd] else {
-            return -1
-        }
-
-        file.isOpen = false
-        files[fd] = file
-        return 0
+    guard descriptors.removeValue(forKey: fd) != nil else {
+      Darwin.errno = EBADF
+      return -1
     }
 
-    func lseek(_ fd: Int32, _ offset: off_t, _ whence: Int32) -> off_t {
-        guard var file = files[fd] else {
-            return -1
-        }
+    return 0
+  }
 
-        let newPosition: Int
-        switch whence {
-        case SEEK_SET:
-            newPosition = Int(offset)
-        case SEEK_CUR:
-            newPosition = file.position + Int(offset)
-        case SEEK_END:
-            newPosition = file.content.count + Int(offset)
-        default:
-            return -1
-        }
-
-        file.position = max(0, min(newPosition, file.content.count))
-        files[fd] = file
-
-        return off_t(file.position)
+  func lseek(_ fd: Int32, _ offset: off_t, _ whence: Int32) -> off_t {
+    if let errnoValue = lseekFailures[fd] {
+      Darwin.errno = errnoValue
+      return -1
     }
+
+    guard var state = descriptors[fd] else {
+      Darwin.errno = EBADF
+      return -1
+    }
+
+    guard let data = files[state.path] else {
+      Darwin.errno = ENOENT
+      return -1
+    }
+
+    let newOffset: off_t
+    switch whence {
+    case SEEK_SET:
+      newOffset = offset
+    case SEEK_CUR:
+      newOffset = state.offset + offset
+    case SEEK_END:
+      newOffset = off_t(data.count) + offset
+    default:
+      Darwin.errno = EINVAL
+      return -1
+    }
+
+    if newOffset < 0 {
+      Darwin.errno = EINVAL
+      return -1
+    }
+
+    state.offset = newOffset
+    descriptors[fd] = state
+    return newOffset
+  }
+}
+
+// MARK: - Test Helpers
+
+extension MockFileSystem {
+  /// Replaces the entire file contents for `path`.
+  func overwriteFile(_ path: String, with string: String, encoding: String.Encoding = .utf8) {
+    if let data = string.data(using: encoding) {
+      files[path] = data
+    } else {
+      files[path] = Data()
+    }
+  }
+
+  /// Appends content to the existing data backing `path`.
+  func append(_ string: String, to path: String, encoding: String.Encoding = .utf8) {
+    var data = files[path] ?? Data()
+    if let chunk = string.data(using: encoding) {
+      data.append(chunk)
+    }
+    files[path] = data
+  }
+
+  /// Removes the backing store for `path`, simulating file deletion.
+  func deleteFile(at path: String) {
+    files.removeValue(forKey: path)
+  }
+
+  /// Retrieves the current offset for a descriptor, useful for assertions.
+  func offset(for fd: Int32) -> off_t? {
+    descriptors[fd]?.offset
+  }
+
+  /// Returns the descriptor associated with a specific path, if one exists.
+  func descriptor(forPath path: String) -> Int32? {
+    descriptors.first { $0.value.path == path }?.key
+  }
 }

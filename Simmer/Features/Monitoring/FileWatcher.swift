@@ -2,216 +2,206 @@
 //  FileWatcher.swift
 //  Simmer
 //
-//  Created on 2025-10-28
+//  Observes a single log file for appended content using DispatchSource.
 //
 
-import Dispatch
+import Darwin
 import Foundation
 
 protocol FileSystemEventSource: AnyObject {
-    var data: DispatchSource.FileSystemEvent { get }
-    func setEventHandler(handler: @escaping () -> Void)
-    func setCancelHandler(handler: (() -> Void)?)
-    func resume()
-    func cancel()
+  func setEventHandler(handler: @escaping () -> Void)
+  func setCancelHandler(handler: @escaping () -> Void)
+  func resume()
+  func cancel()
 }
 
-protocol FileSystemEventSourceFactory {
-    func makeSource(
-        fileDescriptor: Int32,
-        mask: DispatchSource.FileSystemEvent,
-        queue: DispatchQueue
-    ) -> FileSystemEventSource
+final class DispatchSourceFileSystemWrapper: FileSystemEventSource {
+  private let source: DispatchSourceFileSystemObject
+
+  init(fileDescriptor: Int32, mask: DispatchSource.FileSystemEvent, queue: DispatchQueue) {
+    source = DispatchSource.makeFileSystemObjectSource(
+      fileDescriptor: fileDescriptor,
+      eventMask: mask,
+      queue: queue
+    )
+  }
+
+  func setEventHandler(handler: @escaping () -> Void) {
+    source.setEventHandler(handler: handler)
+  }
+
+  func setCancelHandler(handler: @escaping () -> Void) {
+    source.setCancelHandler(handler: handler)
+  }
+
+  func resume() {
+    source.resume()
+  }
+
+  func cancel() {
+    source.cancel()
+  }
 }
 
-struct DispatchSourceFactory: FileSystemEventSourceFactory {
-    func makeSource(
-        fileDescriptor: Int32,
-        mask: DispatchSource.FileSystemEvent,
-        queue: DispatchQueue
-    ) -> FileSystemEventSource {
-        let source = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: fileDescriptor,
-            eventMask: mask,
-            queue: queue
-        )
-        return DispatchFileSystemEventSource(source: source)
+final class FileWatcher {
+  typealias SourceFactory = (Int32, DispatchSource.FileSystemEvent, DispatchQueue) -> FileSystemEventSource
+
+  weak var delegate: FileWatcherDelegate?
+  let path: String
+
+  private let fileSystem: FileSystemProtocol
+  private let queue: DispatchQueue
+  private let sourceFactory: SourceFactory
+  private let bufferSize: Int
+  private var source: FileSystemEventSource?
+  private var fileDescriptor: Int32 = -1
+  private var readOffset: off_t = 0
+  private var remainder = ""
+  private var isRunning = false
+
+  init(
+    path: String,
+    fileSystem: FileSystemProtocol = RealFileSystem(),
+    queue: DispatchQueue = DispatchQueue(label: "com.quantierra.Simmer.FileWatcher"),
+    bufferSize: Int = 4_096,
+    sourceFactory: @escaping SourceFactory = { fd, mask, queue in
+      DispatchSourceFileSystemWrapper(fileDescriptor: fd, mask: mask, queue: queue)
     }
-}
+  ) {
+    self.path = path
+    self.fileSystem = fileSystem
+    self.queue = queue
+    self.bufferSize = bufferSize
+    self.sourceFactory = sourceFactory
+  }
 
-final class DispatchFileSystemEventSource: FileSystemEventSource {
-    private let source: DispatchSourceFileSystemObject
+  deinit {
+    stop()
+  }
 
-    init(source: DispatchSourceFileSystemObject) {
-        self.source = source
+  func start() throws {
+    guard !isRunning else { return }
+
+    let descriptor = fileSystem.open(path, O_RDONLY)
+    guard descriptor >= 0 else {
+      throw mapErrnoToError(Darwin.errno)
+    }
+    fileDescriptor = descriptor
+
+    let position = fileSystem.lseek(descriptor, 0, SEEK_END)
+    guard position >= 0 else {
+      fileSystem.close(descriptor)
+      throw FileWatcherError.fileDescriptorInvalid
+    }
+    readOffset = position
+
+    let eventMask: DispatchSource.FileSystemEvent = [.write, .extend, .delete]
+    let eventSource = sourceFactory(descriptor, eventMask, queue)
+    eventSource.setEventHandler { [weak self] in
+      self?.handleFileEvent()
+    }
+    eventSource.setCancelHandler { [weak self] in
+      self?.cleanup()
+    }
+    eventSource.resume()
+
+    source = eventSource
+    isRunning = true
+  }
+
+  func stop() {
+    guard isRunning else { return }
+    isRunning = false
+    source?.cancel()
+    source = nil
+    cleanup()
+  }
+
+  private func handleFileEvent() {
+    guard fileDescriptor >= 0 else {
+      delegate?.fileWatcher(self, didEncounterError: .fileDescriptorInvalid)
+      return
     }
 
-    var data: DispatchSource.FileSystemEvent {
-        source.data
+    var collectedData = Data()
+
+    let seekResult = fileSystem.lseek(fileDescriptor, readOffset, SEEK_SET)
+    if seekResult == -1 {
+      delegate?.fileWatcher(self, didEncounterError: mapErrnoToError(Darwin.errno))
+      stop()
+      return
     }
 
-    func setEventHandler(handler: @escaping () -> Void) {
-        source.setEventHandler(handler: handler)
-    }
-
-    func setCancelHandler(handler: (() -> Void)?) {
-        source.setCancelHandler(handler: handler)
-    }
-
-    func resume() {
-        source.resume()
-    }
-
-    func cancel() {
-        source.cancel()
-    }
-}
-
-/// Monitors a single log file for new appended content using DispatchSource.
-/// Per TECH_DESIGN.md: Uses DispatchSource.makeFileSystemObjectSource with .write and .extend masks.
-class FileWatcher {
-    let filePath: String
-    weak var delegate: FileWatcherDelegate?
-
-    private let fileSystem: FileSystemProtocol
-    private let sourceFactory: FileSystemEventSourceFactory
-    private var fileDescriptor: Int32?
-    private var dispatchSource: FileSystemEventSource?
-    private let queue: DispatchQueue
-
-    init(
-        path: String,
-        fileSystem: FileSystemProtocol = RealFileSystem(),
-        queue: DispatchQueue = DispatchQueue(label: "com.simmer.filewatcher", qos: .userInitiated),
-        sourceFactory: FileSystemEventSourceFactory = DispatchSourceFactory()
-    ) {
-        self.filePath = path
-        self.fileSystem = fileSystem
-        self.queue = queue
-        self.sourceFactory = sourceFactory
-    }
-
-    func startWatching() {
-        queue.async { [weak self] in
-            self?.openFileAndStartMonitoring()
+    while true {
+      var buffer = Data(count: bufferSize)
+      let bytesRead = buffer.withUnsafeMutableBytes { pointer -> Int in
+        guard let baseAddress = pointer.baseAddress else {
+          return 0
         }
+        return fileSystem.read(fileDescriptor, baseAddress, bufferSize)
+      }
+
+      if bytesRead > 0 {
+        readOffset += off_t(bytesRead)
+        collectedData.append(buffer.prefix(bytesRead))
+        if bytesRead < bufferSize {
+          break
+        }
+      } else if bytesRead == 0 {
+        break
+      } else {
+        delegate?.fileWatcher(self, didEncounterError: mapErrnoToError(Darwin.errno))
+        stop()
+        return
+      }
     }
 
-    func stopWatching() {
-        dispatchSource?.cancel()
-        if let fd = fileDescriptor {
-            _ = fileSystem.close(fd)
-        }
-        fileDescriptor = nil
-        dispatchSource = nil
+    guard !collectedData.isEmpty else {
+      return
     }
 
-    private func openFileAndStartMonitoring() {
-        let fd = fileSystem.open(filePath, O_RDONLY)
-        guard fd >= 0 else {
-            notifyOnMain(error: .permissionDenied(path: filePath))
-            return
-        }
+    emitLines(from: collectedData)
+  }
 
-        fileDescriptor = fd
-
-        // Seek to end of file to only read new content (FR-023).
-        _ = fileSystem.lseek(fd, 0, SEEK_END)
-
-        // Create DispatchSource for file monitoring.
-        let source = sourceFactory.makeSource(
-            fileDescriptor: fd,
-            mask: [.write, .extend, .delete],
-            queue: queue
-        )
-
-        source.setEventHandler { [weak self] in
-            self?.handleFileEvent()
-        }
-
-        source.setCancelHandler { [weak self] in
-            if let fd = self?.fileDescriptor {
-                _ = self?.fileSystem.close(fd)
-            }
-        }
-
-        dispatchSource = source
-        source.resume()
+  private func emitLines(from data: Data) {
+    guard let chunk = String(data: data, encoding: .utf8), !chunk.isEmpty else {
+      return
     }
 
-    private func handleFileEvent() {
-        guard let fd = fileDescriptor,
-              let source = dispatchSource else { return }
+    let combined = remainder + chunk
+    var segments = combined.components(separatedBy: "\n")
 
-        let eventData = source.data
-
-        if eventData.contains(.delete) {
-            notifyOnMain(error: .fileDeleted(path: filePath))
-            stopWatching()
-            return
-        }
-
-        let (newLines, error) = readNewLines(from: fd)
-
-        if let error {
-            notifyOnMain(error: error)
-            stopWatching()
-            return
-        }
-
-        if !newLines.isEmpty {
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self else { return }
-                self.delegate?.fileWatcher(self, didReadLines: newLines)
-            }
-        }
+    if combined.last != "\n" {
+      remainder = segments.removeLast()
+    } else {
+      remainder = ""
     }
 
-    private func readNewLines(from fd: Int32) -> ([String], FileWatcherError?) {
-        var lines: [String] = []
-        let bufferSize = 4096
-        var buffer = [UInt8](repeating: 0, count: bufferSize)
+    let lines = segments.filter { !$0.isEmpty }
+    guard !lines.isEmpty else { return }
 
-        var accumulatedData = Data()
-        var encounteredError = false
+    delegate?.fileWatcher(self, didReadLines: lines)
+  }
 
-        while true {
-            let bytesRead = fileSystem.read(fd, &buffer, bufferSize)
-
-            if bytesRead > 0 {
-                accumulatedData.append(contentsOf: buffer.prefix(bytesRead))
-                continue
-            }
-
-            if bytesRead == 0 {
-                break
-            }
-
-            encounteredError = true
-            break
-        }
-
-        if encounteredError {
-            return ([], .fileDescriptorInvalid)
-        }
-
-        guard !accumulatedData.isEmpty else { return ([], nil) }
-
-        if let content = String(data: accumulatedData, encoding: .utf8) {
-            lines = content.components(separatedBy: .newlines).filter { !$0.isEmpty }
-        }
-
-        return (lines, nil)
+  private func cleanup() {
+    if fileDescriptor >= 0 {
+      _ = fileSystem.close(fileDescriptor)
+      fileDescriptor = -1
     }
+    remainder = ""
+    readOffset = 0
+  }
 
-    deinit {
-        stopWatching()
+  private func mapErrnoToError(_ value: Int32) -> FileWatcherError {
+    switch value {
+    case ENOENT:
+      return .fileDeleted(path: path)
+    case EACCES:
+      return .permissionDenied(path: path)
+    case EBADF:
+      return .fileDescriptorInvalid
+    default:
+      return .fileDescriptorInvalid
     }
-
-    private func notifyOnMain(error: FileWatcherError) {
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            self.delegate?.fileWatcher(self, didEncounterError: error)
-        }
-    }
+  }
 }

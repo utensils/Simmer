@@ -2,25 +2,39 @@
 //  MockPatternMatcher.swift
 //  SimmerTests
 //
-//  Created on 2025-10-28
+//  Predictable ``PatternMatcherProtocol`` implementation for unit tests.
 //
 
 import Foundation
 @testable import Simmer
 
-/// Mock pattern matcher for testing without real NSRegularExpression
-class MockPatternMatcher: PatternMatcherProtocol {
-    private var configuredMatches: [(patternID: UUID, line: String, result: MatchResult)] = []
+final class MockPatternMatcher: PatternMatcherProtocol {
+  private var queuedResults: [UUID: [MatchResult?]] = [:]
+  private(set) var evaluatedLines: [String] = []
 
-    func addMatch(for patternID: UUID, line: String, result: MatchResult) {
-        configuredMatches.append((patternID, line, result))
+  var fallbackResult: MatchResult?
+
+  func match(line: String, pattern: LogPattern) -> MatchResult? {
+    evaluatedLines.append(line)
+
+    if var results = queuedResults[pattern.id], !results.isEmpty {
+      let next = results.removeFirst()
+      queuedResults[pattern.id] = results
+      return next
     }
 
-    func match(line: String, pattern: LogPattern) -> MatchResult? {
-        configuredMatches.first { $0.patternID == pattern.id && $0.line == line }?.result
-    }
+    return fallbackResult
+  }
 
-    func reset() {
-        configuredMatches.removeAll()
-    }
+  func enqueue(_ result: MatchResult?, for patternID: UUID) {
+    var results = queuedResults[patternID, default: []]
+    results.append(result)
+    queuedResults[patternID] = results
+  }
+
+  func clear() {
+    queuedResults.removeAll()
+    evaluatedLines.removeAll()
+    fallbackResult = nil
+  }
 }

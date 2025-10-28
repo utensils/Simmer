@@ -2,35 +2,39 @@
 //  InMemoryStore.swift
 //  SimmerTests
 //
-//  Created on 2025-10-28
+//  Ephemeral ``ConfigurationStoreProtocol`` implementation for unit tests.
 //
 
 import Foundation
 @testable import Simmer
 
-/// In-memory implementation of ConfigurationStoreProtocol for testing
-class InMemoryStore: ConfigurationStoreProtocol {
-    private var patterns: [LogPattern] = []
+final class InMemoryStore: ConfigurationStoreProtocol {
+  private var storage: [LogPattern]
 
-    func loadPatterns() -> [LogPattern] {
-        patterns
-    }
+  init(initialPatterns: [LogPattern] = []) {
+    storage = initialPatterns
+  }
 
-    func savePatterns(_ patterns: [LogPattern]) throws {
-        self.patterns = patterns
-    }
+  func loadPatterns() -> [LogPattern] {
+    storage
+  }
 
-    func deletePattern(id: UUID) throws {
-        guard let index = patterns.firstIndex(where: { $0.id == id }) else {
-            throw ConfigurationStoreError.patternNotFound(id)
-        }
-        patterns.remove(at: index)
-    }
+  func savePatterns(_ patterns: [LogPattern]) throws {
+    storage = patterns
+  }
 
-    func updatePattern(_ pattern: LogPattern) throws {
-        guard let index = patterns.firstIndex(where: { $0.id == pattern.id }) else {
-            throw ConfigurationStoreError.patternNotFound(pattern.id)
-        }
-        patterns[index] = pattern
+  func deletePattern(id: UUID) throws {
+    let initialCount = storage.count
+    storage.removeAll { $0.id == id }
+    if storage.count == initialCount {
+      throw ConfigurationStoreError.patternNotFound
     }
+  }
+
+  func updatePattern(_ pattern: LogPattern) throws {
+    guard let index = storage.firstIndex(where: { $0.id == pattern.id }) else {
+      throw ConfigurationStoreError.patternNotFound
+    }
+    storage[index] = pattern
+  }
 }
