@@ -9,7 +9,7 @@ import Foundation
 
 /// Central coordinator that listens to file changes, evaluates patterns, and triggers visual feedback.
 final class LogMonitor: NSObject {
-  typealias WatcherFactory = (LogPattern) -> FileWatcher
+  typealias WatcherFactory = (LogPattern) -> FileWatching
 
   private struct WatchContext {
     var pattern: LogPattern
@@ -23,7 +23,7 @@ final class LogMonitor: NSObject {
   private let watcherFactory: WatcherFactory
   private let stateQueue = DispatchQueue(label: "com.quantierra.Simmer.log-monitor")
 
-  private var watchers: [ObjectIdentifier: FileWatcher] = [:]
+  private var watchers: [ObjectIdentifier: FileWatching] = [:]
   private var contexts: [ObjectIdentifier: WatchContext] = [:]
   private var patternIdentifiers: [UUID: ObjectIdentifier] = [:]
 
@@ -62,7 +62,7 @@ final class LogMonitor: NSObject {
 
   /// Stops all active watchers and clears internal state.
   func stopAll() {
-    let activeWatchers: [FileWatcher] = stateQueue.sync {
+    let activeWatchers: [FileWatching] = stateQueue.sync {
       let current = Array(watchers.values)
       watchers.removeAll()
       contexts.removeAll()
@@ -136,11 +136,11 @@ final class LogMonitor: NSObject {
     stateQueue.sync { patternIdentifiers[patternID] != nil }
   }
 
-  private func context(for watcher: FileWatcher) -> WatchContext? {
+  private func context(for watcher: FileWatching) -> WatchContext? {
     stateQueue.sync { contexts[ObjectIdentifier(watcher)] }
   }
 
-  private func updateLineCount(for watcher: FileWatcher, count: Int) {
+  private func updateLineCount(for watcher: FileWatching, count: Int) {
     stateQueue.sync {
       let identifier = ObjectIdentifier(watcher)
       guard var context = contexts[identifier] else { return }
@@ -163,7 +163,7 @@ final class LogMonitor: NSObject {
 // MARK: - FileWatcherDelegate
 
 extension LogMonitor: FileWatcherDelegate {
-  func fileWatcher(_ watcher: FileWatcher, didReadLines lines: [String]) {
+  func fileWatcher(_ watcher: FileWatching, didReadLines lines: [String]) {
     guard var context = context(for: watcher), !lines.isEmpty else { return }
 
     var nextLineNumber = context.lineCount
@@ -173,8 +173,9 @@ extension LogMonitor: FileWatcherDelegate {
       guard patternMatcher.match(line: line, pattern: context.pattern) != nil else { continue }
 
       let pattern = context.pattern
-      Task { @MainActor [weak self] in
-        self?.matchEventHandler.handleMatch(
+      DispatchQueue.main.async { [weak self] in
+        guard let self else { return }
+        self.matchEventHandler.handleMatch(
           pattern: pattern,
           line: line,
           lineNumber: nextLineNumber,
@@ -186,7 +187,7 @@ extension LogMonitor: FileWatcherDelegate {
     updateLineCount(for: watcher, count: nextLineNumber)
   }
 
-  func fileWatcher(_ watcher: FileWatcher, didEncounterError error: FileWatcherError) {
+  func fileWatcher(_ watcher: FileWatching, didEncounterError error: FileWatcherError) {
     removeWatcher(forIdentifier: ObjectIdentifier(watcher))
   }
 }

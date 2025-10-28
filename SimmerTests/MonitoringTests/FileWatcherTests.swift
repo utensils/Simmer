@@ -126,12 +126,12 @@ private final class TestFileWatcherDelegate: FileWatcherDelegate {
   var linesExpectation: XCTestExpectation?
   var errorExpectation: XCTestExpectation?
 
-  func fileWatcher(_ watcher: FileWatcher, didReadLines lines: [String]) {
+  func fileWatcher(_ watcher: FileWatching, didReadLines lines: [String]) {
     receivedLines.append(lines)
     linesExpectation?.fulfill()
   }
 
-  func fileWatcher(_ watcher: FileWatcher, didEncounterError error: FileWatcherError) {
+  func fileWatcher(_ watcher: FileWatching, didEncounterError error: FileWatcherError) {
     receivedErrors.append(error)
     errorExpectation?.fulfill()
   }

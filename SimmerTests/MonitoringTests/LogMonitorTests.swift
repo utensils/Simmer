@@ -24,16 +24,15 @@ final class LogMonitorTests: XCTestCase {
       patternMatcher: MockPatternMatcher(),
       matchEventHandler: handler,
       iconAnimator: iconAnimator,
-      watcherFactory: { pattern in
-        registry.makeWatcher(for: pattern)
-      }
+      watcherFactory: registry.makeWatcher(for:)
     )
 
     monitor.start()
 
-    XCTAssertNotNil(registry.record(for: enabled.id))
-    XCTAssertNil(registry.record(for: disabled.id))
-    XCTAssertEqual(registry.record(for: enabled.id)?.eventSource.resumeCallCount, 1)
+    XCTAssertNotNil(registry.watcher(for: enabled.id))
+    XCTAssertNil(registry.watcher(for: disabled.id))
+    XCTAssertEqual(registry.watcher(for: enabled.id)?.startCount, 1)
+
     monitor.stopAll()
   }
 
@@ -56,13 +55,11 @@ final class LogMonitorTests: XCTestCase {
       patternMatcher: matcher,
       matchEventHandler: handler,
       iconAnimator: iconAnimator,
-      watcherFactory: { pattern in
-        registry.makeWatcher(for: pattern)
-      }
+      watcherFactory: registry.makeWatcher(for:)
     )
 
     monitor.start()
-    guard let record = registry.record(for: pattern.id) else {
+    guard let watcher = registry.watcher(for: pattern.id) else {
       XCTFail("Watcher not created for pattern")
       return
     }
@@ -72,8 +69,7 @@ final class LogMonitorTests: XCTestCase {
       expectation.fulfill()
     }
 
-    registry.fileSystem.append("ERROR detected\n", to: pattern.logPath)
-    record.eventSource.trigger(eventMask: .write)
+    watcher.send(lines: ["ERROR detected"])
 
     wait(for: [expectation], timeout: 1.0)
     XCTAssertEqual(handler.history.count, 1)
@@ -99,34 +95,44 @@ final class LogMonitorTests: XCTestCase {
 // MARK: - Test Doubles
 
 private final class TestWatcherRegistry {
-  struct Record {
-    let watcher: FileWatcher
-    let eventSource: MockFileSystemEventSource
-  }
+  private var storage: [UUID: StubFileWatcher] = [:]
 
-  let fileSystem = MockFileSystem()
-  private var records: [UUID: Record] = [:]
-
-  func makeWatcher(for pattern: LogPattern) -> FileWatcher {
-    let eventSource = MockFileSystemEventSource()
-    let sourceFactory = MockFileSystemEventSourceFactory(source: eventSource)
-    let queue = DispatchQueue(label: "com.quantierra.Simmer.tests.filewatcher.\(pattern.id.uuidString)")
-
-    let watcher = FileWatcher(
-      path: pattern.logPath,
-      fileSystem: fileSystem,
-      queue: queue,
-      sourceFactory: { fd, mask, queue in
-        sourceFactory.makeSource(fileDescriptor: fd, mask: mask, queue: queue)
-      }
-    )
-
-    records[pattern.id] = Record(watcher: watcher, eventSource: eventSource)
+  func makeWatcher(for pattern: LogPattern) -> FileWatching {
+    let watcher = StubFileWatcher(path: pattern.logPath)
+    storage[pattern.id] = watcher
     return watcher
   }
 
-  func record(for id: UUID) -> Record? {
-    records[id]
+  func watcher(for id: UUID) -> StubFileWatcher? {
+    storage[id]
+  }
+}
+
+private final class StubFileWatcher: FileWatching {
+  let path: String
+  weak var delegate: FileWatcherDelegate?
+
+  private(set) var startCount = 0
+  private(set) var stopCount = 0
+
+  init(path: String) {
+    self.path = path
+  }
+
+  func start() throws {
+    startCount += 1
+  }
+
+  func stop() {
+    stopCount += 1
+  }
+
+  func send(lines: [String]) {
+    delegate?.fileWatcher(self, didReadLines: lines)
+  }
+
+  func send(error: FileWatcherError) {
+    delegate?.fileWatcher(self, didEncounterError: error)
   }
 }
 

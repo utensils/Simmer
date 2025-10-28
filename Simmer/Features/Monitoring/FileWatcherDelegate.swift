@@ -7,9 +7,16 @@
 
 import Foundation
 
+protocol FileWatching: AnyObject {
+  var path: String { get }
+  var delegate: FileWatcherDelegate? { get set }
+  func start() throws
+  func stop()
+}
+
 protocol FileWatcherDelegate: AnyObject {
-  func fileWatcher(_ watcher: FileWatcher, didReadLines lines: [String])
-  func fileWatcher(_ watcher: FileWatcher, didEncounterError error: FileWatcherError)
+  func fileWatcher(_ watcher: FileWatching, didReadLines lines: [String])
+  func fileWatcher(_ watcher: FileWatching, didEncounterError error: FileWatcherError)
 }
 
 enum FileWatcherError: Error, Equatable {

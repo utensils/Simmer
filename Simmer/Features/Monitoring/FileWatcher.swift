@@ -43,7 +43,7 @@ final class DispatchSourceFileSystemWrapper: FileSystemEventSource {
   }
 }
 
-final class FileWatcher {
+final class FileWatcher: FileWatching {
   typealias SourceFactory = (Int32, DispatchSource.FileSystemEvent, DispatchQueue) -> FileSystemEventSource
 
   weak var delegate: FileWatcherDelegate?

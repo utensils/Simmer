@@ -8,6 +8,7 @@
 import Foundation
 
 final class RegexPatternMatcher: PatternMatcherProtocol {
+  // Cache retained for backwards compatibility, but prefer pattern.compiledRegex()
   private let cache = NSCache<NSString, NSRegularExpression>()
   private let cacheQueue = DispatchQueue(label: "com.quantierra.Simmer.regex-cache", attributes: .concurrent)
 
@@ -16,7 +17,8 @@ final class RegexPatternMatcher: PatternMatcherProtocol {
       return nil
     }
 
-    guard let expression = regex(for: pattern.regex) else {
+    // Use pre-compiled regex from LogPattern (T094 optimization)
+    guard let expression = pattern.compiledRegex() ?? regex(for: pattern.regex) else {
       return nil
     }
 

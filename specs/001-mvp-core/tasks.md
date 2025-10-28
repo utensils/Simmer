@@ -186,7 +186,7 @@
 
 ### Performance Optimization
 
-- [ ] T094 Implement regex pre-compilation in LogPattern: compile NSRegularExpression once on init, cache in property
+- [X] T094 Implement regex pre-compilation in LogPattern: compile NSRegularExpression once on init, cache in property
 - [ ] T095 Implement batch pattern matching in LogMonitor: evaluate all enabled patterns per line in single background queue pass
 - [ ] T096 Add background queue to LogMonitor for all file I/O and pattern matching (DispatchQueue with .userInitiated QoS)
 - [ ] T097 Implement animation frame budget verification in IconAnimator: log warning if Core Graphics rendering exceeds 2ms
