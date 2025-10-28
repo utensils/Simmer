@@ -24,6 +24,10 @@ DerivedData/
 Packages/
 *.xcodeproj/**/Package.resolved
 
+# Codex (ignore all except prompts)
+.codex/*
+!.codex/prompts/
+
 # macOS
 .DS_Store
 .AppleDouble
