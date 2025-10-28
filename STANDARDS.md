@@ -61,7 +61,7 @@ Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`
 
 ```
 Simmer/
-├── App/                    # App lifecycle
+├── App/                   # App lifecycle
 ├── Features/
 │   ├── MenuBar/           # Menu bar icon and menu
 │   ├── Monitoring/        # Log file watching
