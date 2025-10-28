@@ -25,7 +25,7 @@ final class MockFileSystemEventSource: FileSystemEventSource {
         eventHandler = handler
     }
 
-    func setCancelHandler(handler: (() -> Void)?) {
+    func setCancelHandler(handler: @escaping () -> Void) {
         cancelHandler = handler
     }
 
@@ -44,7 +44,7 @@ final class MockFileSystemEventSource: FileSystemEventSource {
     }
 }
 
-final class MockFileSystemEventSourceFactory: FileSystemEventSourceFactory {
+final class MockFileSystemEventSourceFactory {
     private let source: MockFileSystemEventSource
 
     private(set) var lastDescriptor: Int32?

@@ -62,7 +62,9 @@ final class IconAnimator {
   private let clock: IconAnimatorClock
   private var timer: AnimationTimer?
   private var animationStart: TimeInterval = 0
-  private let idleImage: NSImage
+
+  /// The idle icon image used when no animation is active
+  let idleIcon: NSImage
 
   // Exposed for tests to assert frame progression.
   internal private(set) var debugLastParameters: FrameParameters?
@@ -75,7 +77,7 @@ final class IconAnimator {
     self.iconSize = iconSize
     self.timerFactory = timerFactory ?? { TimerAnimationTimer() }
     self.clock = clock ?? SystemAnimationClock()
-    idleImage = IconAnimator.renderIcon(
+    idleIcon = IconAnimator.renderIcon(
       size: iconSize,
       color: NSColor(calibratedWhite: 0.8, alpha: 1.0),
       parameters: FrameParameters(scale: 1.0, opacity: 1.0, visible: true)
@@ -93,7 +95,7 @@ final class IconAnimator {
     guard case .animating = state else { return }
     stopTimer()
     state = .idle
-    delegate?.updateIcon(idleImage)
+    delegate?.updateIcon(idleIcon)
     delegate?.animationDidEnd()
   }
 
@@ -129,7 +131,7 @@ final class IconAnimator {
         parameters: parameters
       )
     } else {
-      image = idleImage
+      image = idleIcon
     }
 
     delegate?.updateIcon(image)
