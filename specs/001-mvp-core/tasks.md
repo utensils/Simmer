@@ -98,14 +98,14 @@
 
 - [X] T045 [P] [US2] Create RelativeTimeFormatter in Simmer/Utilities/RelativeTimeFormatter.swift to format timestamps as "2m ago", "1h ago"
 - [X] T046 [US2] Write RelativeTimeFormatter tests in SimmerTests/UtilitiesTests/RelativeTimeFormatterTests.swift (seconds, minutes, hours, days formatting)
-- [ ] T047 [US2] Create MenuBuilder class in Simmer/Features/MenuBar/MenuBuilder.swift to construct NSMenu from MatchEvent array
-- [ ] T048 [US2] Implement buildMatchHistoryMenu method in MenuBuilder querying MatchEventHandler for recent 10 matches
-- [ ] T049 [US2] Implement Clear All menu action in MenuBuilder calling MatchEventHandler.clearHistory()
-- [ ] T050 [US2] Implement Settings menu action in MenuBuilder (placeholder, opens alert for US3)
-- [ ] T051 [US2] Implement Quit menu action in MenuBuilder calling NSApplication.shared.terminate()
-- [ ] T052 [US2] Write MenuBuilder tests in SimmerTests/MenuBarTests/MenuBuilderTests.swift (menu structure, 10-item limit, empty state, Clear All action)
-- [ ] T053 [US2] Integrate MenuBuilder with MenuBarController to build menu on statusItem click
-- [ ] T054 [US2] Implement menu refresh on MatchEventHandlerDelegate.historyDidUpdate callback in MenuBarController
+- [X] T047 [US2] Create MenuBuilder class in Simmer/Features/MenuBar/MenuBuilder.swift to construct NSMenu from MatchEvent array
+- [X] T048 [US2] Implement buildMatchHistoryMenu method in MenuBuilder querying MatchEventHandler for recent 10 matches
+- [X] T049 [US2] Implement Clear All menu action in MenuBuilder calling MatchEventHandler.clearHistory()
+- [X] T050 [US2] Implement Settings menu action in MenuBuilder (placeholder, opens alert for US3)
+- [X] T051 [US2] Implement Quit menu action in MenuBuilder calling NSApplication.shared.terminate()
+- [X] T052 [US2] Write MenuBuilder tests in SimmerTests/MenuBarTests/MenuBuilderTests.swift (menu structure, 10-item limit, empty state, Clear All action)
+- [X] T053 [US2] Integrate MenuBuilder with MenuBarController to build menu on statusItem click
+- [X] T054 [US2] Implement menu refresh on MatchEventHandlerDelegate.historyDidUpdate callback in MenuBarController
 - [ ] T055 [US2] Manual test: Trigger multiple matches, click icon, verify menu shows recent 10 with timestamps, test Clear All
 
 ## Phase 5: User Story 3 - Configure Patterns and Files (P3)
@@ -130,12 +130,12 @@
 
 ### Settings UI Components
 
-- [ ] T063 [P] [US3] Create SettingsWindow.swift in Simmer/Features/Settings/SettingsWindow.swift as SwiftUI WindowGroup coordinator
-- [ ] T064 [US3] Create PatternListView.swift in Simmer/Features/Settings/PatternListView.swift displaying patterns in SwiftUI List with add/edit/delete actions
-- [ ] T065 [US3] Implement ObservableObject ViewModel for PatternListView wrapping ConfigurationStore
+- [X] T063 [P] [US3] Create SettingsWindow.swift in Simmer/Features/Settings/SettingsWindow.swift as SwiftUI WindowGroup coordinator
+- [X] T064 [US3] Create PatternListView.swift in Simmer/Features/Settings/PatternListView.swift displaying patterns in SwiftUI List with add/edit/delete actions
+- [X] T065 [US3] Implement ObservableObject ViewModel for PatternListView wrapping ConfigurationStore
 - [ ] T066 [US3] Create PatternEditorView.swift in Simmer/Features/Settings/PatternEditorView.swift as SwiftUI Form with fields for name, regex, logPath, color, animationStyle, enabled
 - [ ] T067 [US3] Integrate PatternValidator in PatternEditorView.swift to show inline regex errors on blur/save
-- [ ] T068 [US3] Create ColorPickerView.swift in Simmer/Features/Settings/ColorPickerView.swift wrapping ColorPicker with RGB sliders
+- [X] T068 [US3] Create ColorPickerView.swift in Simmer/Features/Settings/ColorPickerView.swift wrapping ColorPicker with RGB sliders
 - [ ] T069 [US3] Implement file picker button in PatternEditorView calling FileAccessManager.requestAccess
 - [ ] T070 [US3] Implement save action in PatternEditorView calling ConfigurationStore.savePatterns and notifying LogMonitor
 - [ ] T071 [US3] Implement delete action in PatternListView calling ConfigurationStore.deletePattern and stopping associated FileWatcher
@@ -180,7 +180,7 @@
 - [ ] T088 Implement error UI alerts in LogMonitor for FileWatcherError cases: show NSAlert, disable affected pattern, update settings UI
 - [X] T089 [P] Implement path expansion in PathExpander: replace ~ with NSHomeDirectory(), expand environment variables via ProcessInfo
 - [ ] T090 Integrate PathExpander in PatternEditorView to expand logPath before saving
-- [ ] T091 Integrate PathExpander in FileWatcher to expand path before opening file descriptor
+- [X] T091 Integrate PathExpander in FileWatcher to expand path before opening file descriptor
 - [X] T092 [P] Implement incremental line reading in FileWatcher: maintain file position with lseek, only read new content (FR-023)
 - [X] T093 [P] Implement match line truncation in MatchEvent init: limit matchedLine to 200 chars with "..." suffix per data-model.md
 

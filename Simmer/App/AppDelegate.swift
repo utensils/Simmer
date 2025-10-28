@@ -7,11 +7,13 @@
 
 import AppKit
 
+@MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
   private let configurationStore: ConfigurationStoreProtocol
   private let patternMatcher: PatternMatcherProtocol
   private let matchEventHandler: MatchEventHandler
   private let iconAnimator: IconAnimator
+  private var menuBuilder: MenuBuilder?
 
   private var menuBarController: MenuBarController?
   private var logMonitor: LogMonitor?
@@ -27,7 +29,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   func applicationDidFinishLaunching(_ notification: Notification) {
     NSApp.setActivationPolicy(.accessory)
 
-    let menuBarController = MenuBarController(statusBar: .system, iconAnimator: iconAnimator)
+    let menuBuilder = MenuBuilder(matchEventHandler: matchEventHandler)
+    self.menuBuilder = menuBuilder
+
+    let menuBarController = MenuBarController(
+      statusBar: .system,
+      iconAnimator: iconAnimator,
+      menuBuilder: menuBuilder
+    )
     self.menuBarController = menuBarController
 
     let logMonitor = LogMonitor(
@@ -37,6 +46,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       iconAnimator: iconAnimator
     )
     self.logMonitor = logMonitor
+    logMonitor.onHistoryUpdate = { [weak menuBarController] _ in
+      menuBarController?.handleHistoryUpdate()
+    }
+
     logMonitor.start()
   }
 

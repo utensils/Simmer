@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os.log
 
 /// Central coordinator that listens to file changes, evaluates patterns, and triggers visual feedback.
 final class LogMonitor: NSObject {
@@ -22,6 +23,7 @@ final class LogMonitor: NSObject {
   private let iconAnimator: IconAnimator
   private let watcherFactory: WatcherFactory
   private let stateQueue = DispatchQueue(label: "com.quantierra.Simmer.log-monitor")
+  private let logger = OSLog(subsystem: "com.quantierra.Simmer", category: "LogMonitor")
 
   private var watchers: [ObjectIdentifier: FileWatching] = [:]
   private var contexts: [ObjectIdentifier: WatchContext] = [:]
@@ -49,6 +51,10 @@ final class LogMonitor: NSObject {
   var events: MatchEventHandler {
     matchEventHandler
   }
+
+  /// Invoked on the main actor whenever match history changes.
+  @MainActor
+  var onHistoryUpdate: (([MatchEvent]) -> Void)?
 
   deinit {
     stopAll()
@@ -106,6 +112,8 @@ final class LogMonitor: NSObject {
       try watcher.start()
     } catch {
       // Cleanup on failure so future attempts can retry.
+      os_log(.error, log: logger, "Failed to start watcher for pattern '%{public}@' at path '%{public}@': %{public}@",
+             pattern.name, pattern.logPath, String(describing: error))
       removeWatcher(forIdentifier: identifier)
     }
   }
@@ -203,6 +211,6 @@ extension LogMonitor: MatchEventHandlerDelegate {
 
   @MainActor
   func matchEventHandler(_ handler: MatchEventHandler, historyDidUpdate: [MatchEvent]) {
-    // Menu updates implemented in subsequent phases.
+    onHistoryUpdate?(historyDidUpdate)
   }
 }

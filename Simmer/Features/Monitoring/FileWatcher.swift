@@ -53,6 +53,7 @@ final class FileWatcher: FileWatching {
   private let queue: DispatchQueue
   private let sourceFactory: SourceFactory
   private let bufferSize: Int
+  private let maxBytesPerEvent: Int
   private var source: FileSystemEventSource?
   private var fileDescriptor: Int32 = -1
   private var readOffset: off_t = 0
@@ -64,6 +65,7 @@ final class FileWatcher: FileWatching {
     fileSystem: FileSystemProtocol = RealFileSystem(),
     queue: DispatchQueue = DispatchQueue(label: "com.quantierra.Simmer.FileWatcher"),
     bufferSize: Int = 4_096,
+    maxBytesPerEvent: Int = 1_048_576, // 1MB limit to prevent memory pressure
     sourceFactory: @escaping SourceFactory = { fd, mask, queue in
       DispatchSourceFileSystemWrapper(fileDescriptor: fd, mask: mask, queue: queue)
     }
@@ -72,6 +74,7 @@ final class FileWatcher: FileWatching {
     self.fileSystem = fileSystem
     self.queue = queue
     self.bufferSize = bufferSize
+    self.maxBytesPerEvent = maxBytesPerEvent
     self.sourceFactory = sourceFactory
   }
 
@@ -82,7 +85,10 @@ final class FileWatcher: FileWatching {
   func start() throws {
     guard !isRunning else { return }
 
-    let descriptor = fileSystem.open(path, O_RDONLY)
+    // Expand path to resolve tilde (~) and environment variables
+    let expandedPath = PathExpander.expand(path)
+
+    let descriptor = fileSystem.open(expandedPath, O_RDONLY)
     guard descriptor >= 0 else {
       throw mapErrnoToError(Darwin.errno)
     }
@@ -133,6 +139,11 @@ final class FileWatcher: FileWatching {
     }
 
     while true {
+      // Stop reading if we've hit the per-event limit to prevent memory pressure
+      if collectedData.count >= maxBytesPerEvent {
+        break
+      }
+
       var buffer = Data(count: bufferSize)
       let bytesRead = buffer.withUnsafeMutableBytes { pointer -> Int in
         guard let baseAddress = pointer.baseAddress else {

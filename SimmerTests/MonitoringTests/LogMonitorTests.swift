@@ -76,6 +76,44 @@ final class LogMonitorTests: XCTestCase {
     }
   }
 
+  func test_historyUpdateClosureInvokedWhenHistoryUpdates() async {
+    let pattern = makePattern(name: "History", enabled: true)
+    let matcher = MockPatternMatcher()
+    matcher.fallbackResult = MatchResult(range: NSRange(location: 0, length: 7), captureGroups: [])
+
+    let expectation = expectation(description: "history updated")
+
+    let (monitor, registry, _, _) = await MainActor.run {
+      makeMonitor(
+        patterns: [pattern],
+        matcher: matcher
+      )
+    }
+
+    await MainActor.run {
+      monitor.onHistoryUpdate = { _ in
+        expectation.fulfill()
+      }
+      monitor.start()
+    }
+
+    let patternID = await MainActor.run { pattern.id }
+    guard let watcher = registry.watcher(for: patternID) else {
+      XCTFail("Watcher not created for pattern")
+      return
+    }
+
+    await MainActor.run {
+      watcher.send(lines: ["History"])
+    }
+
+    await fulfillment(of: [expectation], timeout: 1.0)
+
+    await MainActor.run {
+      monitor.stopAll()
+    }
+  }
+
   // MARK: - Helpers
 
   private func makePattern(name: String, enabled: Bool) -> LogPattern {

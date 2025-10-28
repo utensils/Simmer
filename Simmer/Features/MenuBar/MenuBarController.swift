@@ -2,61 +2,83 @@
 //  MenuBarController.swift
 //  Simmer
 //
-//  Created on 2025-10-28
+//  Manages the NSStatusItem, coordinates icon animation, and builds menu content.
 //
 
 import AppKit
 
-/// Manages the NSStatusItem that represents Simmer in the menu bar.
-/// Handles icon updates coming from the IconAnimator.
+/// Manages the Simmer status item, including icon updates and dynamic menu construction.
 @MainActor
 final class MenuBarController: NSObject {
-    private let statusBar: NSStatusBar
-    private let statusItem: NSStatusItem
-    private let iconAnimator: IconAnimator
+  private let statusBar: NSStatusBar
+  private let statusItem: NSStatusItem
+  private let iconAnimator: IconAnimator
+  private let menuBuilder: MenuBuilder
+  private var currentMenu: NSMenu?
 
-    init(
-        statusBar: NSStatusBar,
-        iconAnimator: IconAnimator
-    ) {
-        self.statusBar = statusBar
-        self.statusItem = statusBar.statusItem(withLength: NSStatusItem.variableLength)
-        self.iconAnimator = iconAnimator
-        super.init()
+  init(
+    statusBar: NSStatusBar,
+    iconAnimator: IconAnimator,
+    menuBuilder: MenuBuilder
+  ) {
+    self.statusBar = statusBar
+    self.statusItem = statusBar.statusItem(withLength: NSStatusItem.variableLength)
+    self.iconAnimator = iconAnimator
+    self.menuBuilder = menuBuilder
+    super.init()
 
-        configureStatusItem()
-        self.iconAnimator.delegate = self
-    }
+    configureStatusItem()
+    refreshMenu()
+    self.iconAnimator.delegate = self
+  }
 
-    convenience init(statusBar: NSStatusBar = .system) {
-        self.init(statusBar: statusBar, iconAnimator: IconAnimator())
-    }
+  deinit {
+    statusBar.removeStatusItem(statusItem)
+  }
 
-    deinit {
-        statusBar.removeStatusItem(statusItem)
-    }
+  /// Rebuilds the menu from the latest match history.
+  func refreshMenu() {
+    let menu = menuBuilder.buildMatchHistoryMenu()
+    menu.delegate = self
+    statusItem.menu = menu
+    currentMenu = menu
+  }
 
-    private func configureStatusItem() {
-        guard let button = statusItem.button else { return }
-        button.image = iconAnimator.idleIcon
-        button.imagePosition = .imageOnly
-        button.imageScaling = .scaleProportionallyDown
-        button.toolTip = "Simmer"
-    }
+  /// Called when match history changes so the next click shows fresh content.
+  func handleHistoryUpdate() {
+    refreshMenu()
+  }
+
+  private func configureStatusItem() {
+    guard let button = statusItem.button else { return }
+    button.image = iconAnimator.idleIcon
+    button.imagePosition = .imageOnly
+    button.imageScaling = .scaleProportionallyDown
+    button.toolTip = "Simmer"
+  }
 }
 
 // MARK: - IconAnimatorDelegate
 
 extension MenuBarController: IconAnimatorDelegate {
-    func animationDidStart(style: AnimationStyle, color: CodableColor) {
-        statusItem.button?.appearsDisabled = false
-    }
+  func animationDidStart(style: AnimationStyle, color: CodableColor) {
+    statusItem.button?.appearsDisabled = false
+  }
 
-    func animationDidEnd() {
-        statusItem.button?.image = iconAnimator.idleIcon
-    }
+  func animationDidEnd() {
+    statusItem.button?.image = iconAnimator.idleIcon
+  }
 
-    func updateIcon(_ image: NSImage) {
-        statusItem.button?.image = image
-    }
+  func updateIcon(_ image: NSImage) {
+    statusItem.button?.image = image
+  }
+}
+
+// MARK: - NSMenuDelegate
+
+extension MenuBarController: NSMenuDelegate {
+  func menuWillOpen(_ menu: NSMenu) {
+    // Always rebuild right before display so history reflects the latest events.
+    refreshMenu()
+  }
 }
