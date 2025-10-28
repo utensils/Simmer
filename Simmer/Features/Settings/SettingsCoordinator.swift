@@ -24,13 +24,12 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
   }
 
   func show() {
-    // Temporarily switch to regular app to show window
+    // Switch to regular app to show window, hide dock icon
     NSApp.setActivationPolicy(.regular)
+    NSApp.activate(ignoringOtherApps: true)
 
     if let controller = windowController {
-      controller.showWindow(nil)
       controller.window?.makeKeyAndOrderFront(nil)
-      NSApp.activate(ignoringOtherApps: true)
       return
     }
 
@@ -56,7 +55,7 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
     controller.showWindow(nil)
     windowController = controller
 
-    NSApp.activate(ignoringOtherApps: true)
+    window.makeKeyAndOrderFront(nil)
   }
 
   // MARK: - NSWindowDelegate
@@ -65,7 +64,7 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
     if let window = notification.object as? NSWindow,
        windowController?.window == window {
       windowController = nil
-      // Return to accessory mode when settings closes
+      // Return to accessory mode to remove from dock
       NSApp.setActivationPolicy(.accessory)
     }
   }
