@@ -98,3 +98,10 @@ Place code in appropriate feature directories:
 - `MenuBarController.swift`: Status item management
 - `LogMonitor.swift`: File watching coordinator
 - `PatternMatcher.swift`: Regex matching engine
+
+## Active Technologies
+- Swift 5.9+ + Foundation, AppKit (menu bar), SwiftUI (settings), Core Graphics (icon rendering) (001-mvp-core)
+- UserDefaults for pattern configurations with JSON encoding (001-mvp-core)
+
+## Recent Changes
+- 001-mvp-core: Added Swift 5.9+ + Foundation, AppKit (menu bar), SwiftUI (settings), Core Graphics (icon rendering)
