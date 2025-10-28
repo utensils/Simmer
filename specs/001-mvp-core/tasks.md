@@ -106,7 +106,7 @@
 - [X] T052 [US2] Write MenuBuilder tests in SimmerTests/MenuBarTests/MenuBuilderTests.swift (menu structure, 10-item limit, empty state, Clear All action)
 - [X] T053 [US2] Integrate MenuBuilder with MenuBarController to build menu on statusItem click
 - [X] T054 [US2] Implement menu refresh on MatchEventHandlerDelegate.historyDidUpdate callback in MenuBarController
-- [ ] T055 [US2] Manual test: Trigger multiple matches, click icon, verify menu shows recent 10 with timestamps, test Clear All
+- [X] T055 [US2] Manual test: Trigger multiple matches, click icon, verify menu shows recent 10 with timestamps, test Clear All
 
 ## Phase 5: User Story 3 - Configure Patterns and Files (P3)
 
@@ -142,7 +142,7 @@
 - [X] T072 [US3] Implement enable/disable toggle in PatternListView updating LogPattern.enabled and stopping/starting FileWatcher
 - [X] T073 [US3] Wire Settings menu action in MenuBuilder to open SettingsWindow
 - [X] T074 [US3] Implement LogMonitor.reloadPatterns method to sync with ConfigurationStore changes from settings UI
-- [ ] T075 [US3] Manual test: Open settings, add pattern with invalid regex (verify error), add valid pattern, save, verify monitoring starts, edit pattern, delete pattern
+- [X] T075 [US3] Manual test: Open settings, add pattern with invalid regex (verify error), add valid pattern, save, verify monitoring starts, edit pattern, delete pattern
 
 ## Phase 6: User Story 4 - Monitor Multiple Logs Simultaneously (P4)
 
