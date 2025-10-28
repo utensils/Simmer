@@ -34,6 +34,9 @@ struct PatternListView: View {
           patternListView
         }
       }
+      .onAppear {
+        viewModel.loadPatterns()
+      }
       .navigationTitle("Log Patterns")
       .toolbar {
         ToolbarItem(placement: .primaryAction) {

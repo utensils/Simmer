@@ -107,7 +107,7 @@ final class MenuBuilder: NSObject {
   }
 
   private func makeSettingsItem() -> NSMenuItem {
-    let item = NSMenuItem(title: "Settings", action: #selector(settingsAction(_:)), keyEquivalent: "")
+    let item = NSMenuItem(title: "Settings", action: #selector(settingsAction(_:)), keyEquivalent: ",")
     item.target = self
     return item
   }

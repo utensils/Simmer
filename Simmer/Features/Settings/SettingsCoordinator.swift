@@ -24,6 +24,9 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
   }
 
   func show() {
+    // Temporarily switch to regular app to show window
+    NSApp.setActivationPolicy(.regular)
+
     if let controller = windowController {
       controller.showWindow(nil)
       controller.window?.makeKeyAndOrderFront(nil)
@@ -62,6 +65,8 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
     if let window = notification.object as? NSWindow,
        windowController?.window == window {
       windowController = nil
+      // Return to accessory mode when settings closes
+      NSApp.setActivationPolicy(.accessory)
     }
   }
 }

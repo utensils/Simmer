@@ -23,7 +23,6 @@ class PatternListViewModel: ObservableObject {
   ) {
     self.store = store
     self.logMonitor = logMonitor
-    loadPatterns()
   }
 
   /// Loads all patterns from persistent storage.
