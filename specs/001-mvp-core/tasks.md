@@ -54,18 +54,18 @@
 
 ### Models & Services
 
-- [ ] T022 [P] [US1] Create FileWatcherDelegate protocol in Simmer/Features/Monitoring/FileWatcherDelegate.swift per contracts/internal-protocols.md
-- [ ] T023 [US1] Implement FileWatcher class in Simmer/Features/Monitoring/FileWatcher.swift using DispatchSource.makeFileSystemObjectSource with .write and .extend event masks
-- [ ] T024 [US1] Write FileWatcher tests in SimmerTests/MonitoringTests/FileWatcherTests.swift (100% coverage: file appends, deletions, permission errors, rapid changes with MockFileSystem)
-- [ ] T025 [P] [US1] Create IconAnimatorDelegate protocol in Simmer/Features/MenuBar/IconAnimatorDelegate.swift per contracts/internal-protocols.md
+- [X] T022 [P] [US1] Create FileWatcherDelegate protocol in Simmer/Features/Monitoring/FileWatcherDelegate.swift per contracts/internal-protocols.md
+- [X] T023 [US1] Implement FileWatcher class in Simmer/Features/Monitoring/FileWatcher.swift using DispatchSource.makeFileSystemObjectSource with .write and .extend event masks
+- [X] T024 [US1] Write FileWatcher tests in SimmerTests/MonitoringTests/FileWatcherTests.swift (100% coverage: file appends, deletions, permission errors, rapid changes with MockFileSystem)
+- [X] T025 [P] [US1] Create IconAnimatorDelegate protocol in Simmer/Features/MenuBar/IconAnimatorDelegate.swift per contracts/internal-protocols.md
 
 ### Menu Bar Integration
 
-- [ ] T026 [US1] Implement IconAnimator class in Simmer/Features/MenuBar/IconAnimator.swift with Core Graphics frame generation at 60fps
-- [ ] T027 [US1] Implement glow animation style in IconAnimator (opacity interpolation 0.5→1.0→0.5, 2-second cycle)
-- [ ] T028 [US1] Implement pulse animation style in IconAnimator (scale 1.0→1.15→1.0 with opacity, 1.5-second cycle)
-- [ ] T029 [US1] Implement blink animation style in IconAnimator (hard on/off, 0.5-second intervals)
-- [ ] T030 [US1] Write IconAnimator tests in SimmerTests/MenuBarTests/IconAnimatorTests.swift (state machine transitions, frame generation timing)
+- [X] T026 [US1] Implement IconAnimator class in Simmer/Features/MenuBar/IconAnimator.swift with Core Graphics frame generation at 60fps
+- [X] T027 [US1] Implement glow animation style in IconAnimator (opacity interpolation 0.5→1.0→0.5, 2-second cycle)
+- [X] T028 [US1] Implement pulse animation style in IconAnimator (scale 1.0→1.15→1.0 with opacity, 1.5-second cycle)
+- [X] T029 [US1] Implement blink animation style in IconAnimator (hard on/off, 0.5-second intervals)
+- [X] T030 [US1] Write IconAnimator tests in SimmerTests/MenuBarTests/IconAnimatorTests.swift (state machine transitions, frame generation timing)
 - [ ] T031 [US1] Create MenuBarController class in Simmer/Features/MenuBar/MenuBarController.swift managing NSStatusItem
 - [ ] T032 [US1] Implement IconAnimatorDelegate in MenuBarController to update NSStatusItem.button?.image on frame updates
 - [ ] T033 [US1] Wire MenuBarController to IconAnimator in MenuBarController initializer

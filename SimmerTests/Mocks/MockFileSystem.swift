@@ -46,6 +46,13 @@ class MockFileSystem: FileSystemProtocol {
         }
     }
 
+    func invalidateDescriptor(for path: String) {
+        guard let fd = pathToFD[path],
+              var file = files[fd] else { return }
+        file.isOpen = false
+        files[fd] = file
+    }
+
     func open(_ path: String, _ oflag: Int32) -> Int32 {
         if let fd = pathToFD[path] {
             return fd
