@@ -40,7 +40,7 @@ open Simmer.xcodeproj
 - [VISION.md](VISION.md) - Product vision and scope
 - [TECH_DESIGN.md](TECH_DESIGN.md) - Technical architecture
 - [STANDARDS.md](STANDARDS.md) - Coding standards
-- [claude.md](claude.md) - AI assistant guidelines
+- [CLAUDE.md](CLAUDE.md) - AI assistant guidelines
 
 ## License
 
