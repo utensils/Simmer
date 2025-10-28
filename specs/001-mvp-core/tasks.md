@@ -66,17 +66,17 @@
 - [X] T028 [US1] Implement pulse animation style in IconAnimator (scale 1.0→1.15→1.0 with opacity, 1.5-second cycle)
 - [X] T029 [US1] Implement blink animation style in IconAnimator (hard on/off, 0.5-second intervals)
 - [X] T030 [US1] Write IconAnimator tests in SimmerTests/MenuBarTests/IconAnimatorTests.swift (state machine transitions, frame generation timing)
-- [ ] T031 [US1] Create MenuBarController class in Simmer/Features/MenuBar/MenuBarController.swift managing NSStatusItem
-- [ ] T032 [US1] Implement IconAnimatorDelegate in MenuBarController to update NSStatusItem.button?.image on frame updates
-- [ ] T033 [US1] Wire MenuBarController to IconAnimator in MenuBarController initializer
+- [X] T031 [US1] Create MenuBarController class in Simmer/Features/MenuBar/MenuBarController.swift managing NSStatusItem
+- [X] T032 [US1] Implement IconAnimatorDelegate in MenuBarController to update NSStatusItem.button?.image on frame updates
+- [X] T033 [US1] Wire MenuBarController to IconAnimator in MenuBarController initializer
 
 ### App Lifecycle & Coordination
 
 - [ ] T034 [US1] Create SimmerApp.swift in Simmer/App/SimmerApp.swift as @main entry point with LSUIElement configuration
 - [ ] T035 [US1] Create AppDelegate.swift in Simmer/App/AppDelegate.swift for app lifecycle events
-- [ ] T036 [US1] Create MatchEventHandlerDelegate protocol in Simmer/Features/Patterns/MatchEventHandlerDelegate.swift per contracts/internal-protocols.md
-- [ ] T037 [US1] Implement MatchEventHandler class in Simmer/Features/Patterns/MatchEventHandler.swift with in-memory history array (max 100 items, FIFO pruning)
-- [ ] T038 [US1] Write MatchEventHandler tests in SimmerTests/PatternsTests/MatchEventHandlerTests.swift (history pruning, prioritization, FIFO behavior)
+- [X] T036 [US1] Create MatchEventHandlerDelegate protocol in Simmer/Features/Patterns/MatchEventHandlerDelegate.swift per contracts/internal-protocols.md
+- [X] T037 [US1] Implement MatchEventHandler class in Simmer/Features/Patterns/MatchEventHandler.swift with in-memory history array (max 100 items, FIFO pruning)
+- [X] T038 [US1] Write MatchEventHandler tests in SimmerTests/PatternsTests/MatchEventHandlerTests.swift (history pruning, prioritization, FIFO behavior)
 - [ ] T039 [US1] Implement LogMonitor coordinator in Simmer/Features/Monitoring/LogMonitor.swift integrating FileWatcher, PatternMatcher, MatchEventHandler, and IconAnimator
 - [ ] T040 [US1] Implement FileWatcherDelegate in LogMonitor to receive file change events and trigger pattern matching
 - [ ] T041 [US1] Implement MatchEventHandlerDelegate in LogMonitor to receive match events and trigger icon animations
