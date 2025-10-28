@@ -33,6 +33,10 @@ Packages/
 .DS_Store
 .AppleDouble
 .LSOverride
+Thumbs.db
+
+# IDEs
+.idea/
 
 # Temporary files
 *.swp
