@@ -1,0 +1,66 @@
+# SwiftLint Configuration for Simmer
+# Aligns with STANDARDS.md and constitution principles
+
+# Disable rules that conflict with our standards
+disabled_rules:
+  - trailing_whitespace # Handled by swift-format
+  - line_length # We prefer readability over strict limits
+
+# Opt-in rules enforcing quality
+opt_in_rules:
+  - force_unwrapping # CRITICAL: No force unwraps in production
+  - force_cast # CRITICAL: No force casts
+  - implicitly_unwrapped_optional # Avoid IUOs except IBOutlets
+  - explicit_init # Prefer .init() over calling Type()
+  - explicit_type_interface # Document public types
+  - fatal_error_message # Require explanations for fatalError
+  - closure_spacing # Consistent spacing
+  - empty_count # Use .isEmpty instead of count == 0
+  - first_where # Optimize first(where:) over filter().first
+  - contains_over_first_not_nil # Use contains over .first != nil
+  - sorted_first_last # Use min/max instead of sorted().first
+
+# Enforcement
+force_unwrapping: error
+force_cast: error
+implicitly_unwrapped_optional: error
+
+# Customization
+identifier_name:
+  min_length: 2
+  max_length: 50
+  excluded:
+    - id
+    - fd # file descriptor
+    - vm # view model
+
+type_name:
+  min_length: 3
+  max_length: 50
+
+file_length:
+  warning: 400
+  error: 600
+
+function_body_length:
+  warning: 50
+  error: 100
+
+type_body_length:
+  warning: 300
+  error: 500
+
+# Excluded paths
+excluded:
+  - Pods
+  - .build
+  - DerivedData
+  - SimmerUITests # UI tests can be more lenient
+
+# Include test directories for same rules
+included:
+  - Simmer
+  - SimmerTests
+
+# Enforce warnings as errors (quality gate)
+strict: true

@@ -71,13 +71,13 @@ Developer monitors multiple log files with different patterns and receives appro
 
 ---
 
-### Edge Cases
+### Edge Case Requirements
 
-- What happens when monitored log file is deleted or becomes inaccessible?
-- How does system handle extremely rapid log output (thousands of lines per second)?
-- What happens when user configures 50+ patterns simultaneously?
-- How does app behave when log file exceeds 10GB in size?
-- What happens when regex pattern matches every single line in a verbose log?
+- **EC-001**: When monitored log file is deleted, system MUST detect deletion via DispatchSource .delete event (typically <100ms), stop the watcher, display notification to user, and mark pattern as inactive
+- **EC-002**: When log output exceeds 1000 lines/second, system MUST implement debouncing (100ms window) and maintain <10% CPU usage; if CPU exceeds 10% despite debouncing, system MUST escalate to throttling (process matches every 500ms, ignoring intermediate lines)
+- **EC-003**: When user configures more than 20 patterns, system MUST enforce FR-020 limit and display error message: "Maximum 20 patterns supported"
+- **EC-004**: When log file exceeds 10GB, system MUST only read newly appended content (FR-023) without loading entire file into memory; file size MUST NOT impact memory usage (FR-018 still applies)
+- **EC-005**: When regex pattern matches every line in verbose log (>100 consecutive matches), system MUST limit match history storage to 100 items (FIFO) and display warning after 50 consecutive matches: "Pattern '[name]' matching frequently - consider refining regex"
 
 ## Requirements *(mandatory)*
 
@@ -88,7 +88,7 @@ Developer monitors multiple log files with different patterns and receives appro
 - **FR-003**: System MUST evaluate each new log line against all enabled regex patterns
 - **FR-004**: Menu bar icon MUST animate with configured style (glow, pulse, or blink) when pattern matches
 - **FR-005**: System MUST generate icon animations programmatically using configured RGB colors
-- **FR-006**: Menu bar icon MUST maintain smooth 60fps animation without degrading system performance
+- **FR-006**: Menu bar icon MUST maintain smooth 60fps animation without degrading system performance; if 60fps cannot be sustained due to system load, animation MUST gracefully degrade to 30fps or pause until resources available
 - **FR-007**: Menu bar menu MUST display up to 10 most recent matches with pattern name, relative timestamp, and line excerpt
 - **FR-008**: Menu MUST provide "Clear All" action to remove all match history
 - **FR-009**: Menu MUST provide "Settings" action to open configuration window
@@ -100,13 +100,14 @@ Developer monitors multiple log files with different patterns and receives appro
 - **FR-015**: System MUST support editing and deleting existing patterns
 - **FR-016**: System MUST support disabling patterns without deleting them
 - **FR-017**: App MUST consume less than 1% CPU when idle and less than 5% CPU during active monitoring
-- **FR-018**: App MUST consume less than 50MB of memory
+- **FR-018**: App MUST consume less than 50MB of sustained memory usage under typical load; transient spikes up to 75MB during bulk match processing (>50 matches/second) are acceptable if memory returns to baseline within 10 seconds
 - **FR-019**: System MUST process pattern matching in less than 10ms per log line
 - **FR-020**: System MUST limit simultaneous file watchers to 20 files maximum
 - **FR-021**: System MUST handle file permission errors gracefully by displaying alerts and disabling affected patterns
 - **FR-022**: System MUST handle log file deletion by stopping the watcher and marking pattern as inactive
 - **FR-023**: System MUST read only newly appended content, not re-processing entire log files
 - **FR-024**: System MUST support tilde (~) expansion and environment variables in log file paths
+- **FR-025**: When multiple patterns match simultaneously, system MUST prioritize animation by pattern configuration order (first enabled pattern in list = highest priority)
 
 ### Key Entities
 

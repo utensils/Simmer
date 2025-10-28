@@ -23,6 +23,7 @@ DerivedData/
 .build/
 Packages/
 *.xcodeproj/**/Package.resolved
+*.swiftpm/
 
 # Codex (ignore all except prompts)
 .codex/*
@@ -37,3 +38,7 @@ Packages/
 *.swp
 *~.nib
 *.moved-aside
+
+# Environment and logs
+.env*
+*.log
