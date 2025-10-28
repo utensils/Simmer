@@ -123,10 +123,10 @@
 - [X] T056 [P] [US3] Create PatternValidator in Simmer/Features/Patterns/PatternValidator.swift with validateRegex method using NSRegularExpression syntax checking
 - [X] T057 [US3] Write PatternValidator tests in SimmerTests/PatternsTests/PatternValidatorTests.swift (valid regex, invalid regex, empty patterns, special chars)
 - [X] T058 [P] [US3] Create PathExpander utility in Simmer/Services/PathExpander.swift for tilde (~) and environment variable expansion
-- [ ] T059 [P] [US3] Create FileAccessManager in Simmer/Features/Monitoring/FileAccessManager.swift for security-scoped bookmark creation/resolution
-- [ ] T060 [US3] Implement requestAccess method in FileAccessManager using NSOpenPanel for file selection
-- [ ] T061 [US3] Implement bookmarkData generation and storage in FileAccessManager (store in UserDefaults alongside pattern)
-- [ ] T062 [US3] Implement bookmark resolution in FileAccessManager.resolveBookmark checking isStale flag
+- [X] T059 [P] [US3] Create FileAccessManager in Simmer/Features/Monitoring/FileAccessManager.swift for security-scoped bookmark creation/resolution
+- [X] T060 [US3] Implement requestAccess method in FileAccessManager using NSOpenPanel for file selection
+- [X] T061 [US3] Implement bookmarkData generation and storage in FileAccessManager (store in UserDefaults alongside pattern)
+- [X] T062 [US3] Implement bookmark resolution in FileAccessManager.resolveBookmark checking isStale flag
 
 ### Settings UI Components
 
