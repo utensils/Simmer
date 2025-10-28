@@ -133,15 +133,15 @@
 - [X] T063 [P] [US3] Create SettingsWindow.swift in Simmer/Features/Settings/SettingsWindow.swift as SwiftUI WindowGroup coordinator
 - [X] T064 [US3] Create PatternListView.swift in Simmer/Features/Settings/PatternListView.swift displaying patterns in SwiftUI List with add/edit/delete actions
 - [X] T065 [US3] Implement ObservableObject ViewModel for PatternListView wrapping ConfigurationStore
-- [ ] T066 [US3] Create PatternEditorView.swift in Simmer/Features/Settings/PatternEditorView.swift as SwiftUI Form with fields for name, regex, logPath, color, animationStyle, enabled
-- [ ] T067 [US3] Integrate PatternValidator in PatternEditorView.swift to show inline regex errors on blur/save
+- [X] T066 [US3] Create PatternEditorView.swift in Simmer/Features/Settings/PatternEditorView.swift as SwiftUI Form with fields for name, regex, logPath, color, animationStyle, enabled
+- [X] T067 [US3] Integrate PatternValidator in PatternEditorView.swift to show inline regex errors on blur/save
 - [X] T068 [US3] Create ColorPickerView.swift in Simmer/Features/Settings/ColorPickerView.swift wrapping ColorPicker with RGB sliders
-- [ ] T069 [US3] Implement file picker button in PatternEditorView calling FileAccessManager.requestAccess
-- [ ] T070 [US3] Implement save action in PatternEditorView calling ConfigurationStore.savePatterns and notifying LogMonitor
-- [ ] T071 [US3] Implement delete action in PatternListView calling ConfigurationStore.deletePattern and stopping associated FileWatcher
-- [ ] T072 [US3] Implement enable/disable toggle in PatternListView updating LogPattern.enabled and stopping/starting FileWatcher
-- [ ] T073 [US3] Wire Settings menu action in MenuBuilder to open SettingsWindow
-- [ ] T074 [US3] Implement LogMonitor.reloadPatterns method to sync with ConfigurationStore changes from settings UI
+- [X] T069 [US3] Implement file picker button in PatternEditorView calling FileAccessManager.requestAccess
+- [X] T070 [US3] Implement save action in PatternEditorView calling ConfigurationStore.savePatterns and notifying LogMonitor
+- [X] T071 [US3] Implement delete action in PatternListView calling ConfigurationStore.deletePattern and stopping associated FileWatcher
+- [X] T072 [US3] Implement enable/disable toggle in PatternListView updating LogPattern.enabled and stopping/starting FileWatcher
+- [X] T073 [US3] Wire Settings menu action in MenuBuilder to open SettingsWindow
+- [X] T074 [US3] Implement LogMonitor.reloadPatterns method to sync with ConfigurationStore changes from settings UI
 - [ ] T075 [US3] Manual test: Open settings, add pattern with invalid regex (verify error), add valid pattern, save, verify monitoring starts, edit pattern, delete pattern
 
 ## Phase 6: User Story 4 - Monitor Multiple Logs Simultaneously (P4)
@@ -179,7 +179,7 @@
 - [X] T087 [P] Implement permission error handling in FileWatcher: catch open() errors, notify delegate with FileWatcherError.permissionDenied
 - [ ] T088 Implement error UI alerts in LogMonitor for FileWatcherError cases: show NSAlert, disable affected pattern, update settings UI
 - [X] T089 [P] Implement path expansion in PathExpander: replace ~ with NSHomeDirectory(), expand environment variables via ProcessInfo
-- [ ] T090 Integrate PathExpander in PatternEditorView to expand logPath before saving
+- [X] T090 Integrate PathExpander in PatternEditorView to expand logPath before saving
 - [X] T091 Integrate PathExpander in FileWatcher to expand path before opening file descriptor
 - [X] T092 [P] Implement incremental line reading in FileWatcher: maintain file position with lseek, only read new content (FR-023)
 - [X] T093 [P] Implement match line truncation in MatchEvent init: limit matchedLine to 200 chars with "..." suffix per data-model.md

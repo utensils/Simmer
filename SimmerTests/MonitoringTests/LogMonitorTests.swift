@@ -12,7 +12,7 @@ final class LogMonitorTests: XCTestCase {
     let enabled = makePattern(name: "Error", enabled: true)
     let disabled = makePattern(name: "Info", enabled: false)
 
-    let (monitor, registry, _, _) = await MainActor.run {
+    let (monitor, registry, _, _, _) = await MainActor.run {
       makeMonitor(
         patterns: [enabled, disabled],
         matcher: MockPatternMatcher()
@@ -42,7 +42,7 @@ final class LogMonitorTests: XCTestCase {
 
     let expectation = expectation(description: "animation started")
 
-    let (monitor, registry, handler, iconAnimator) = await MainActor.run {
+    let (monitor, registry, handler, iconAnimator, _) = await MainActor.run {
       makeMonitor(
         patterns: [pattern],
         matcher: matcher
@@ -76,6 +76,49 @@ final class LogMonitorTests: XCTestCase {
     }
   }
 
+  func test_reloadPatterns_disablesWatchersForDisabledPatterns() async {
+    let pattern = makePattern(name: "Reloadable", enabled: true)
+    let matcher = MockPatternMatcher()
+    let store = InMemoryStore(initialPatterns: [pattern])
+
+    let (monitor, registry, _, _, storeRef) = await MainActor.run {
+      makeMonitor(
+        patterns: [pattern],
+        matcher: matcher,
+        store: store
+      )
+    }
+
+    await MainActor.run {
+      monitor.start()
+    }
+
+    let patternID = await MainActor.run { pattern.id }
+    guard let watcher = registry.watcher(for: patternID) else {
+      XCTFail("Watcher not created for pattern")
+      return
+    }
+
+    XCTAssertEqual(watcher.stopCount, 0)
+
+    await MainActor.run {
+      var disabled = pattern
+      disabled.enabled = false
+      do {
+        try storeRef.updatePattern(disabled)
+      } catch {
+        XCTFail("Failed to update pattern in store: \(error)")
+      }
+      monitor.reloadPatterns()
+    }
+
+    XCTAssertEqual(watcher.stopCount, 1)
+
+    await MainActor.run {
+      monitor.stopAll()
+    }
+  }
+
   func test_historyUpdateClosureInvokedWhenHistoryUpdates() async {
     let pattern = makePattern(name: "History", enabled: true)
     let matcher = MockPatternMatcher()
@@ -83,7 +126,7 @@ final class LogMonitorTests: XCTestCase {
 
     let expectation = expectation(description: "history updated")
 
-    let (monitor, registry, _, _) = await MainActor.run {
+    let (monitor, registry, _, _, _) = await MainActor.run {
       makeMonitor(
         patterns: [pattern],
         matcher: matcher
@@ -130,24 +173,25 @@ final class LogMonitorTests: XCTestCase {
   @MainActor
   private func makeMonitor(
     patterns: [LogPattern],
-    matcher: PatternMatcherProtocol
-  ) -> (LogMonitor, TestWatcherRegistry, MatchEventHandler, IconAnimator) {
+    matcher: PatternMatcherProtocol,
+    store: InMemoryStore? = nil
+  ) -> (LogMonitor, TestWatcherRegistry, MatchEventHandler, IconAnimator, InMemoryStore) {
     let handler = MatchEventHandler()
     let timer = TestAnimationTimer()
     let clock = TestAnimationClock()
     let iconAnimator = IconAnimator(timerFactory: { timer }, clock: clock)
     let registry = TestWatcherRegistry()
-    let store = InMemoryStore(initialPatterns: patterns)
+    let backingStore = store ?? InMemoryStore(initialPatterns: patterns)
 
     let monitor = LogMonitor(
-      configurationStore: store,
+      configurationStore: backingStore,
       patternMatcher: matcher,
       matchEventHandler: handler,
       iconAnimator: iconAnimator,
       watcherFactory: registry.makeWatcher(for:)
     )
 
-    return (monitor, registry, handler, iconAnimator)
+    return (monitor, registry, handler, iconAnimator, backingStore)
   }
 }
 

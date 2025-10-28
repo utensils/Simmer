@@ -9,9 +9,21 @@ import SwiftUI
 
 /// Displays user-configured log patterns with add, edit, delete, and toggle actions.
 struct PatternListView: View {
-  @StateObject private var viewModel = PatternListViewModel()
+  @StateObject private var viewModel: PatternListViewModel
   @State private var showingAddSheet = false
   @State private var editingPattern: LogPattern?
+
+  init(
+    store: any ConfigurationStoreProtocol = ConfigurationStore(),
+    logMonitor: LogMonitor? = nil
+  ) {
+    _viewModel = StateObject(
+      wrappedValue: PatternListViewModel(
+        store: store,
+        logMonitor: logMonitor
+      )
+    )
+  }
 
   var body: some View {
     NavigationStack {
@@ -31,10 +43,15 @@ struct PatternListView: View {
         }
       }
       .sheet(isPresented: $showingAddSheet) {
-        patternEditorPlaceholder(pattern: nil)
+        PatternEditorView(pattern: nil) { newPattern in
+          viewModel.addPattern(newPattern)
+        }
       }
       .sheet(item: $editingPattern) { pattern in
-        patternEditorPlaceholder(pattern: pattern)
+        PatternEditorView(pattern: pattern) { updatedPattern in
+          viewModel.updatePattern(updatedPattern)
+          editingPattern = nil
+        }
       }
       .alert("Error", isPresented: .constant(viewModel.errorMessage != nil), presenting: viewModel.errorMessage) { _ in
         Button("OK") {
@@ -82,25 +99,6 @@ struct PatternListView: View {
     }
   }
 
-  /// Placeholder for PatternEditorView (T066) - shows alert until implemented.
-  private func patternEditorPlaceholder(pattern: LogPattern?) -> some View {
-    VStack(spacing: 20) {
-      Image(systemName: "wrench.and.screwdriver")
-        .font(.system(size: 64))
-        .foregroundColor(.secondary)
-      Text("Pattern Editor")
-        .font(.title)
-      Text("Coming soon: PatternEditorView (T066)")
-        .font(.subheadline)
-        .foregroundColor(.secondary)
-      Button("Close") {
-        showingAddSheet = false
-        editingPattern = nil
-      }
-      .buttonStyle(.borderedProminent)
-    }
-    .frame(width: 400, height: 300)
-  }
 }
 
 // MARK: - PatternRow
@@ -158,14 +156,13 @@ private struct PatternRow: View {
 
 // MARK: - Previews
 
-#Preview("Empty State") {
-  PatternListView()
-}
+  #Preview("Empty State") {
+    PatternListView(store: PreviewConfigurationStore())
+  }
 
-#Preview("With Patterns") {
-  let viewModel = PatternListViewModel(store: PreviewConfigurationStore())
-  return PatternListView()
-}
+  #Preview("With Patterns") {
+    PatternListView(store: PreviewConfigurationStore())
+  }
 
 /// Mock store for previews with sample data.
 private struct PreviewConfigurationStore: ConfigurationStoreProtocol {

@@ -14,10 +14,15 @@ class PatternListViewModel: ObservableObject {
   @Published var patterns: [LogPattern] = []
   @Published var errorMessage: String?
 
-  private let store: ConfigurationStoreProtocol
+  private let store: any ConfigurationStoreProtocol
+  private let logMonitor: LogMonitor?
 
-  init(store: ConfigurationStoreProtocol = ConfigurationStore()) {
+  init(
+    store: any ConfigurationStoreProtocol = ConfigurationStore(),
+    logMonitor: LogMonitor? = nil
+  ) {
     self.store = store
+    self.logMonitor = logMonitor
     loadPatterns()
   }
 
@@ -30,7 +35,9 @@ class PatternListViewModel: ObservableObject {
   /// - Parameter pattern: The pattern to add
   func addPattern(_ pattern: LogPattern) {
     patterns.append(pattern)
-    savePatterns()
+    if savePatterns() {
+      logMonitor?.reloadPatterns()
+    }
   }
 
   /// Updates an existing pattern in storage.
@@ -43,6 +50,7 @@ class PatternListViewModel: ObservableObject {
     patterns[index] = pattern
     do {
       try store.updatePattern(pattern)
+      logMonitor?.reloadPatterns()
     } catch {
       errorMessage = "Failed to update pattern: \(error.localizedDescription)"
       loadPatterns() // Reload to restore consistent state
@@ -55,6 +63,7 @@ class PatternListViewModel: ObservableObject {
     do {
       try store.deletePattern(id: id)
       patterns.removeAll { $0.id == id }
+      logMonitor?.reloadPatterns()
     } catch {
       errorMessage = "Failed to delete pattern: \(error.localizedDescription)"
     }
@@ -79,12 +88,15 @@ class PatternListViewModel: ObservableObject {
 
   // MARK: - Private Helpers
 
-  private func savePatterns() {
+  @discardableResult
+  private func savePatterns() -> Bool {
     do {
       try store.savePatterns(patterns)
+      return true
     } catch {
       errorMessage = "Failed to save patterns: \(error.localizedDescription)"
       loadPatterns() // Reload to restore consistent state
+      return false
     }
   }
 }

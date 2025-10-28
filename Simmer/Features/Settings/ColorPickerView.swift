@@ -2,169 +2,161 @@
 //  ColorPickerView.swift
 //  Simmer
 //
-//  SwiftUI color picker with RGB sliders for pattern animation colors.
+//  SwiftUI component for adjusting CodableColor values with a native picker and RGB sliders.
 //
 
 import SwiftUI
+import AppKit
 
-/// Provides color selection UI with RGB sliders and color picker for pattern configuration.
+/// Wraps SwiftUI's ColorPicker with RGB sliders to edit a `CodableColor`.
 struct ColorPickerView: View {
-  @Binding var codableColor: CodableColor
+  @Binding var color: CodableColor
 
-  // Local state for slider manipulation (0-255 range for user-friendly display)
-  @State private var redValue: Double
-  @State private var greenValue: Double
-  @State private var blueValue: Double
-
-  init(color: Binding<CodableColor>) {
-    self._codableColor = color
-    // Initialize slider state from binding
-    _redValue = State(initialValue: color.wrappedValue.red * 255.0)
-    _greenValue = State(initialValue: color.wrappedValue.green * 255.0)
-    _blueValue = State(initialValue: color.wrappedValue.blue * 255.0)
+  private var currentColor: Color {
+    Color(
+      red: color.red,
+      green: color.green,
+      blue: color.blue,
+      opacity: color.alpha
+    )
   }
 
   var body: some View {
-    VStack(spacing: 16) {
-      // Color preview and system color picker
+    VStack(alignment: .leading, spacing: 16) {
+      ColorPicker("Animation Color", selection: bindingForColorPicker, supportsOpacity: false)
+
+      previewSwatch
+
+      componentSlider(title: "Red", value: sliderBinding(for: .red), tint: .red)
+      componentSlider(title: "Green", value: sliderBinding(for: .green), tint: .green)
+      componentSlider(title: "Blue", value: sliderBinding(for: .blue), tint: .blue)
+    }
+    .padding(.vertical, 4)
+  }
+
+  // MARK: - Subviews
+
+  private var previewSwatch: some View {
+    RoundedRectangle(cornerRadius: 6)
+      .fill(currentColor)
+      .frame(height: 40)
+      .overlay(
+        RoundedRectangle(cornerRadius: 6)
+          .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+      )
+  }
+
+  private func componentSlider(
+    title: String,
+    value: Binding<Double>,
+    tint: Color
+  ) -> some View {
+    VStack(alignment: .leading, spacing: 6) {
       HStack {
-        // Preview circle
-        Circle()
-          .fill(codableColor.toColor())
-          .frame(width: 50, height: 50)
-          .overlay(
-            Circle()
-              .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
-          )
-
-        // System color picker
-        ColorPicker("Pick Color", selection: colorBinding)
-          .labelsHidden()
-          .onChange(of: colorBinding.wrappedValue) { _, newColor in
-            updateFromSwiftUIColor(newColor)
-          }
-
+        Text(title)
         Spacer()
-      }
-
-      // RGB Sliders
-      VStack(spacing: 12) {
-        ColorSlider(
-          label: "Red",
-          value: $redValue,
-          color: .red,
-          onChange: updateColorFromSliders
-        )
-
-        ColorSlider(
-          label: "Green",
-          value: $greenValue,
-          color: .green,
-          onChange: updateColorFromSliders
-        )
-
-        ColorSlider(
-          label: "Blue",
-          value: $blueValue,
-          color: .blue,
-          onChange: updateColorFromSliders
-        )
-      }
-
-      // Hex display (read-only)
-      HStack {
-        Text("Hex:")
+        Text("\(Int(value.wrappedValue))")
           .font(.caption)
           .foregroundColor(.secondary)
-        Text(hexString)
-          .font(.system(.caption, design: .monospaced))
-          .foregroundColor(.secondary)
-        Spacer()
       }
+      Slider(value: value, in: 0...255, step: 1)
+        .tint(tint)
     }
-    .padding()
   }
 
-  // MARK: - Computed Properties
+  // MARK: - Bindings
 
-  private var colorBinding: Binding<Color> {
-    Binding(
-      get: { codableColor.toColor() },
-      set: { _ in } // Handled by onChange
+  private var bindingForColorPicker: Binding<Color> {
+    Binding<Color>(
+      get: { currentColor },
+      set: { newValue in
+        updateColor(with: newValue)
+      }
     )
   }
 
-  private var hexString: String {
-    let r = Int(redValue)
-    let g = Int(greenValue)
-    let b = Int(blueValue)
-    return String(format: "#%02X%02X%02X", r, g, b)
-  }
+  private func sliderBinding(for component: RGBComponent) -> Binding<Double> {
+    Binding<Double>(
+      get: {
+        switch component {
+        case .red:
+          return color.red * 255
+        case .green:
+          return color.green * 255
+        case .blue:
+          return color.blue * 255
+        }
+      },
+      set: { newValue in
+        var red = color.red
+        var green = color.green
+        var blue = color.blue
 
-  // MARK: - Color Updates
+        let normalized = newValue / 255
 
-  private func updateColorFromSliders() {
-    codableColor = CodableColor(
-      red: redValue / 255.0,
-      green: greenValue / 255.0,
-      blue: blueValue / 255.0,
-      alpha: 1.0
-    )
-  }
-
-  private func updateFromSwiftUIColor(_ color: Color) {
-    // Extract RGB from SwiftUI Color
-    #if os(macOS)
-    if let nsColor = NSColor(color).usingColorSpace(.deviceRGB) {
-      redValue = nsColor.redComponent * 255.0
-      greenValue = nsColor.greenComponent * 255.0
-      blueValue = nsColor.blueComponent * 255.0
-      updateColorFromSliders()
-    }
-    #endif
-  }
-}
-
-// MARK: - ColorSlider
-
-/// Individual RGB slider component with label and value display.
-private struct ColorSlider: View {
-  let label: String
-  @Binding var value: Double
-  let color: Color
-  let onChange: () -> Void
-
-  var body: some View {
-    HStack {
-      Text(label)
-        .font(.caption)
-        .foregroundColor(.secondary)
-        .frame(width: 40, alignment: .leading)
-
-      Slider(value: $value, in: 0...255, step: 1)
-        .tint(color)
-        .onChange(of: value) { _, _ in
-          onChange()
+        switch component {
+        case .red:
+          red = normalized
+        case .green:
+          green = normalized
+        case .blue:
+          blue = normalized
         }
 
-      Text(String(format: "%.0f", value))
-        .font(.system(.caption, design: .monospaced))
-        .foregroundColor(.secondary)
-        .frame(width: 30, alignment: .trailing)
+        color = CodableColor(
+          red: red,
+          green: green,
+          blue: blue,
+          alpha: color.alpha
+        )
+      }
+    )
+  }
+
+  private func updateColor(with color: Color) {
+    #if os(macOS)
+      if let cgColor = color.cgColor, let nsColor = NSColor(cgColor: cgColor) {
+        self.color = CodableColor(nsColor: nsColor)
+        return
+      }
+    #endif
+
+    guard let cgColor = color.cgColor, let components = cgColor.components, components.count >= 3 else {
+      return
     }
+
+    self.color = CodableColor(
+      red: Double(components[0]),
+      green: Double(components[1]),
+      blue: Double(components[2]),
+      alpha: Double(cgColor.alpha)
+    )
+  }
+
+  private enum RGBComponent {
+    case red
+    case green
+    case blue
   }
 }
 
-// MARK: - Previews
+// MARK: - Preview
 
-#Preview("Color Picker - Red") {
-  @Previewable @State var color = CodableColor(red: 1.0, green: 0.0, blue: 0.0, alpha: 1.0)
-  return ColorPickerView(color: $color)
-    .frame(width: 300)
-}
+#if DEBUG
+struct ColorPickerView_Previews: PreviewProvider {
+  struct PreviewWrapper: View {
+    @State private var color = CodableColor(red: 0.4, green: 0.6, blue: 0.9)
 
-#Preview("Color Picker - Custom") {
-  @Previewable @State var color = CodableColor(red: 0.3, green: 0.6, blue: 0.9, alpha: 1.0)
-  return ColorPickerView(color: $color)
-    .frame(width: 300)
+    var body: some View {
+      ColorPickerView(color: $color)
+        .frame(width: 320)
+        .padding()
+    }
+  }
+
+  static var previews: some View {
+    PreviewWrapper()
+      .previewLayout(.sizeThatFits)
+  }
 }
+#endif

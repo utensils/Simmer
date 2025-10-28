@@ -56,6 +56,12 @@ final class LogMonitor: NSObject {
   @MainActor
   var onHistoryUpdate: (([MatchEvent]) -> Void)?
 
+  /// Reloads patterns from storage and reconciles active watchers.
+  func reloadPatterns() {
+    let patterns = configurationStore.loadPatterns()
+    configureWatchers(for: patterns.filter(\.enabled))
+  }
+
   deinit {
     stopAll()
   }

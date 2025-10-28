@@ -9,11 +9,12 @@ import AppKit
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
-  private let configurationStore: ConfigurationStoreProtocol
+  private let configurationStore: any ConfigurationStoreProtocol
   private let patternMatcher: PatternMatcherProtocol
   private let matchEventHandler: MatchEventHandler
   private let iconAnimator: IconAnimator
   private var menuBuilder: MenuBuilder?
+  private var settingsCoordinator: SettingsCoordinator?
 
   private var menuBarController: MenuBarController?
   private var logMonitor: LogMonitor?
@@ -29,7 +30,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   func applicationDidFinishLaunching(_ notification: Notification) {
     NSApp.setActivationPolicy(.accessory)
 
-    let menuBuilder = MenuBuilder(matchEventHandler: matchEventHandler)
+    let logMonitor = LogMonitor(
+      configurationStore: configurationStore,
+      patternMatcher: patternMatcher,
+      matchEventHandler: matchEventHandler,
+      iconAnimator: iconAnimator
+    )
+    self.logMonitor = logMonitor
+
+    let settingsCoordinator = SettingsCoordinator(
+      configurationStore: configurationStore,
+      logMonitor: logMonitor
+    )
+    self.settingsCoordinator = settingsCoordinator
+
+    let menuBuilder = MenuBuilder(
+      matchEventHandler: matchEventHandler,
+      settingsHandler: { settingsCoordinator.show() },
+      quitHandler: {
+        NSApplication.shared.terminate(nil)
+      }
+    )
     self.menuBuilder = menuBuilder
 
     let menuBarController = MenuBarController(
@@ -39,13 +60,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
     self.menuBarController = menuBarController
 
-    let logMonitor = LogMonitor(
-      configurationStore: configurationStore,
-      patternMatcher: patternMatcher,
-      matchEventHandler: matchEventHandler,
-      iconAnimator: iconAnimator
-    )
-    self.logMonitor = logMonitor
     logMonitor.onHistoryUpdate = { [weak menuBarController] _ in
       menuBarController?.handleHistoryUpdate()
     }
