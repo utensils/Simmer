@@ -16,9 +16,9 @@ disabled_rules:
   - function_body_length
   - redundant_string_enum_value
   - orphaned_doc_comment
+  - explicit_top_level_acl
 
 opt_in_rules:
-  - explicit_top_level_acl
   - redundant_type_annotation
   - trailing_comma
   - force_unwrapping
