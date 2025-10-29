@@ -41,15 +41,17 @@ internal struct PathExpander {
         // Pattern 1: ${VAR} syntax (braced)
         let bracedPattern = "\\$\\{([A-Za-z_][A-Za-z0-9_]*)\\}"
         if let regex = try? NSRegularExpression(pattern: bracedPattern, options: []) {
-            let matches = regex.matches(in: result, options: [], range: NSRange(result.startIndex..., in: result))
+            let matches = regex.matches(
+                in: result,
+                options: [],
+                range: NSRange(result.startIndex..., in: result)
+            )
 
             // Process matches in reverse order to avoid index shifting
             for match in matches.reversed() {
                 guard match.numberOfRanges == 2,
                       let matchRange = Range(match.range, in: result),
-                      let varRange = Range(match.range(at: 1), in: result) else {
-                    continue
-                }
+                      let varRange = Range(match.range(at: 1), in: result) else { continue }
 
                 let varName = String(result[varRange])
                 if let value = lookupEnvironmentValue(for: varName, environment: environment) {
@@ -62,15 +64,17 @@ internal struct PathExpander {
         // Must be followed by non-alphanumeric character or end of string
         let unbracedPattern = "\\$([A-Za-z_][A-Za-z0-9_]*)(?=[^A-Za-z0-9_]|$)"
         if let regex = try? NSRegularExpression(pattern: unbracedPattern, options: []) {
-            let matches = regex.matches(in: result, options: [], range: NSRange(result.startIndex..., in: result))
+            let matches = regex.matches(
+                in: result,
+                options: [],
+                range: NSRange(result.startIndex..., in: result)
+            )
 
             // Process matches in reverse order to avoid index shifting
             for match in matches.reversed() {
                 guard match.numberOfRanges == 2,
                       let matchRange = Range(match.range, in: result),
-                      let varRange = Range(match.range(at: 1), in: result) else {
-                    continue
-                }
+                      let varRange = Range(match.range(at: 1), in: result) else { continue }
 
                 let varName = String(result[varRange])
                 if let value = lookupEnvironmentValue(for: varName, environment: environment) {

@@ -114,20 +114,32 @@ internal final class MenuBuilder: NSObject {
   }
 
   private func makeClearAllItem(isEnabled: Bool) -> NSMenuItem {
-    let item = NSMenuItem(title: "Clear All", action: #selector(clearHistoryAction(_:)), keyEquivalent: "")
+    let item = NSMenuItem(
+      title: "Clear All",
+      action: #selector(clearHistoryAction(_:)),
+      keyEquivalent: ""
+    )
     item.target = self
     item.isEnabled = isEnabled
     return item
   }
 
   private func makeSettingsItem() -> NSMenuItem {
-    let item = NSMenuItem(title: "Settings", action: #selector(settingsAction(_:)), keyEquivalent: ",")
+    let item = NSMenuItem(
+      title: "Settings",
+      action: #selector(settingsAction(_:)),
+      keyEquivalent: ","
+    )
     item.target = self
     return item
   }
 
   private func makeQuitItem() -> NSMenuItem {
-    let item = NSMenuItem(title: "Quit Simmer", action: #selector(quitAction(_:)), keyEquivalent: "")
+    let item = NSMenuItem(
+      title: "Quit Simmer",
+      action: #selector(quitAction(_:)),
+      keyEquivalent: ""
+    )
     item.target = self
     return item
   }

@@ -8,7 +8,8 @@
 import Foundation
 import os.log
 
-/// Central coordinator that listens to file changes, evaluates patterns, and triggers visual feedback.
+/// Coordinates file watching, pattern evaluation, and menu feedback.
+@MainActor
 internal protocol LogMonitoring: AnyObject {
   func reloadPatterns()
   func setPatternEnabled(_ patternID: UUID, isEnabled: Bool)
@@ -172,7 +173,7 @@ internal final class LogMonitor: NSObject {
       os_log(
         .error,
         log: logger,
-        "Watcher limit exceeded (%{public}d > %{public}d). Additional patterns will not be monitored.",
+        "Watcher limit exceeded (%{public}d > %{public}d); ignoring extras.",
         preparedPatterns.count,
         maxWatcherCount
       )
@@ -181,7 +182,9 @@ internal final class LogMonitor: NSObject {
       didWarnAboutPatternLimit = false
     }
 
-    let priorities = Dictionary(uniqueKeysWithValues: limitedPatterns.enumerated().map { ($1.id, $0) })
+    let priorities = Dictionary(
+      uniqueKeysWithValues: limitedPatterns.enumerated().map { ($1.id, $0) }
+    )
 
     let identifiersToRemove: [UUID] = stateQueue.sync {
       patternPriorities = priorities
@@ -238,7 +241,7 @@ internal final class LogMonitor: NSObject {
       os_log(
         .error,
         log: logger,
-        "Manual path validation failed for pattern '%{public}@': file missing at '%{public}@'",
+        "Path validation failed for '%{public}@': missing '%{public}@'",
         updatedPattern.name,
         expandedPath
       )
@@ -256,7 +259,7 @@ internal final class LogMonitor: NSObject {
       os_log(
         .error,
         log: logger,
-        "Manual path validation failed for pattern '%{public}@': directory supplied at '%{public}@'",
+        "Path validation failed for '%{public}@': directory at '%{public}@'",
         updatedPattern.name,
         expandedPath
       )
@@ -274,7 +277,7 @@ internal final class LogMonitor: NSObject {
       os_log(
         .error,
         log: logger,
-        "Manual path validation failed for pattern '%{public}@': unreadable file at '%{public}@'",
+        "Path validation failed for '%{public}@': unreadable '%{public}@'",
         updatedPattern.name,
         expandedPath
       )
@@ -680,9 +683,13 @@ extension LogMonitor: MatchEventHandlerDelegate {
   func matchEventHandler(_ handler: MatchEventHandler, didDetectMatch event: MatchEvent) {
     guard let pattern = pattern(for: event) else { return }
     let timestamp = dateProvider()
-    guard shouldTriggerAnimation(for: event.patternID, priority: event.priority, timestamp: timestamp) else {
-      return
-    }
+    guard
+      shouldTriggerAnimation(
+        for: event.patternID,
+        priority: event.priority,
+        timestamp: timestamp
+      )
+    else { return }
     iconAnimator.startAnimation(style: pattern.animationStyle, color: pattern.color)
     recordAnimationStart(for: event.patternID, priority: event.priority, timestamp: timestamp)
     if let startDate = dequeueLatencyStart(for: event.patternID) {
@@ -719,8 +726,9 @@ private extension LogMonitor {
     alertPresenter.presentAlert(
       title: "Pattern limit reached",
       message: """
-      Simmer can monitor up to \(maxWatcherCount) patterns at a time. \(droppedCount) \(patternWord) \
-      left inactive after the latest import. Remove or disable patterns in Settings to resume monitoring.
+      Simmer can monitor up to \(maxWatcherCount) patterns at a time.
+      \(droppedCount) \(patternWord) left inactive after the latest import.
+      Remove or disable patterns in Settings to resume monitoring.
       """
     )
   }

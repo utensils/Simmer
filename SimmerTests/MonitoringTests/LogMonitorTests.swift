@@ -7,6 +7,8 @@ import AppKit
 import XCTest
 @testable import Simmer
 
+// swiftlint:disable large_tuple
+
 internal final class LogMonitorTests: XCTestCase {
   func test_start_createsWatcherForEnabledPatternsOnly() async {
     let enabled = makePattern(name: "Error", enabled: true)
@@ -714,6 +716,8 @@ internal final class LogMonitorTests: XCTestCase {
     return (monitor, registry, handler, iconAnimator, backingStore, queue)
   }
 }
+
+// swiftlint:enable large_tuple
 
 // MARK: - Test Doubles
 

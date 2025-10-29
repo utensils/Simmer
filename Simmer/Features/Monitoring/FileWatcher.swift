@@ -71,7 +71,9 @@ internal final class FileWatcher: FileWatching {
     queue: DispatchQueue = DispatchQueue(
       label: "io.utensils.Simmer.FileWatcher"
     ),
+    // 4KB chunks balance syscalls with latency (FR-017).
     bufferSize: Int = 4_096,
+    // 1MB per-event cap avoids memory pressure spikes (FR-017).
     maxBytesPerEvent: Int = 1_048_576,
     sourceFactory: @escaping SourceFactory = { fd, mask, queue in
       DispatchSourceFileSystemWrapper(

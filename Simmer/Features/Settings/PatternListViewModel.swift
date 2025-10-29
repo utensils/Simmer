@@ -30,14 +30,18 @@ internal final class PatternListViewModel: ObservableObject {
   private let importURLProvider: @MainActor () -> URL?
   private var patternsObserver: NSObjectProtocol?
 
-  nonisolated init(
+  init(
     store: any ConfigurationStoreProtocol,
     logMonitor: LogMonitoring? = nil,
     launchAtLoginController: LaunchAtLoginControlling = LaunchAtLoginController(),
     exporter: ConfigurationExporting = ConfigurationExporter(),
     importer: ConfigurationImporting = ConfigurationImporter(),
-    exportURLProvider: @escaping @MainActor () -> URL? = { PatternListViewModel.defaultExportURL()() },
-    importURLProvider: @escaping @MainActor () -> URL? = { PatternListViewModel.defaultImportURL()() }
+    exportURLProvider: @escaping @MainActor () -> URL? = {
+      PatternListViewModel.defaultExportURL()()
+    },
+    importURLProvider: @escaping @MainActor () -> URL? = {
+      PatternListViewModel.defaultImportURL()()
+    }
   ) {
     self.store = store
     self.logMonitor = logMonitor

@@ -69,7 +69,9 @@ internal final class SettingsCoordinator: NSObject, NSWindowDelegate {
     )
   }
 
-  private func createHostingController(with view: PatternListView) -> NSHostingController<PatternListView> {
+  private func createHostingController(
+    with view: PatternListView
+  ) -> NSHostingController<PatternListView> {
     let controller = NSHostingController(rootView: view)
     controller.view.translatesAutoresizingMaskIntoConstraints = true
     controller.view.autoresizingMask = [.width, .height]
@@ -77,7 +79,9 @@ internal final class SettingsCoordinator: NSObject, NSWindowDelegate {
     return controller
   }
 
-  private func createWindow(with hostingController: NSHostingController<PatternListView>) -> NSWindow {
+  private func createWindow(
+    with hostingController: NSHostingController<PatternListView>
+  ) -> NSWindow {
     let window = NSWindow(
       contentRect: NSRect(origin: .zero, size: defaultContentSize),
       styleMask: [.titled, .closable, .miniaturizable, .resizable],

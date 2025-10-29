@@ -7,6 +7,7 @@
 
 import AppKit
 
+@MainActor
 internal protocol IconAnimatorDelegate: AnyObject {
   func animationDidStart(style: AnimationStyle, color: CodableColor)
   func animationDidEnd()

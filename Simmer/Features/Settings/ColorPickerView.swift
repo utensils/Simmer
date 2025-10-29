@@ -128,9 +128,11 @@ internal struct ColorPickerView: View {
     }
     #endif
 
-    guard let cgColor = color.cgColor, let components = cgColor.components, components.count >= 3 else {
-      return
-    }
+    guard
+      let cgColor = color.cgColor,
+      let components = cgColor.components,
+      components.count >= 3
+    else { return }
 
     self.color = CodableColor(
       red: Double(components[0]),

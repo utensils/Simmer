@@ -9,6 +9,7 @@ import Foundation
 
 /// Callback protocol for MatchEventHandler to notify consumers
 /// of new matches and history updates.
+@MainActor
 internal protocol MatchEventHandlerDelegate: AnyObject {
   /// Called when a pattern match is detected and prioritized for animation.
   func matchEventHandler(

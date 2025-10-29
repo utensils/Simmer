@@ -102,8 +102,11 @@ final class MatchEventHandler: NSObject {
         let streak = updateStreak(for: pattern.id)
         guard streak >= warningThreshold else { return }
 
-        if warningsByPatternID[pattern.id] == nil {
-            warningsByPatternID[pattern.id] = FrequentMatchWarning(patternID: pattern.id, patternName: pattern.name)
+    if warningsByPatternID[pattern.id] == nil {
+            warningsByPatternID[pattern.id] = FrequentMatchWarning(
+                patternID: pattern.id,
+                patternName: pattern.name
+            )
             delegate?.matchEventHandler(self, didUpdateWarnings: activeWarnings)
         }
     }
