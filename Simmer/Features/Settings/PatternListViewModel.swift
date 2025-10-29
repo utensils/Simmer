@@ -36,8 +36,8 @@ internal final class PatternListViewModel: ObservableObject {
     launchAtLoginController: LaunchAtLoginControlling = LaunchAtLoginController(),
     exporter: ConfigurationExporting = ConfigurationExporter(),
     importer: ConfigurationImporting = ConfigurationImporter(),
-    exportURLProvider: @escaping @MainActor () -> URL? = PatternListViewModel.defaultExportURL,
-    importURLProvider: @escaping @MainActor () -> URL? = PatternListViewModel.defaultImportURL
+    exportURLProvider: @escaping @MainActor () -> URL? = PatternListViewModel.defaultExportURL(),
+    importURLProvider: @escaping @MainActor () -> URL? = PatternListViewModel.defaultImportURL()
   ) {
     self.store = store
     self.logMonitor = logMonitor
@@ -243,23 +243,25 @@ internal final class PatternListViewModel: ObservableObject {
 // MARK: - File Panel Helpers
 
 private extension PatternListViewModel {
-  @MainActor
-  static func defaultExportURL() -> URL? {
-    let panel = NSSavePanel()
-    panel.allowedContentTypes = [UTType.json]
-    panel.nameFieldStringValue = "SimmerPatterns.json"
-    panel.canCreateDirectories = true
-    panel.isExtensionHidden = false
-    return panel.runModal() == .OK ? panel.url : nil
+  nonisolated static func defaultExportURL() -> @MainActor () -> URL? {
+    return {
+      let panel = NSSavePanel()
+      panel.allowedContentTypes = [UTType.json]
+      panel.nameFieldStringValue = "SimmerPatterns.json"
+      panel.canCreateDirectories = true
+      panel.isExtensionHidden = false
+      return panel.runModal() == .OK ? panel.url : nil
+    }
   }
 
-  @MainActor
-  static func defaultImportURL() -> URL? {
-    let panel = NSOpenPanel()
-    panel.allowedContentTypes = [UTType.json]
-    panel.canChooseDirectories = false
-    panel.canChooseFiles = true
-    panel.allowsMultipleSelection = false
-    return panel.runModal() == .OK ? panel.url : nil
+  nonisolated static func defaultImportURL() -> @MainActor () -> URL? {
+    return {
+      let panel = NSOpenPanel()
+      panel.allowedContentTypes = [UTType.json]
+      panel.canChooseDirectories = false
+      panel.canChooseFiles = true
+      panel.allowsMultipleSelection = false
+      return panel.runModal() == .OK ? panel.url : nil
+    }
   }
 }

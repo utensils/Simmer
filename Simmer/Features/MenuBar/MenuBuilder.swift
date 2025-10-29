@@ -21,8 +21,8 @@ internal final class MenuBuilder: NSObject {
     matchEventHandler: MatchEventHandler,
     dateProvider: @escaping () -> Date = Date.init,
     historyLimit: Int = 10,
-    settingsHandler: @escaping @MainActor () -> Void = MenuBuilder.defaultSettingsHandler,
-    quitHandler: @escaping @MainActor () -> Void = MenuBuilder.defaultQuitHandler
+    settingsHandler: @escaping @MainActor () -> Void = MenuBuilder.defaultSettingsHandler(),
+    quitHandler: @escaping @MainActor () -> Void = MenuBuilder.defaultQuitHandler()
   ) {
     self.matchEventHandler = matchEventHandler
     self.dateProvider = dateProvider
@@ -168,16 +168,20 @@ internal final class MenuBuilder: NSObject {
 
   // MARK: - Default Handlers
 
-  private static func defaultSettingsHandler() {
-    let alert = NSAlert()
-    alert.messageText = "Settings coming soon"
-    alert.informativeText = "The settings window will be available in a future update."
-    alert.alertStyle = .informational
-    alert.addButton(withTitle: "OK")
-    alert.runModal()
+  nonisolated private static func defaultSettingsHandler() -> @MainActor () -> Void {
+    return {
+      let alert = NSAlert()
+      alert.messageText = "Settings coming soon"
+      alert.informativeText = "The settings window will be available in a future update."
+      alert.alertStyle = .informational
+      alert.addButton(withTitle: "OK")
+      alert.runModal()
+    }
   }
 
-  private static func defaultQuitHandler() {
-    NSApplication.shared.terminate(nil)
+  nonisolated private static func defaultQuitHandler() -> @MainActor () -> Void {
+    return {
+      NSApplication.shared.terminate(nil)
+    }
   }
 }
