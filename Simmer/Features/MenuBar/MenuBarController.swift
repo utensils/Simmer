@@ -17,6 +17,11 @@ internal final class MenuBarController: NSObject {
   private let menuBuilder: MenuBuilder
   private var currentMenu: NSMenu?
 
+  /// Creates a controller that owns the status item, icon animator, and menu builder.
+  /// - Parameters:
+  ///   - statusBar: Status bar used to create the menu bar item (injected for testing).
+  ///   - iconAnimator: Animator responsible for icon rendering and performance fallback.
+  ///   - menuBuilder: Factory that generates the dynamic status menu.
   init(
     statusBar: NSStatusBar,
     iconAnimator: IconAnimator,

@@ -45,12 +45,77 @@ internal struct SystemAnimationClock: IconAnimatorClock {
   }
 }
 
+internal struct IconAnimationPerformanceGovernor {
+  internal enum State {
+    case normal
+    case reduced
+  }
+
+  private let fallbackViolationThreshold: Int
+  private let recoveryFrameThreshold: Int
+  private(set) var state: State = .normal
+  private var consecutiveBudgetViolations = 0
+  private var consecutiveHealthyFrames = 0
+
+  internal init(fallbackViolationThreshold: Int, recoveryFrameThreshold: Int) {
+    self.fallbackViolationThreshold = max(1, fallbackViolationThreshold)
+    self.recoveryFrameThreshold = max(1, recoveryFrameThreshold)
+  }
+
+  internal mutating func reset() {
+    state = .normal
+    consecutiveBudgetViolations = 0
+    consecutiveHealthyFrames = 0
+  }
+
+  internal mutating func recordFrame(exceededBudget: Bool) -> State? {
+    if exceededBudget {
+      consecutiveBudgetViolations += 1
+      consecutiveHealthyFrames = 0
+      switch state {
+      case .normal where consecutiveBudgetViolations >= fallbackViolationThreshold:
+        state = .reduced
+        consecutiveBudgetViolations = 0
+        return state
+      case .reduced:
+        return nil
+      default:
+        return nil
+      }
+    } else {
+      consecutiveBudgetViolations = 0
+      switch state {
+      case .normal:
+        consecutiveHealthyFrames = min(consecutiveHealthyFrames + 1, recoveryFrameThreshold)
+        return nil
+      case .reduced:
+        consecutiveHealthyFrames += 1
+        if consecutiveHealthyFrames >= recoveryFrameThreshold {
+          state = .normal
+          consecutiveHealthyFrames = 0
+          return state
+        }
+        return nil
+      }
+    }
+  }
+}
+
 @MainActor
 internal final class IconAnimator {
-  private enum PerformanceState {
-    case normal
-
-    case reduced
+  private enum AnimationConstants {
+    // Glow: 2s ease keeps motion gentle yet visible in peripheral vision.
+    static let glowCycleDuration: TimeInterval = 2.0
+    static let glowMinimumOpacity: CGFloat = 0.5
+    static let glowOpacityRange: CGFloat = 0.5
+    // Pulse: 1.5s cadence mimics a heartbeat with gentle scale/opacity offsets.
+    static let pulseCycleDuration: TimeInterval = 1.5
+    static let pulseBaseScale: CGFloat = 1.0
+    static let pulseScaleAmplitude: CGFloat = 0.15
+    static let pulseBaseOpacity: CGFloat = 0.85
+    static let pulseOpacityRange: CGFloat = 0.15
+    // Blink: half-second toggle provides urgency for high-priority matches.
+    static let blinkInterval: TimeInterval = 0.5
   }
 
   internal struct FrameParameters: Equatable {
@@ -74,13 +139,9 @@ internal final class IconAnimator {
   private let frameBudget: TimeInterval
   private var lastBudgetWarning: TimeInterval = 0
   private let budgetExceededHandler: (TimeInterval) -> Void
-  private let fallbackViolationThreshold: Int
-  private let recoveryFrameThreshold: Int
-  private var performanceState: PerformanceState = .normal
-  private var consecutiveBudgetViolations = 0
-  private var consecutiveHealthyFrames = 0
+  private var performanceGovernor: IconAnimationPerformanceGovernor
 
-  /// The idle icon image used when no animation is active
+  /// The idle icon image displayed when no animation is active.
   let idleIcon: NSImage
 
   // Exposed for tests to assert frame progression.
@@ -88,7 +149,7 @@ internal final class IconAnimator {
   internal private(set) var debugLastRenderDuration: TimeInterval?
   internal private(set) var debugRenderBudgetExceeded = false
   internal var debugPerformanceStateDescription: String {
-    switch performanceState {
+    switch performanceGovernor.state {
     case .normal:
       return "normal"
 
@@ -122,8 +183,10 @@ internal final class IconAnimator {
         )
       }
     }
-    self.fallbackViolationThreshold = max(1, fallbackViolationThreshold)
-    self.recoveryFrameThreshold = max(1, recoveryFrameThreshold)
+    performanceGovernor = IconAnimationPerformanceGovernor(
+      fallbackViolationThreshold: fallbackViolationThreshold,
+      recoveryFrameThreshold: recoveryFrameThreshold
+    )
     self.reducedFrameInterval = reducedFrameInterval
     idleIcon = IconAnimator.renderIcon(
       size: iconSize,
@@ -135,9 +198,7 @@ internal final class IconAnimator {
   func startAnimation(style: AnimationStyle, color: CodableColor) {
     animationStart = clock.now()
     state = .animating(style: style, color: color)
-    performanceState = .normal
-    consecutiveBudgetViolations = 0
-    consecutiveHealthyFrames = 0
+    performanceGovernor.reset()
     delegate?.animationDidStart(style: style, color: color)
     startTimer()
   }
@@ -161,7 +222,7 @@ internal final class IconAnimator {
   }
 
   private var currentFrameInterval: TimeInterval {
-    switch performanceState {
+    switch performanceGovernor.state {
     case .normal:
       return normalFrameInterval
 
@@ -288,21 +349,27 @@ internal final class IconAnimator {
   func frameParameters(for style: AnimationStyle, elapsed: TimeInterval) -> FrameParameters {
     switch style {
     case .glow:
-      let duration: TimeInterval = 2.0
-      let cycle = normalizedCycle(elapsed: elapsed, duration: duration)
-      let opacity = 0.5 + cycle * 0.5
+      let cycle = normalizedCycle(
+        elapsed: elapsed,
+        duration: AnimationConstants.glowCycleDuration
+      )
+      let opacity = AnimationConstants.glowMinimumOpacity +
+        cycle * AnimationConstants.glowOpacityRange
       return FrameParameters(scale: 1.0, opacity: opacity, visible: true)
 
     case .pulse:
-      let duration: TimeInterval = 1.5
-      let cycle = normalizedCycle(elapsed: elapsed, duration: duration)
-      let scale = 1.0 + cycle * 0.15
-      let opacity = 0.85 + cycle * 0.15
+      let cycle = normalizedCycle(
+        elapsed: elapsed,
+        duration: AnimationConstants.pulseCycleDuration
+      )
+      let scale = AnimationConstants.pulseBaseScale +
+        cycle * AnimationConstants.pulseScaleAmplitude
+      let opacity = AnimationConstants.pulseBaseOpacity +
+        cycle * AnimationConstants.pulseOpacityRange
       return FrameParameters(scale: scale, opacity: opacity, visible: true)
 
     case .blink:
-      let interval: TimeInterval = 0.5
-      let isOn = Int((elapsed / interval).rounded(.down)) % 2 == 0
+      let isOn = Int((elapsed / AnimationConstants.blinkInterval).rounded(.down)) % 2 == 0
       return FrameParameters(scale: 1.0, opacity: isOn ? 1.0 : 0.0, visible: isOn)
     }
   }

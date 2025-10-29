@@ -8,11 +8,11 @@
 import Foundation
 
 internal enum ConfigurationStoreError: Error, Equatable {
-  case encodingFailed = "encodingFailed"
+  case encodingFailed
 
-  case decodingFailed = "decodingFailed"
+  case decodingFailed
 
-  case patternNotFound = "patternNotFound"
+  case patternNotFound
 }
 
 // swiftlint:disable:next type_body_length

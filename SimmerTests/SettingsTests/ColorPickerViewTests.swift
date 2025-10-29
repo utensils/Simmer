@@ -7,7 +7,7 @@ import SwiftUI
 import XCTest
 @testable import Simmer
 
-final class ColorPickerViewTests: XCTestCase {
+internal final class ColorPickerViewTests: XCTestCase {
   override func tearDown() {
     ColorPickerView.resetColorPanelHooks()
     super.tearDown()

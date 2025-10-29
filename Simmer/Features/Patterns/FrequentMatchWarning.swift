@@ -15,12 +15,16 @@ internal struct FrequentMatchWarning: Identifiable, Equatable {
   let message: String
   let triggeredAt: Date
 
-  init(patternID: UUID, patternName: String, triggeredAt: Date = Date()) {
+  init(
+    patternID: UUID,
+    patternName: String,
+    triggeredAt: Date = Date()
+  ) {
     self.id = patternID
     self.patternID = patternID
     self.patternName = patternName
     self.triggeredAt = triggeredAt
-    self.message =
-      "Pattern '\(patternName)' matching frequently - consider refining regex"
+    let suffix = "matching frequently - consider refining regex"
+    self.message = "Pattern '\(patternName)' \(suffix)"
   }
 }

@@ -98,7 +98,8 @@ internal final class PatternListViewModelTests: XCTestCase {
     XCTAssertFalse(viewModel.launchAtLoginEnabled)
     XCTAssertEqual(launchController.setEnabledCalls, [true])
     XCTAssertEqual(launchController.resolvedPreferenceCalls, initialResolvedCalls)
-    XCTAssertEqual(viewModel.errorMessage, LaunchAtLoginError.operationFailed(message: "System denied").errorDescription)
+    let expectedError = LaunchAtLoginError.operationFailed(message: "System denied")
+    XCTAssertEqual(viewModel.errorMessage, expectedError.errorDescription)
   }
 
   func test_setLaunchAtLoginEnabled_whenNotSupported_setsError() {
@@ -352,7 +353,7 @@ internal final class PatternListViewModelTests: XCTestCase {
 }
 
 private final class LogMonitorSpy: LogMonitoring {
-  enum Call: Equatable {
+  internal enum Call: Equatable {
     case reload
     case set(UUID, Bool)
   }
@@ -382,12 +383,12 @@ private final class ConfigurationImporterStub: ConfigurationImporting {
   private let result: [LogPattern]?
   private let error: Error?
 
-  init(result: [LogPattern]) {
+  internal init(result: [LogPattern]) {
     self.result = result
     self.error = nil
   }
 
-  init(error: Error) {
+  internal init(error: Error) {
     self.result = nil
     self.error = error
   }

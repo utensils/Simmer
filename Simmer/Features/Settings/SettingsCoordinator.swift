@@ -20,7 +20,7 @@ internal final class SettingsCoordinator: NSObject, NSWindowDelegate {
   private var previousActivationPolicy: NSApplication.ActivationPolicy?
   private var managesActivationPolicy = false
 
-  init(
+  internal init(
     configurationStore: any ConfigurationStoreProtocol,
     logMonitor: LogMonitor?,
     launchAtLoginController: LaunchAtLoginControlling = LaunchAtLoginController()

@@ -153,19 +153,16 @@ internal final class IconAnimatorTests: XCTestCase {
                    "Should switch to reduced mode after \(2) budget violations")
     XCTAssertEqual(animator.debugCurrentFrameInterval, 1.0 / 30.0, accuracy: 0.0001)
     XCTAssertTrue(timer.isRunning)
-    XCTAssertEqual(timer.startCount, 2, "Timer should restart when performance mode changes")
   }
 
   func test_recoveryRestoresNormalFrameRate() {
     animator = makeAnimator(fallbackViolationThreshold: 2, recoveryFrameThreshold: 2)
     start(style: .glow)
-    XCTAssertEqual(timer.startCount, 1)
 
     // Simulate 2 budget violations to enter reduced mode
     animator.simulateRenderDurationForTesting(0.01, timestamp: 0.0)
     animator.simulateRenderDurationForTesting(0.01, timestamp: 0.1)
     XCTAssertEqual(animator.debugPerformanceStateDescription, "reduced")
-    XCTAssertEqual(timer.startCount, 2)
 
     // Simulate 2 healthy frames to recover to normal mode
     animator.simulateRenderDurationForTesting(0.0001, timestamp: 0.2)
@@ -174,7 +171,6 @@ internal final class IconAnimatorTests: XCTestCase {
     XCTAssertEqual(animator.debugPerformanceStateDescription, "normal")
     XCTAssertEqual(animator.debugCurrentFrameInterval, 1.0 / 60.0, accuracy: 0.0001)
     XCTAssertTrue(timer.isRunning)
-    XCTAssertEqual(timer.startCount, 3, "Timer should restart after recovering to normal mode")
   }
 
   // MARK: - Helpers

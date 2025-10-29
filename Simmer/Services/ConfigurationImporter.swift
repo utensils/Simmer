@@ -9,23 +9,21 @@ import Foundation
 
 internal enum ConfigurationImportError: LocalizedError {
   case failedToRead(underlying: Error)
-
   case decodingFailed(underlying: Error)
-
   case unsupportedVersion(Int)
-
   case validationFailed(messages: [String])
 
-  var errorDescription: String? {
+  internal var errorDescription: String? {
     switch self {
     case .failedToRead(let underlying):
       return "Failed to open configuration: \(underlying.localizedDescription)"
 
     case .decodingFailed(let underlying):
-      return "Configuration file is invalid: \(underlying.localizedDescription)"
+      let desc = underlying.localizedDescription
+      return "Configuration file is invalid: \(desc)"
 
     case .unsupportedVersion(let version):
-      return "Configuration version \(version) is not supported."
+      return "Configuration version \(version) is not supported by this version"
 
     case .validationFailed(let messages):
       return messages.joined(separator: "\n")
@@ -97,7 +95,8 @@ internal struct ConfigurationImporter: ConfigurationImporting {
       do {
         _ = try NSRegularExpression(pattern: pattern.regex)
       } catch {
-        issues.append("Pattern '#\(pattern.name)' has invalid regex: \(error.localizedDescription)")
+        let errorMsg = error.localizedDescription
+        issues.append("Pattern '#\(pattern.name)' has invalid regex: \(errorMsg)")
       }
     }
 

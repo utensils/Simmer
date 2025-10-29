@@ -5,7 +5,7 @@ import Foundation
 internal struct PatternValidator {
     /// Validation result for a regex pattern
     internal enum ValidationResult {
-        case valid = "valid"
+        case valid
 
         case invalid(error: String)
 
@@ -53,33 +53,36 @@ internal struct PatternValidator {
 
     // MARK: - Private Helpers
 
-    private static func extractErrorMessage(from error: NSError, pattern: String) -> String {
-        if pattern.hasSuffix("\\") {
-            return "Invalid escape sequence (trailing backslash)"
-        }
+    private static func extractErrorMessage(
+      from error: NSError,
+      pattern: String
+    ) -> String {
+      if pattern.hasSuffix("\\") {
+        return "Invalid escape sequence (trailing backslash)"
+      }
 
-        if let first = pattern.first, "*+?".contains(first) {
-            return "Quantifier (*, +, ?, {}) has nothing to repeat"
-        }
+      if let first = pattern.first, "*+?".contains(first) {
+        return "Quantifier (*, +, ?, {}) has nothing to repeat"
+      }
 
-        // NSRegularExpression errors are in the NSCocoaErrorDomain
-        // The localized description usually contains useful info
-        let description = error.localizedDescription
+      // NSRegularExpression errors are in the NSCocoaErrorDomain
+      // The localized description usually contains useful info
+      let description = error.localizedDescription
 
-        // Clean up common error patterns for better UX
-        if description.contains("unmatched") {
-            return "Unmatched parenthesis or bracket"
-        } else if description.contains("trailing backslash") {
-            return "Invalid escape sequence (trailing backslash)"
-        } else if description.contains("invalid") {
-            return "Invalid regex syntax"
-        } else if description.contains("nothing to repeat") {
-            return "Quantifier (*,+,?,{}) has nothing to repeat"
-        } else if description.contains("unrecognized character") {
-            return "Unrecognized escape sequence"
-        }
+      // Clean up common error patterns for better UX
+      if description.contains("unmatched") {
+        return "Unmatched parenthesis or bracket"
+      } else if description.contains("trailing backslash") {
+        return "Invalid escape sequence (trailing backslash)"
+      } else if description.contains("invalid") {
+        return "Invalid regex syntax"
+      } else if description.contains("nothing to repeat") {
+        return "Quantifier (*,+,?,{}) has nothing to repeat"
+      } else if description.contains("unrecognized character") {
+        return "Unrecognized escape sequence"
+      }
 
-        // Return original description if no specific pattern matched
-        return description
+      // Return original description if no specific pattern matched
+      return description
     }
 }

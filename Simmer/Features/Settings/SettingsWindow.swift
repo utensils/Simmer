@@ -9,6 +9,7 @@ import SwiftUI
 
 /// Creates and manages the settings window displaying pattern configuration.
 internal struct SettingsWindow: Scene {
+  internal init() {}
   var body: some Scene {
     WindowGroup("Simmer Settings") {
       PatternListView(store: ConfigurationStore())

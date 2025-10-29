@@ -41,6 +41,9 @@ internal final class SMAppServiceAdapter: LaunchAtLoginService {
     case .enabled:
       return .enabled
 
+    case .notFound:
+      return .notRegistered
+
     case .notRegistered:
       return .notRegistered
 
@@ -63,7 +66,7 @@ internal final class SMAppServiceAdapter: LaunchAtLoginService {
 
 /// Errors that can occur while configuring launch at login support.
 internal enum LaunchAtLoginError: LocalizedError, Equatable {
-  case notSupported = "notSupported"
+  case notSupported
 
   case operationFailed(message: String)
 
