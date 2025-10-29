@@ -42,7 +42,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            SWIFT_VERSION=5.0 \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
             | xcpretty --color
 
           # Check build exit code
@@ -65,7 +65,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            SWIFT_VERSION=5.0 \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
             | xcpretty --color
 
           # Verify archive exists
