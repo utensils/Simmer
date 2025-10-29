@@ -44,6 +44,7 @@ final class LogMonitor: NSObject {
   private var currentAnimation: (patternID: UUID, priority: Int)?
   private var activeBookmarkURLs: [UUID: URL] = [:]
   private var didBootstrapPatterns = false
+  private var suppressedAlertPatternIDs: Set<UUID> = []
 
   @MainActor
   init(
@@ -126,6 +127,7 @@ final class LogMonitor: NSObject {
       lastAnimationTimestamps.removeAll()
       currentAnimation = nil
       activeBookmarkURLs.removeAll()
+      suppressedAlertPatternIDs.removeAll()
       return (currentWatchers, bookmarkURLs)
     }
     let activeWatchers = result.0
@@ -136,6 +138,18 @@ final class LogMonitor: NSObject {
 
     Task { @MainActor [iconAnimator] in
       iconAnimator.stopAnimation()
+    }
+  }
+
+  /// Updates monitoring state when a pattern is toggled in settings.
+  @MainActor
+  func setPatternEnabled(_ patternID: UUID, isEnabled: Bool) {
+    if isEnabled {
+      reloadPatterns()
+    } else {
+      suppressAlerts(for: patternID)
+      reloadPatterns()
+      unsuppressAlerts(for: patternID)
     }
   }
 
@@ -290,6 +304,10 @@ final class LogMonitor: NSObject {
 
   @MainActor
   private func handleBookmarkResolutionFailure(pattern: LogPattern, error: Error) {
+    if isAlertSuppressed(for: pattern.id) {
+      return
+    }
+
     os_log(
       .error,
       log: logger,
@@ -393,6 +411,11 @@ final class LogMonitor: NSObject {
     error: FileWatcherError,
     filePath: String
   ) {
+    if isAlertSuppressed(for: patternID) {
+      removeWatcher(forPatternID: patternID)
+      return
+    }
+
     guard let entry = removeWatcher(forPatternID: patternID) else { return }
 
     var pattern = entry.context.pattern
@@ -528,6 +551,7 @@ final class LogMonitor: NSObject {
       if currentAnimation?.patternID == patternID {
         currentAnimation = nil
       }
+      suppressedAlertPatternIDs.remove(patternID)
       let bookmarkURL = activeBookmarkURLs.removeValue(forKey: patternID)
       return (entry, bookmarkURL)
     }
@@ -604,6 +628,24 @@ final class LogMonitor: NSObject {
     stateQueue.sync {
       currentAnimation = (patternID: patternID, priority: priority)
       lastAnimationTimestamps[patternID] = timestamp
+    }
+  }
+
+  private func suppressAlerts(for patternID: UUID) {
+    stateQueue.sync {
+      suppressedAlertPatternIDs.insert(patternID)
+    }
+  }
+
+  private func unsuppressAlerts(for patternID: UUID) {
+    stateQueue.sync {
+      suppressedAlertPatternIDs.remove(patternID)
+    }
+  }
+
+  private func isAlertSuppressed(for patternID: UUID) -> Bool {
+    stateQueue.sync {
+      suppressedAlertPatternIDs.contains(patternID)
     }
   }
 }

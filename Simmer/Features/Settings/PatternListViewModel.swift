@@ -63,7 +63,7 @@ class PatternListViewModel: ObservableObject {
     patterns[index] = pattern
     do {
       try store.updatePattern(pattern)
-      logMonitor?.reloadPatterns()
+      logMonitor?.setPatternEnabled(pattern.id, isEnabled: pattern.enabled)
     } catch {
       errorMessage = "Failed to update pattern: \(error.localizedDescription)"
       loadPatterns() // Reload to restore consistent state
@@ -76,7 +76,7 @@ class PatternListViewModel: ObservableObject {
     do {
       try store.deletePattern(id: id)
       patterns.removeAll { $0.id == id }
-      logMonitor?.reloadPatterns()
+      logMonitor?.setPatternEnabled(id, isEnabled: false)
     } catch {
       errorMessage = "Failed to delete pattern: \(error.localizedDescription)"
     }

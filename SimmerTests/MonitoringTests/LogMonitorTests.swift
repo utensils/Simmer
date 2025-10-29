@@ -391,6 +391,72 @@ final class LogMonitorTests: XCTestCase {
     }
   }
 
+  func test_setPatternEnabledFalse_stopsWatcherWithoutAlert() async {
+    let pattern = makePattern(name: "Toggle", enabled: true)
+    let matcher = MockPatternMatcher()
+    let alertPresenter = await MainActor.run { RecordingAlertPresenter() }
+
+    let (monitor, registry, _, _, storeRef, _) = await MainActor.run {
+      makeMonitor(
+        patterns: [pattern],
+        matcher: matcher,
+        alertPresenter: alertPresenter
+      )
+    }
+
+    await MainActor.run {
+      monitor.start()
+    }
+
+    let patternID = await MainActor.run { pattern.id }
+    XCTAssertEqual(registry.watcher(for: patternID)?.startCount, 1)
+
+    var disabled = pattern
+    disabled.enabled = false
+    try? storeRef.updatePattern(disabled)
+
+    await MainActor.run {
+      monitor.setPatternEnabled(patternID, isEnabled: false)
+    }
+
+    XCTAssertEqual(registry.watcher(for: patternID)?.stopCount, 1)
+    let messages = await MainActor.run { alertPresenter.messages }
+    XCTAssertTrue(messages.isEmpty)
+  }
+
+  func test_setPatternEnabledTrue_reloadsWatcherFromStore() async {
+    var pattern = makePattern(name: "EnableLater", enabled: false)
+    let matcher = MockPatternMatcher()
+    let store = InMemoryStore(initialPatterns: [pattern])
+
+    let (monitor, registry, _, _, storeRef, _) = await MainActor.run {
+      makeMonitor(
+        patterns: [pattern],
+        matcher: matcher,
+        store: store
+      )
+    }
+
+    await MainActor.run {
+      monitor.start()
+    }
+
+    XCTAssertNil(registry.watcher(for: pattern.id))
+
+    pattern.enabled = true
+    try? storeRef.updatePattern(pattern)
+
+    await MainActor.run {
+      monitor.setPatternEnabled(pattern.id, isEnabled: true)
+    }
+
+    guard let watcher = registry.watcher(for: pattern.id) else {
+      XCTFail("Expected watcher after enabling pattern")
+      return
+    }
+    XCTAssertEqual(watcher.startCount, 1)
+  }
+
   func test_lowerPriorityMatchDoesNotOverrideActiveHighPriority() async {
     let high = makePattern(name: "High", enabled: true)
     let low = makePattern(name: "Low", enabled: true)
@@ -447,6 +513,68 @@ final class LogMonitorTests: XCTestCase {
     try? await Task.sleep(nanoseconds: 200_000_000)
 
     XCTAssertEqual(startCount, 1, "Lower priority match should not start animation while higher is active")
+
+    await MainActor.run {
+      monitor.stopAll()
+    }
+  }
+
+  func test_animationUsesHighestPriority_whenFivePatternsMatch() async {
+    let patterns = (0..<5).map { index in
+      makePattern(name: "Pattern \(index)", enabled: true)
+    }
+    let matcher = MockPatternMatcher()
+    matcher.fallbackResult = MatchResult(range: NSRange(location: 0, length: 1), captureGroups: [])
+    let dateProvider = TestDateProvider()
+
+    let (monitor, registry, handler, iconAnimator, _, _) = await MainActor.run {
+      makeMonitor(
+        patterns: patterns,
+        matcher: matcher,
+        dateProvider: dateProvider
+      )
+    }
+
+    var startCount = 0
+    let startExpectation = expectation(description: "highest priority animation started once")
+    let delegate = await MainActor.run {
+      SpyIconAnimatorDelegate {
+        startCount += 1
+        if startCount == 1 {
+          startExpectation.fulfill()
+        }
+      }
+    }
+
+    await MainActor.run {
+      iconAnimator.delegate = delegate
+      monitor.start()
+    }
+
+    let watchers: [StubFileWatcher] = await MainActor.run {
+      patterns.compactMap { pattern in
+        registry.watcher(for: pattern.id)
+      }
+    }
+    XCTAssertEqual(watchers.count, patterns.count, "Expected watcher for each pattern")
+
+    for watcher in watchers {
+      await MainActor.run {
+        watcher.send(lines: ["match"])
+      }
+      await MainActor.run {
+        dateProvider.advance(by: 0.05)
+      }
+    }
+
+    await fulfillment(of: [startExpectation], timeout: 1.0)
+    try? await Task.sleep(nanoseconds: 200_000_000)
+
+    XCTAssertEqual(startCount, 1, "Animation should only start once for highest priority pattern")
+
+    let history = await MainActor.run { handler.history }
+    XCTAssertEqual(history.count, patterns.count, "All matches should be recorded")
+    XCTAssertEqual(history.first?.patternName, patterns.first?.name, "Highest priority pattern should lead animations")
 
     await MainActor.run {
       monitor.stopAll()
@@ -546,7 +674,8 @@ final class LogMonitorTests: XCTestCase {
     alertPresenter: LogMonitorAlertPresenting? = nil,
     notificationCenter: NotificationCenter = NotificationCenter(),
     processingQueue: DispatchQueue? = nil,
-    fileAccessManager: FileAccessManaging? = nil
+    fileAccessManager: FileAccessManaging? = nil,
+    watcherFactory customWatcherFactory: ((LogPattern) -> FileWatching)? = nil
   ) -> (LogMonitor, TestWatcherRegistry, MatchEventHandler, IconAnimator, InMemoryStore, DispatchQueue) {
     let handler = MatchEventHandler()
     let timer = TestAnimationTimer()
@@ -557,6 +686,7 @@ final class LogMonitorTests: XCTestCase {
     let queue = processingQueue ?? DispatchQueue(label: "com.quantierra.Simmer.tests.log-monitor-processing")
     let presenter = alertPresenter ?? NoOpAlertPresenter()
     let accessManager = fileAccessManager ?? TestFileAccessManager()
+    let watcherFactory = customWatcherFactory ?? registry.makeWatcher(for:)
 
     let monitor = LogMonitor(
       configurationStore: backingStore,
@@ -564,7 +694,7 @@ final class LogMonitorTests: XCTestCase {
       patternMatcher: matcher,
       matchEventHandler: handler,
       iconAnimator: iconAnimator,
-      watcherFactory: registry.makeWatcher(for:),
+      watcherFactory: watcherFactory,
       dateProvider: dateProvider?.now ?? Date.init,
       processingQueue: queue,
       alertPresenter: presenter,
@@ -633,6 +763,15 @@ private final class RecordingFileAccessManager: FileAccessManaging {
       }
     }
     return bookmark
+  }
+}
+
+@MainActor
+private final class RecordingAlertPresenter: LogMonitorAlertPresenting {
+  private(set) var messages: [(title: String, message: String)] = []
+
+  func presentAlert(title: String, message: String) {
+    messages.append((title: title, message: message))
   }
 }
 
