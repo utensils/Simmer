@@ -14,7 +14,7 @@ final class ConfigurationStoreTests: XCTestCase {
 
   override func setUp() {
     super.setUp()
-    suiteName = "com.quantierra.SimmerTests.ConfigurationStoreTests"
+    suiteName = "io.utensils.SimmerTests.ConfigurationStoreTests"
     guard let defaults = UserDefaults(suiteName: suiteName) else {
       XCTFail("Failed to create isolated UserDefaults suite")
       return

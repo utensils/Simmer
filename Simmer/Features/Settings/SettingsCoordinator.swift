@@ -36,8 +36,8 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
       return
     }
 
-    let defaultContentSize = NSSize(width: 720, height: 520)
-    let minimumContentSize = NSSize(width: 640, height: 480)
+    let defaultContentSize = NSSize(width: 800, height: 700)
+    let minimumContentSize = NSSize(width: 720, height: 600)
 
     let view = PatternListView(
       store: configurationStore,
@@ -76,11 +76,12 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
   // MARK: - NSWindowDelegate
 
   func windowWillClose(_ notification: Notification) {
-    if let window = notification.object as? NSWindow,
-       windowController?.window == window {
-      windowController = nil
-      restoreActivationPolicyIfNeeded()
-    }
+    guard let window = notification.object as? NSWindow,
+      windowController?.window == window
+    else { return }
+
+    windowController = nil
+    restoreActivationPolicyIfNeeded()
   }
 
   // MARK: - Activation Policy Management
@@ -100,5 +101,18 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
     NSApplication.shared.setActivationPolicy(previous)
     managesActivationPolicy = false
     previousActivationPolicy = nil
+  }
+
+  // MARK: - Forced Dismissal
+
+  func forceCloseWindow() {
+    guard let controller = windowController, let window = controller.window else { return }
+
+    for sheet in window.sheets {
+      window.endSheet(sheet, returnCode: .cancel)
+      sheet.close()
+    }
+
+    window.close()
   }
 }

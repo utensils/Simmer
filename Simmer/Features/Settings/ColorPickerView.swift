@@ -22,7 +22,7 @@ struct ColorPickerView: View {
   }
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 16) {
+    VStack(alignment: .leading, spacing: 12) {
       ColorPicker("Animation Color", selection: bindingForColorPicker, supportsOpacity: false)
 
       previewSwatch
@@ -39,7 +39,7 @@ struct ColorPickerView: View {
   private var previewSwatch: some View {
     RoundedRectangle(cornerRadius: 6)
       .fill(currentColor)
-      .frame(height: 40)
+      .frame(height: 32)
       .overlay(
         RoundedRectangle(cornerRadius: 6)
           .stroke(Color.secondary.opacity(0.2), lineWidth: 1)

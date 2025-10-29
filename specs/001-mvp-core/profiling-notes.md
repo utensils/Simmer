@@ -34,14 +34,14 @@ with open("/tmp/simmer-profiling/patterns.json", "w", encoding="utf-8") as handl
     handle.write(payload)
 PY
 
-/usr/libexec/PlistBuddy -c "Delete :patterns" ~/Library/Preferences/com.quantierra.Simmer.plist 2>/dev/null || true
-/usr/libexec/PlistBuddy -c "Add :patterns data" ~/Library/Preferences/com.quantierra.Simmer.plist
+/usr/libexec/PlistBuddy -c "Delete :patterns" ~/Library/Preferences/io.utensils.Simmer.plist 2>/dev/null || true
+/usr/libexec/PlistBuddy -c "Add :patterns data" ~/Library/Preferences/io.utensils.Simmer.plist
 /usr/libexec/PlistBuddy -c "Set :patterns `python3 - <<'PY'
 import base64
 with open('/tmp/simmer-profiling/patterns.json', 'rb') as handle:
     print(base64.b64encode(handle.read()).decode('ascii'))
 PY
-`" ~/Library/Preferences/com.quantierra.Simmer.plist
+`" ~/Library/Preferences/io.utensils.Simmer.plist
 ```
 
 Restart Simmer after seeding so `LogMonitor` loads the fixtures.

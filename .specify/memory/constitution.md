@@ -1,28 +1,24 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version Change: [Initial] → 1.0.0
-Change Type: MINOR - Initial constitution creation
+Version Change: 1.0.0 → 1.1.0
+Change Type: MINOR - Added CI/CD requirement to quality gates
+
+Modified Sections:
+- Quality Gates: Added gate #7 for CI/CD workflow enforcement
 
 Modified Principles:
-- [NEW] I. Simplicity First
-- [NEW] II. Native & Performant
-- [NEW] III. Developer-Centric UX
-- [NEW] IV. Testing Discipline
-- [NEW] V. Concise Documentation
-
-Added Sections:
-- Core Principles (5 principles)
-- Development Standards
-- Quality Gates
-- Governance
+- None
 
 Templates Requiring Updates:
-✅ .specify/templates/plan-template.md (validated)
-✅ .specify/templates/spec-template.md (validated)
-✅ .specify/templates/tasks-template.md (validated)
+✅ specs/001-mvp-core/plan.md (updated - Principle IV now references CI/CD)
+✅ specs/001-mvp-core/tasks.md (updated - added T115-T117 for CI/CD workflows)
+✅ .specify/templates/* (no changes required)
 
-Follow-up TODOs: None
+Follow-up TODOs:
+- Implement T115: GitHub Actions workflow for automated testing
+- Implement T116: GitHub Actions workflow for SwiftLint enforcement
+- Implement T117: GitHub Actions workflow for build verification
 -->
 
 # Simmer Constitution
@@ -88,6 +84,7 @@ No PR may be merged without:
 4. No force unwraps or force casts introduced
 5. Public APIs documented with Swift DocC
 6. Performance impact assessed (CPU/memory profiling for I/O changes)
+7. CI/CD workflows passing (automated testing, linting, build verification)
 
 Breaking changes to file monitoring, pattern matching, or configuration persistence MUST:
 1. Document migration path in PR description
@@ -109,4 +106,7 @@ Compliance verification:
 
 Runtime development guidance lives in claude.md and MUST align with this constitution. Any conflict defaults to constitution rules.
 
-**Version**: 1.0.0 | **Ratified**: 2025-10-28 | **Last Amended**: 2025-10-28
+**Version**: 1.1.0 | **Ratified**: 2025-10-28 | **Last Amended**: 2025-10-28
+
+**Amendments**:
+- v1.1.0 (2025-10-28): Added CI/CD requirement to Quality Gates (gate #7)

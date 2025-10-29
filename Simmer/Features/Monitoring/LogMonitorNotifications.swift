@@ -8,5 +8,5 @@
 import Foundation
 
 extension Notification.Name {
-  static let logMonitorPatternsDidChange = Notification.Name("com.quantierra.Simmer.logMonitorPatternsDidChange")
+  static let logMonitorPatternsDidChange = Notification.Name("io.utensils.Simmer.logMonitorPatternsDidChange")
 }

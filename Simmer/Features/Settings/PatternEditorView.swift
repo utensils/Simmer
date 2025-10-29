@@ -64,11 +64,8 @@ struct PatternEditorView: View {
 
   var body: some View {
     NavigationStack {
-      Form {
-        detailsSection
-        logConfigurationSection
-        appearanceSection
-        statusSection
+      ScrollView(.vertical, showsIndicators: true) {
+        editorContent
       }
       .navigationTitle(mode.navigationTitle)
       .toolbar {
@@ -99,43 +96,55 @@ struct PatternEditorView: View {
           validateRegex()
         }
       }
-      .formStyle(.grouped)
-      .frame(minWidth: 520)
     }
+    .frame(minWidth: 600, minHeight: 680)
   }
 
   // MARK: - Sections
 
-  private var detailsSection: some View {
-    Section("Details") {
-      TextField("Name", text: $name)
-        .textFieldStyle(.roundedBorder)
-        .disableAutocorrection(true)
+  private var editorContent: some View {
+    VStack(alignment: .leading, spacing: 20) {
+      detailsSection
+      logConfigurationSection
+      appearanceSection
+      statusSection
+    }
+    .padding(.vertical, 24).padding(.horizontal, 28)
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
 
-      VStack(alignment: .leading, spacing: 4) {
-        TextField("Regular Expression", text: $regex, axis: .vertical)
+  private var detailsSection: some View {
+    GroupBox("Details") {
+      VStack(alignment: .leading, spacing: 12) {
+        TextField("Name", text: $name)
           .textFieldStyle(.roundedBorder)
           .disableAutocorrection(true)
-          .focused($focusedField, equals: .regex)
-          .onSubmit { validateRegex() }
-        if let regexError {
-          Text(regexError)
-            .font(.footnote)
-            .foregroundStyle(Color.red)
+
+        VStack(alignment: .leading, spacing: 6) {
+          TextField("Regular Expression", text: $regex, axis: .vertical)
+            .textFieldStyle(.roundedBorder)
+            .disableAutocorrection(true)
+            .focused($focusedField, equals: .regex)
+            .onSubmit { validateRegex() }
+          if let regexError {
+            Text(regexError)
+              .font(.footnote)
+              .foregroundStyle(Color.red)
+          }
         }
       }
     }
   }
 
   private var logConfigurationSection: some View {
-    Section("Log File") {
-      VStack(alignment: .leading, spacing: 8) {
-        HStack(alignment: .top, spacing: 8) {
-          TextField("Path", text: $logPath)
+    GroupBox("Log File") {
+      VStack(alignment: .leading, spacing: 12) {
+        HStack(alignment: .center, spacing: 8) {
+          TextField("Path", text: $logPath, axis: .vertical)
             .textFieldStyle(.roundedBorder)
             .fontDesign(.monospaced)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .lineLimit(1)
+            .lineLimit(2)
 
           Button {
             openFilePicker()
@@ -159,21 +168,23 @@ struct PatternEditorView: View {
   }
 
   private var appearanceSection: some View {
-    Section("Appearance") {
-      ColorPickerView(color: $color)
+    GroupBox("Appearance") {
+      VStack(alignment: .leading, spacing: 16) {
+        ColorPickerView(color: $color)
 
-      Picker("Animation Style", selection: $animationStyle) {
-        ForEach(AnimationStyle.allCases, id: \.self) { style in
-          Text(style.displayName)
-            .tag(style)
+        Picker("Animation Style", selection: $animationStyle) {
+          ForEach(AnimationStyle.allCases, id: \.self) { style in
+            Text(style.displayName)
+              .tag(style)
+          }
         }
+        .pickerStyle(.segmented)
       }
-      .pickerStyle(.segmented)
     }
   }
 
   private var statusSection: some View {
-    Section {
+    GroupBox {
       Toggle("Enabled", isOn: $enabled)
     }
   }
@@ -341,7 +352,7 @@ private func validateManualPath(_ path: String) throws {
 struct PatternEditorView_Previews: PreviewProvider {
   static var previews: some View {
     PatternEditorView(pattern: nil, onSave: { _ in })
-      .frame(width: 420, height: 520)
+      .frame(width: 720, height: 680)
   }
 }
 #endif

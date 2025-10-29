@@ -20,7 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   private var menuBarController: MenuBarController?
   private var logMonitor: LogMonitor?
-  private let launchLogger = OSLog(subsystem: "com.quantierra.Simmer", category: "LaunchAtLogin")
+  private let launchLogger = OSLog(subsystem: "io.utensils.Simmer", category: "LaunchAtLogin")
 
   override init() {
     configurationStore = ConfigurationStore()
@@ -70,8 +70,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       settingsHandler: { [weak self] in
         self?.presentSettingsWindow()
       },
-      quitHandler: {
-        NSApplication.shared.terminate(nil)
+      quitHandler: { [weak self] in
+        self?.handleQuitRequest()
       }
     )
     self.menuBuilder = menuBuilder
@@ -133,5 +133,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       )
     }
     settingsCoordinator?.show()
+  }
+
+  private func handleQuitRequest() {
+    settingsCoordinator?.forceCloseWindow()
+    logMonitor?.stopAll()
+
+    for window in NSApp.windows {
+      for sheet in window.sheets {
+        window.endSheet(sheet, returnCode: .cancel)
+        sheet.close()
+      }
+      window.close()
+    }
+
+    NSApp.terminate(nil)
   }
 }

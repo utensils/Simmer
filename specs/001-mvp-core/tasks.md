@@ -183,6 +183,8 @@
 - [X] T091 Integrate PathExpander in FileWatcher to expand path before opening file descriptor
 - [X] T092 [P] Implement incremental line reading in FileWatcher: maintain file position with lseek, only read new content (FR-023)
 - [X] T093 [P] Implement match line truncation in MatchEvent init: limit matchedLine to 200 chars with "..." suffix per data-model.md
+- [X] T118 [P] Harden FileWatcher teardown so disabling patterns does not emit false errors; add unit coverage in FileWatcherTests.swift
+- [X] T119 Validate manually-entered log paths before enabling watchers; disable pattern with actionable alert when path is missing or unreadable
 
 ### Performance Optimization
 
@@ -214,6 +216,12 @@
 - [X] T113 Update TECH_DESIGN.md with any architectural changes discovered during implementation
 - [X] T114 Document any open questions resolved during implementation in research.md
 
+### CI/CD & Automation
+
+- [ ] T115 [P] Create GitHub Actions workflow for automated testing (.github/workflows/test.yml): run xcodebuild test on PR/push, upload coverage report, fail if coverage <70% or critical paths <100%
+- [ ] T116 [P] Create GitHub Actions workflow for SwiftLint enforcement (.github/workflows/lint.yml): run swiftlint lint on all PRs, fail if warnings exist per constitution quality gates
+- [ ] T117 [P] Create GitHub Actions workflow for build verification (.github/workflows/build.yml): verify xcodebuild succeeds on macOS 14.0+, archive .app bundle as artifact
+
 ---
 
 ## Dependencies & Execution Order
@@ -241,7 +249,7 @@ Must complete sequentially:
 4. **T045-T055**: US2 menu history (depends on US1)
 5. **T056-T075**: US3 settings UI (depends on US1)
 6. **T076-T085**: US4 multi-watcher (depends on US1-US3)
-7. **T086-T114**: Polish (depends on all stories)
+7. **T086-T117**: Polish (depends on all stories)
 
 ### Parallel Opportunities Per Phase
 
@@ -281,7 +289,7 @@ Must complete sequentially:
 - Parallel: T083, T084 (profiling)
 - Sequential: T085 (manual test)
 
-**Phase 7 (Polish)** (T086-T114):
+**Phase 7 (Polish)** (T086-T117):
 - Parallel: T086, T087, T089, T092, T093 (independent error/edge case handlers)
 - Sequential: T088 (error UI integration)
 - Sequential: T090→T091 (path expansion integration)
@@ -293,6 +301,7 @@ Must complete sequentially:
 - Sequential: T106→T107→T108→T109→T110 (final testing)
 - Parallel: T111, T112 (formatting)
 - Parallel: T113, T114 (documentation)
+- Parallel: T115, T116, T117 (CI/CD workflows)
 
 ---
 
@@ -312,7 +321,7 @@ Must complete sequentially:
 2. **Iteration 2**: US2 (T045-T055) - Match history
 3. **Iteration 3**: US3 (T056-T075) - Settings UI
 4. **Iteration 4**: US4 (T076-T085) - Multiple logs
-5. **Final**: Polish (T086-T114) - Production ready
+5. **Final**: Polish (T086-T117) - Production ready
 
 Each iteration delivers independently testable value per constitution.
 
@@ -320,18 +329,20 @@ Each iteration delivers independently testable value per constitution.
 
 ## Task Summary
 
-**Total Tasks**: 114
+**Total Tasks**: 119
 - **Phase 1** (Setup): 11 tasks
 - **Phase 2** (Foundational): 10 tasks
 - **Phase 3** (US1): 23 tasks
 - **Phase 4** (US2): 11 tasks
 - **Phase 5** (US3): 20 tasks
 - **Phase 6** (US4): 10 tasks
-- **Phase 7** (Polish): 29 tasks
+- **Phase 7** (Polish): 34 tasks
 
-**Parallelizable Tasks**: 32 tasks marked with [P]
+**Parallelizable Tasks**: 35 tasks marked with [P]
 
 **Test Tasks**: 16 test suites covering all critical paths
+
+**CI/CD Tasks**: 3 workflow configurations for automated quality gates
 
 **User Story Distribution**:
 - US1 (Monitor Single Log): 23 tasks

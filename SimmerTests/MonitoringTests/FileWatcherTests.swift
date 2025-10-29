@@ -23,7 +23,7 @@ final class FileWatcherTests: XCTestCase {
     watcher = FileWatcher(
       path: path,
       fileSystem: fileSystem,
-      queue: DispatchQueue(label: "com.quantierra.Simmer.FileWatcherTests"),
+      queue: DispatchQueue(label: "io.utensils.Simmer.FileWatcherTests"),
       sourceFactory: { _, _, _ in
         self.eventSource
       }
@@ -87,6 +87,18 @@ final class FileWatcherTests: XCTestCase {
     XCTAssertEqual(delegate.receivedLines.count, 2)
     XCTAssertEqual(delegate.receivedLines[0], ["line one"])
     XCTAssertEqual(delegate.receivedLines[1], ["line two"])
+  }
+
+  func test_stop_preventsErrorWhenEventArrivesAfterCancellation() {
+    let noErrorExpectation = expectation(description: "No error reported after stop")
+    noErrorExpectation.isInverted = true
+    delegate.errorExpectation = noErrorExpectation
+
+    watcher.stop()
+    eventSource.trigger()
+
+    wait(for: [noErrorExpectation], timeout: 0.1)
+    XCTAssertTrue(delegate.receivedErrors.isEmpty)
   }
 }
 

@@ -63,7 +63,7 @@ final class FileWatcher: FileWatching {
   init(
     path: String,
     fileSystem: FileSystemProtocol = RealFileSystem(),
-    queue: DispatchQueue = DispatchQueue(label: "com.quantierra.Simmer.FileWatcher"),
+    queue: DispatchQueue = DispatchQueue(label: "io.utensils.Simmer.FileWatcher"),
     bufferSize: Int = 4_096,
     maxBytesPerEvent: Int = 1_048_576, // 1MB limit to prevent memory pressure
     sourceFactory: @escaping SourceFactory = { fd, mask, queue in
@@ -124,6 +124,10 @@ final class FileWatcher: FileWatching {
   }
 
   private func handleFileEvent() {
+    guard isRunning else {
+      return
+    }
+
     guard fileDescriptor >= 0 else {
       delegate?.fileWatcher(self, didEncounterError: .fileDescriptorInvalid)
       return

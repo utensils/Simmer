@@ -457,6 +457,44 @@ final class LogMonitorTests: XCTestCase {
     XCTAssertEqual(watcher.startCount, 1)
   }
 
+  func test_manualPathValidationDisablesMissingFileAndShowsAlert() async {
+    let missingPath = "/tmp/simmer-missing-\(UUID().uuidString).log"
+    let pattern = LogPattern(
+      name: "Missing File",
+      regex: "error",
+      logPath: missingPath,
+      color: CodableColor(red: 0.5, green: 0.5, blue: 1),
+      animationStyle: .glow,
+      enabled: true,
+      bookmark: nil
+    )
+    let matcher = MockPatternMatcher()
+    let store = InMemoryStore(initialPatterns: [pattern])
+    let alertPresenter = await MainActor.run { RecordingAlertPresenter() }
+
+    let (monitor, registry, _, _, storeRef, _) = await MainActor.run {
+      makeMonitor(
+        patterns: [pattern],
+        matcher: matcher,
+        store: store,
+        alertPresenter: alertPresenter
+      )
+    }
+
+    XCTAssertNil(registry.watcher(for: pattern.id), "Watcher should not be created for missing file")
+
+    let updatedPattern = storeRef.loadPatterns().first { $0.id == pattern.id }
+    XCTAssertEqual(updatedPattern?.enabled, false, "Pattern should be disabled after validation failure")
+
+    let messages = await MainActor.run { alertPresenter.messages }
+    XCTAssertEqual(messages.count, 1)
+    XCTAssertTrue(messages.first?.message.contains("cannot find") ?? false, "Alert should explain missing file")
+
+    await MainActor.run {
+      monitor.stopAll()
+    }
+  }
+
   func test_lowerPriorityMatchDoesNotOverrideActiveHighPriority() async {
     let high = makePattern(name: "High", enabled: true)
     let low = makePattern(name: "Low", enabled: true)
@@ -654,10 +692,16 @@ final class LogMonitorTests: XCTestCase {
     enabled: Bool,
     bookmark: FileBookmark? = nil
   ) -> LogPattern {
-    LogPattern(
+    let path = "/tmp/\(UUID().uuidString).log"
+    FileManager.default.createFile(atPath: path, contents: Data(), attributes: nil)
+    addTeardownBlock {
+      try? FileManager.default.removeItem(atPath: path)
+    }
+
+    return LogPattern(
       name: name,
       regex: ".*",
-      logPath: "/tmp/\(UUID().uuidString).log",
+      logPath: path,
       color: CodableColor(red: 1, green: 0, blue: 0),
       animationStyle: .glow,
       enabled: enabled,
@@ -683,7 +727,7 @@ final class LogMonitorTests: XCTestCase {
     let iconAnimator = IconAnimator(timerFactory: { timer }, clock: clock)
     let registry = TestWatcherRegistry()
     let backingStore = store ?? InMemoryStore(initialPatterns: patterns)
-    let queue = processingQueue ?? DispatchQueue(label: "com.quantierra.Simmer.tests.log-monitor-processing")
+    let queue = processingQueue ?? DispatchQueue(label: "io.utensils.Simmer.tests.log-monitor-processing")
     let presenter = alertPresenter ?? NoOpAlertPresenter()
     let accessManager = fileAccessManager ?? TestFileAccessManager()
     let watcherFactory = customWatcherFactory ?? registry.makeWatcher(for:)

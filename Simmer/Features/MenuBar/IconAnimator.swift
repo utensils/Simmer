@@ -63,7 +63,7 @@ final class IconAnimator {
   private let clock: IconAnimatorClock
   private var timer: AnimationTimer?
   private var animationStart: TimeInterval = 0
-  private let logger = Logger(subsystem: "com.quantierra.Simmer", category: "IconAnimator")
+  private let logger = Logger(subsystem: "io.utensils.Simmer", category: "IconAnimator")
   private let frameBudget: TimeInterval
   private var lastBudgetWarning: TimeInterval = 0
   private let budgetExceededHandler: (TimeInterval) -> Void

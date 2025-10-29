@@ -43,6 +43,7 @@ Build native macOS menu bar application for passive log monitoring with visual f
 - **Test-first approach**: Tests required before merging (constitution quality gates)
 - **Mocking strategy**: File system operations mocked in tests (per STANDARDS.md)
 - **SwiftLint**: Zero warnings enforcement via quality gates
+- **CI/CD**: GitHub Actions workflows enforce automated testing, linting, and build verification on all PRs
 
 ### Principle V: Concise Documentation ✅
 - **Separation of concerns**: VISION.md (what/why), TECH_DESIGN.md (architecture), STANDARDS.md (how), claude.md (AI guidance)

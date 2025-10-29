@@ -14,7 +14,7 @@ final class RegexPatternMatcher: PatternMatcherProtocol {
     cache.countLimit = 100 // Prevent unbounded growth
     return cache
   }()
-  private let cacheQueue = DispatchQueue(label: "com.quantierra.Simmer.regex-cache", attributes: .concurrent)
+  private let cacheQueue = DispatchQueue(label: "io.utensils.Simmer.regex-cache", attributes: .concurrent)
 
   func match(line: String, pattern: LogPattern) -> MatchResult? {
     guard pattern.enabled else {

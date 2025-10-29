@@ -40,6 +40,24 @@ final class SettingsCoordinatorTests: XCTestCase {
     XCTAssert(firstController === coordinator.windowController)
   }
 
+  func test_defaultWindowSizing() {
+    let coordinator = makeCoordinator()
+
+    coordinator.show()
+    RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+
+    guard let window = coordinator.windowController?.window else {
+      XCTFail("Expected window to exist after show()")
+      return
+    }
+
+    let contentSize = window.contentView?.frame.size ?? .zero
+    XCTAssertGreaterThanOrEqual(contentSize.width, 800 - 0.5, "content width \(contentSize.width)")
+    XCTAssertGreaterThanOrEqual(contentSize.height, 700 - 0.5, "content height \(contentSize.height)")
+    XCTAssertEqual(window.contentMinSize.width, 720, accuracy: 0.5, "min width \(window.contentMinSize.width)")
+    XCTAssertEqual(window.contentMinSize.height, 600, accuracy: 0.5, "min height \(window.contentMinSize.height)")
+  }
+
   // MARK: - Helpers
 
   private func makeCoordinator() -> SettingsCoordinator {

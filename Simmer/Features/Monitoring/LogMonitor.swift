@@ -23,8 +23,8 @@ final class LogMonitor: NSObject {
   private let matchEventHandler: MatchEventHandler
   private let iconAnimator: IconAnimator
   private let watcherFactory: WatcherFactory
-  private let stateQueue = DispatchQueue(label: "com.quantierra.Simmer.log-monitor")
-  private let logger = OSLog(subsystem: "com.quantierra.Simmer", category: "LogMonitor")
+  private let stateQueue = DispatchQueue(label: "io.utensils.Simmer.log-monitor")
+  private let logger = OSLog(subsystem: "io.utensils.Simmer", category: "LogMonitor")
   private let processingQueue: DispatchQueue
   private let alertPresenter: LogMonitorAlertPresenting
   private let notificationCenter: NotificationCenter
@@ -61,7 +61,7 @@ final class LogMonitor: NSObject {
     watcherFactory: WatcherFactory? = nil,
     dateProvider: @escaping () -> Date = Date.init,
     processingQueue: DispatchQueue = DispatchQueue(
-      label: "com.quantierra.Simmer.log-monitor.processing",
+      label: "io.utensils.Simmer.log-monitor.processing",
       qos: .userInitiated
     ),
     alertPresenter: LogMonitorAlertPresenting? = nil,
@@ -202,21 +202,21 @@ final class LogMonitor: NSObject {
 
   @MainActor
   private func preparePatternForMonitoring(_ pattern: LogPattern) -> LogPattern? {
-    guard let bookmark = pattern.bookmark else {
-      return pattern
-    }
+    if let bookmark = pattern.bookmark {
+      do {
+        let (url, isStale) = try fileAccessManager.resolveBookmark(bookmark)
+        if isStale {
+          return handleStaleBookmark(for: pattern, bookmark: bookmark)
+        }
 
-    do {
-      let (url, isStale) = try fileAccessManager.resolveBookmark(bookmark)
-      if isStale {
-        return handleStaleBookmark(for: pattern, bookmark: bookmark)
+        return registerBookmarkAccessIfNeeded(url: url, for: pattern)
+      } catch {
+        handleBookmarkResolutionFailure(pattern: pattern, error: error)
+        return nil
       }
-
-      return registerBookmarkAccessIfNeeded(url: url, for: pattern)
-    } catch {
-      handleBookmarkResolutionFailure(pattern: pattern, error: error)
-      return nil
     }
+
+    return validateManualPatternAccess(for: pattern)
   }
 
   @MainActor
@@ -350,6 +350,84 @@ final class LogMonitor: NSObject {
     disablePattern(pattern, message: """
     Simmer could not refresh access to "\(pattern.logPath)". Try selecting the file again from Settings.
     """)
+  }
+
+  @MainActor
+  private func validateManualPatternAccess(for pattern: LogPattern) -> LogPattern? {
+    var updatedPattern = pattern
+    let expandedPath = PathExpander.expand(pattern.logPath)
+
+    if expandedPath != pattern.logPath {
+      updatedPattern.logPath = expandedPath
+      do {
+        try configurationStore.updatePattern(updatedPattern)
+      } catch {
+        os_log(
+          .error,
+          log: logger,
+          "Failed to persist expanded path '%{public}@' for pattern '%{public}@': %{public}@",
+          expandedPath,
+          pattern.name,
+          String(describing: error)
+        )
+      }
+    }
+
+    let fileManager = FileManager.default
+    var isDirectory: ObjCBool = false
+
+    guard fileManager.fileExists(atPath: expandedPath, isDirectory: &isDirectory) else {
+      os_log(
+        .error,
+        log: logger,
+        "Manual path validation failed for pattern '%{public}@': file missing at '%{public}@'",
+        updatedPattern.name,
+        expandedPath
+      )
+      disablePattern(
+        updatedPattern,
+        message: """
+        Simmer cannot find "\(expandedPath)". Verify the file exists or choose it again in Settings to continue monitoring "\(updatedPattern.name)".
+        """
+      )
+      return nil
+    }
+
+    if isDirectory.boolValue {
+      os_log(
+        .error,
+        log: logger,
+        "Manual path validation failed for pattern '%{public}@': directory supplied at '%{public}@'",
+        updatedPattern.name,
+        expandedPath
+      )
+      disablePattern(
+        updatedPattern,
+        message: """
+        "\(expandedPath)" is a directory. Select a specific log file in Settings before re-enabling "\(updatedPattern.name)".
+        """
+      )
+      return nil
+    }
+
+    guard fileManager.isReadableFile(atPath: expandedPath) else {
+      os_log(
+        .error,
+        log: logger,
+        "Manual path validation failed for pattern '%{public}@': unreadable file at '%{public}@'",
+        updatedPattern.name,
+        expandedPath
+      )
+      disablePattern(
+        updatedPattern,
+        message: """
+        Simmer does not have permission to read "\(expandedPath)". Use the Choose... button in Settings so macOS can grant access to "\(updatedPattern.name)".
+        """
+      )
+      return nil
+    }
+
+    return updatedPattern
   }
 
   @MainActor
