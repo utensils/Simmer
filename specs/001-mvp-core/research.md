@@ -113,10 +113,11 @@ struct LogPattern: Codable, Identifiable {
 ```
 
 **Security-Scoped Bookmarks**:
-- Use URL.bookmarkData(options: .withSecurityScope) for log file paths
-- Store bookmark data alongside logPath in UserDefaults
-- Resolve bookmarks on app launch via URL.init(resolvingBookmarkData:bookmarkDataIsStale:)
-- Required for sandboxed file access post-user selection via NSOpenPanel
+- Use URL.bookmarkData(options: [.withSecurityScope, .securityScopeAllowOnlyReadAccess]) on macOS 13+ to minimize privileges.
+- If the first attempt fails, call startAccessingSecurityScopedResource() and retry to satisfy sandbox requirements on hardened systems.
+- Store bookmark data alongside logPath in UserDefaults so each LogPattern rehydrates with the same access grant.
+- Resolve bookmarks on app launch via URL.init(resolvingBookmarkData:bookmarkDataIsStale:); refresh the bookmark when macOS marks it stale and persist the updated grant.
+- When users type paths manually, validate existence/readability and prompt them to use the file picker if the sandbox would reject direct access.
 
 ## Testing Strategy
 

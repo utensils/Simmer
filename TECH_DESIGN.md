@@ -141,9 +141,21 @@ SwiftUI window with sections:
 
 ## File Access Strategy
 
-**Sandboxing**: Request file access via NSOpenPanel for user-selected logs. Store bookmarks using security-scoped URLs.
+**Sandboxing**:
+- Request file access via NSOpenPanel (security-scoped URL grant).
+- Persist `FileBookmark` alongside each `LogPattern` so LogMonitor can resolve bookmarks on launch and refresh stale grants.
+- During bookmark creation, retry with `startAccessingSecurityScopedResource()` and use `.securityScopeAllowOnlyReadAccess` on macOS 13+ for least-privilege access.
+- Treat `EPERM`/`EACCES` as permission failures and disable the offending pattern with actionable alerts.
+
+**Manual Path Input**:
+- Path field still allows direct text entry but we validate existence, non-directory, and read permission before saving when no bookmark is present.
+- Users are guided to reopen the file picker if the sandbox would deny access.
 
 **Path Expansion**: Support `~`, environment variables, and wildcards in configuration.
+
+**Launch at Login**:
+- AppDelegate defers SMAppService registration until after initial launch to keep the main thread free for UI work.
+- Launch-at-login is enabled only outside of test environments and failure is logged via `OSLog`.
 
 ## Error Handling
 

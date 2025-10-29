@@ -211,8 +211,8 @@
 - [ ] T110 End-to-end test: Fresh install, configure 3 patterns, monitor logs for 1 hour, verify no crashes/leaks, verify animations smooth
 - [ ] T111 Create .swiftformat config file per STANDARDS.md if not exists
 - [ ] T112 Run swift-format across codebase for final formatting consistency
-- [ ] T113 Update TECH_DESIGN.md with any architectural changes discovered during implementation
-- [ ] T114 Document any open questions resolved during implementation in research.md
+- [X] T113 Update TECH_DESIGN.md with any architectural changes discovered during implementation
+- [X] T114 Document any open questions resolved during implementation in research.md
 
 ---
 
