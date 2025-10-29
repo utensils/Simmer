@@ -16,7 +16,6 @@ struct LogPattern: Codable, Identifiable, Equatable {
   var color: CodableColor
   var animationStyle: AnimationStyle
   var enabled: Bool
-  var bookmark: FileBookmark?
 
   /// Cached compiled regex - not persisted, computed on demand
   private var _compiledRegex: NSRegularExpression?
@@ -28,8 +27,7 @@ struct LogPattern: Codable, Identifiable, Equatable {
     logPath: String,
     color: CodableColor,
     animationStyle: AnimationStyle = .glow,
-    enabled: Bool = true,
-    bookmark: FileBookmark? = nil
+    enabled: Bool = true
   ) {
     self.id = id
     self.name = name
@@ -38,7 +36,6 @@ struct LogPattern: Codable, Identifiable, Equatable {
     self.color = color
     self.animationStyle = animationStyle
     self.enabled = enabled
-    self.bookmark = bookmark
     self._compiledRegex = try? NSRegularExpression(pattern: regex, options: [])
   }
 
@@ -54,7 +51,7 @@ struct LogPattern: Codable, Identifiable, Equatable {
   // MARK: - Codable
 
   enum CodingKeys: String, CodingKey {
-    case id, name, regex, logPath, color, animationStyle, enabled, bookmark
+    case id, name, regex, logPath, color, animationStyle, enabled
   }
 
   init(from decoder: Decoder) throws {
@@ -66,7 +63,6 @@ struct LogPattern: Codable, Identifiable, Equatable {
     color = try container.decode(CodableColor.self, forKey: .color)
     animationStyle = try container.decode(AnimationStyle.self, forKey: .animationStyle)
     enabled = try container.decode(Bool.self, forKey: .enabled)
-    bookmark = try container.decodeIfPresent(FileBookmark.self, forKey: .bookmark)
 
     // Pre-compile regex on decode
     self._compiledRegex = try? NSRegularExpression(pattern: regex, options: [])
@@ -81,7 +77,6 @@ struct LogPattern: Codable, Identifiable, Equatable {
     try container.encode(color, forKey: .color)
     try container.encode(animationStyle, forKey: .animationStyle)
     try container.encode(enabled, forKey: .enabled)
-    try container.encodeIfPresent(bookmark, forKey: .bookmark)
     // _compiledRegex is not encoded - will be recompiled on decode
   }
 }

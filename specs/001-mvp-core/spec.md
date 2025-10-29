@@ -5,6 +5,14 @@
 **Status**: Draft
 **Input**: User description: "initial MVP"
 
+## Overview
+
+Simmer delivers passive monitoring for developer-owned log files by living entirely in the macOS menu bar. The MVP ensures patterns defined by the user trigger immediate visual feedback, while keeping configuration lightweight and sharable so teams can standardize on repeatable alerts without terminal babysitting.
+
+## Context
+
+Research interviews identified three recurring pain points: noisy terminal panes that bury critical failures, missed bursts of errors during context switches, and brittle hand-copied regex setups. Simmer counters these with always-on background monitoring, high-signal status item animations, and JSON-based configuration import/export. The app runs without sandbox entitlements to avoid log permission churn and aligns with the modular boundaries set out in `STANDARDS.md` (`Features/MenuBar`, `Features/Monitoring`, `Features/Patterns`, `Features/Settings`, shared `Models`, and `Services`).
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Monitor Single Log with Visual Feedback (Priority: P1)
@@ -18,7 +26,7 @@ Developer monitors a worker queue log file and receives passive visual feedback 
 **Acceptance Scenarios**:
 
 1. **Given** app is running with a configured pattern, **When** a matching line is appended to the monitored log, **Then** the menu bar icon animates (glows/pulses/blinks) with the configured color
-2. **Given** app is running and monitoring a log, **When** no matches occur for 5 minutes, **Then** the icon remains in idle state with minimal resource usage
+2. **Given** app is running and monitoring a log, **When** no matches occur for 5 minutes, **Then** the icon remains in idle state while CPU usage stays under 1% and resident memory stays under 50MB (per FR-017/FR-018)
 3. **Given** multiple matches occur rapidly, **When** the icon is already animating, **Then** the animation continues smoothly without stuttering or dropping frames
 
 ---
@@ -83,6 +91,14 @@ Developer monitors multiple log files with different patterns and receives appro
 
 ## Requirements *(mandatory)*
 
+### Non-Functional Requirements
+
+- **NFR-001**: App MUST maintain <1% CPU usage when idle and <5% during active monitoring, as verified via repeatable Activity Monitor or Instruments sessions (maps to FR-017, SC-003)
+- **NFR-002**: App MUST sustain <50MB resident memory with transient spikes ≤75MB resolving within 10 seconds under synthetic burst loads (maps to FR-018)
+- **NFR-003**: Pattern detection pipeline MUST surface visual feedback within 500ms of a matching log entry and complete regex evaluation in <10ms per line (maps to FR-019, SC-002, SC-007)
+- **NFR-004**: Cold launch to ready-to-monitor state MUST complete in under 2 seconds on baseline Apple silicon hardware (maps to SC-006)
+- **NFR-005**: CI/CD workflows MUST block merges unless automated build, lint, test, and notarization stages succeed (maps to FR-028 – FR-030 and Constitution Quality Gate #7)
+
 ### Functional Requirements
 
 - **FR-001**: App MUST display as menu bar-only application (no dock icon) with status item icon
@@ -96,8 +112,7 @@ Developer monitors multiple log files with different patterns and receives appro
 - **FR-009**: Menu MUST provide "Settings" action to open configuration window
 - **FR-010**: Settings window MUST allow adding patterns with: name, regex, log file path, color (RGB), animation style, enabled state
 - **FR-011**: Settings window MUST validate regex syntax before saving and display inline errors for invalid patterns
-- **FR-012**: Settings window MUST provide file picker for selecting log files
-- **FR-013**: System MUST provide file selection via NSOpenPanel for selecting log files (non-sandboxed, direct file path access)
+- **FR-012**: Settings window MUST provide log file selection via NSOpenPanel, using direct (non-sandboxed) file path access and surfacing permission prompts when required
 - **FR-014**: System MUST persist pattern configurations across app restarts
 - **FR-015**: System MUST support editing and deleting existing patterns
 - **FR-016**: System MUST support disabling patterns without deleting them
@@ -112,6 +127,9 @@ Developer monitors multiple log files with different patterns and receives appro
 - **FR-024**: System MUST support tilde (~) expansion and environment variables in log file paths
 - **FR-025**: When multiple patterns match simultaneously, system MUST prioritize animation by pattern configuration order (first enabled pattern in list = highest priority)
 - **FR-027**: System MUST provide JSON import and export of pattern configurations, including regex, file path, color, animation style, and enabled state; operations MUST round-trip without data loss and validate imported content before activation
+- **FR-028**: Release automation MUST generate notarized app bundles by submitting CI-built artifacts to Apple Notary Service via `notarytool` and block release until approval is received
+- **FR-029**: Release automation MUST staple notarization tickets to generated app bundles so downloads run offline without quarantine warnings
+- **FR-030**: Release automation MUST package builds into signed `.dmg` installers with `/Applications` symlink and publish draft GitHub Releases attaching the installer artifact
 
 ## Success Criteria *(mandatory)*
 

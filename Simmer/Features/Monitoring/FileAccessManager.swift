@@ -24,14 +24,12 @@ enum FileAccessError: Error, LocalizedError, Equatable {
     }
 }
 
-/// Protocol for file access manager (for testing)
+/// Protocol for file selection via file picker (for testing)
 protocol FileAccessManaging: AnyObject {
     func requestAccess(allowedFileTypes: [String]?) throws -> URL
-    func resolveBookmark(_ bookmark: FileBookmark) throws -> (url: URL, isStale: Bool)
-    func refreshStaleBookmark(_ bookmark: FileBookmark) throws -> FileBookmark
 }
 
-/// Simplified file access manager for non-sandboxed apps
+/// Manages file selection via system file picker for non-sandboxed apps
 @MainActor
 final class FileAccessManager: FileAccessManaging {
     /// Requests user to select a file via file picker
@@ -60,19 +58,5 @@ final class FileAccessManager: FileAccessManaging {
         }
 
         return url
-    }
-
-    func resolveBookmark(_ bookmark: FileBookmark) throws -> (url: URL, isStale: Bool) {
-        let url = URL(fileURLWithPath: bookmark.filePath)
-        guard FileManager.default.isReadableFile(atPath: url.path) else {
-            throw FileAccessError.fileNotAccessible(path: url.path)
-        }
-        return (url, bookmark.isStale)
-    }
-
-    func refreshStaleBookmark(_ bookmark: FileBookmark) throws -> FileBookmark {
-        var refreshed = bookmark
-        refreshed.isStale = false
-        return refreshed
     }
 }

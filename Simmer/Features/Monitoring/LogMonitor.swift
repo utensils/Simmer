@@ -18,7 +18,6 @@ final class LogMonitor: NSObject {
   typealias WatcherFactory = (LogPattern) -> FileWatching
 
   private let configurationStore: ConfigurationStoreProtocol
-  private let fileAccessManager: FileAccessManaging
   private let patternMatcher: PatternMatcherProtocol
   private let matchEventHandler: MatchEventHandler
   private let iconAnimator: IconAnimator
@@ -47,8 +46,6 @@ final class LogMonitor: NSObject {
   private var patternPriorities: [UUID: Int] = [:]
   private var lastAnimationTimestamps: [UUID: Date] = [:]
   private var currentAnimation: (patternID: UUID, priority: Int)?
-  // STUB: activeBookmarkURLs removed - no longer needed (no sandbox)
-  // TODO: Remove completely during cleanup (see tasks.md)
   private var didBootstrapPatterns = false
   private var suppressedAlertPatternIDs: Set<UUID> = []
   private var pendingLatencyStartDates: [UUID: [Date]] = [:]
@@ -56,7 +53,6 @@ final class LogMonitor: NSObject {
   @MainActor
   init(
     configurationStore: ConfigurationStoreProtocol = ConfigurationStore(),
-    fileAccessManager: FileAccessManaging? = nil,
     patternMatcher: PatternMatcherProtocol? = nil,
     matchEventHandler: MatchEventHandler,
     iconAnimator: IconAnimator,
@@ -70,7 +66,6 @@ final class LogMonitor: NSObject {
     notificationCenter: NotificationCenter = .default
   ) {
     self.configurationStore = configurationStore
-    self.fileAccessManager = fileAccessManager ?? FileAccessManager()
     self.patternMatcher = patternMatcher ?? RegexPatternMatcher()
     self.matchEventHandler = matchEventHandler
     self.iconAnimator = iconAnimator
@@ -140,13 +135,11 @@ final class LogMonitor: NSObject {
       patternPriorities.removeAll()
       lastAnimationTimestamps.removeAll()
       currentAnimation = nil
-      // STUB: activeBookmarkURLs cleanup removed (no sandbox)
       suppressedAlertPatternIDs.removeAll()
       return currentWatchers
     }
 
     activeWatchers.forEach { $0.stop() }
-    // STUB: Bookmark URL cleanup removed (no sandbox)
 
     Task { @MainActor [iconAnimator] in
       iconAnimator.stopAnimation()
@@ -209,19 +202,8 @@ final class LogMonitor: NSObject {
 
   @MainActor
   private func preparePatternForMonitoring(_ pattern: LogPattern) -> LogPattern? {
-    // STUB: Bookmark logic removed - direct file access only (no sandbox)
-    // TODO: Clean up bookmark infrastructure completely (see tasks.md)
     return validateManualPatternAccess(for: pattern)
   }
-
-  // STUB: Removed - bookmark logic no longer needed (no sandbox)
-  // TODO: Remove completely during cleanup (see tasks.md)
-
-  // STUB: Removed - bookmark logic no longer needed (no sandbox)
-  // TODO: Remove completely during cleanup (see tasks.md)
-
-  // STUB: Removed - bookmark error handling no longer needed (no sandbox)
-  // TODO: Remove completely during cleanup (see tasks.md)
 
   @MainActor
   private func validateManualPatternAccess(for pattern: LogPattern) -> LogPattern? {
@@ -292,7 +274,7 @@ final class LogMonitor: NSObject {
       disablePattern(
         updatedPattern,
         message: """
-        Simmer does not have permission to read "\(expandedPath)". Use the Choose... button in Settings so macOS can grant access to "\(updatedPattern.name)".
+        Cannot read log file at "\(expandedPath)". Please verify the file exists and Simmer has permission to access it.
         """
       )
       return nil
@@ -508,12 +490,10 @@ final class LogMonitor: NSObject {
         currentAnimation = nil
       }
       suppressedAlertPatternIDs.remove(patternID)
-      // STUB: Bookmark URL cleanup removed (no sandbox)
       return entry
     }
 
     entry?.watcher.stop()
-    // STUB: Bookmark URL cleanup removed (no sandbox)
     return entry
   }
 

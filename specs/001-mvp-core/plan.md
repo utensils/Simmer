@@ -130,6 +130,25 @@ SimmerTests/
 
 **Structure Decision**: Single macOS application structure following feature-based organization per STANDARDS.md and constitution. App/ for lifecycle, Features/ for domain logic, Models/ for shared data structures, Services/ for cross-cutting concerns, Utilities/ for helpers. Tests mirror source structure with dedicated Mocks/ directory for file system simulation.
 
+## Phased Delivery
+
+1. **Phase 0 – Research & Contracts**: Finalize problem validation artifacts (`research.md`, `contracts/internal-protocols.md`) and confirm constitutional gates before implementation.
+2. **Phase 1 – Architecture & Data Model**: Produce `data-model.md` and `quickstart.md`, validating domain types (LogPattern, MatchEvent, AnimationStyle) and end-to-end developer flow.
+3. **Phase 2 – Task Breakdown**: Generate `tasks.md` with sequenced work items; no coding until this phase is signed off.
+4. **Phase 3 – US1 Core Monitoring**: Build watch pipeline, icon animations, and baseline tests delivering the single-log MVP in isolation.
+5. **Phase 4 – US2 Match History**: Layer menu presentation, history management, and EC-005 warning flow atop US1 foundations.
+6. **Phase 5 – US3 Settings & Portability**: Ship full CRUD UI, NSOpenPanel integration, launch-at-login controls, and JSON import/export.
+7. **Phase 6 – US4 Scale-Out**: Enable multi-watcher coordination, prioritization, and debouncing/throttling for up to 20 patterns.
+8. **Phase 7 – Polish & Release Automation**: Harden edge cases, performance profiling, usability study, formatting, and CI/CD workflows (lint, test, build, notarize, DMG packaging).
+
+## Data Model Reference
+
+- **LogPattern** (`data-model.md#logpattern`): Identifier, name, regex, expanded file path, RGB color, animation style, enabled flag; drives watcher lifecycle and JSON import/export format.
+- **MatchEvent** (`data-model.md#matchevent`): Pattern reference, timestamp, truncated line excerpt, priority; feeds MenuBar history and animation decisions.
+- **AnimationStyle** (`data-model.md#animationstyle`): Enum (glow, pulse, blink) informing IconAnimator frame generation.
+- **LaunchPreference** (`data-model.md#launchpreference`): Boolean with persisted state managed by `LaunchAtLoginController`.
+- **ConfigurationEnvelope** (`data-model.md#configurationenvelope`): Top-level collection used for import/export schema validation, guaranteeing round-trippable settings.
+
 ## Complexity Tracking
 
 No violations - constitution check passed without requiring complexity justifications.
