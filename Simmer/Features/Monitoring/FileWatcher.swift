@@ -43,6 +43,19 @@ internal final class DispatchSourceFileSystemWrapper: FileSystemEventSource {
   }
 }
 
+@inline(__always)
+internal func makeDispatchSourceFileSystemWrapper(
+  fileDescriptor: Int32,
+  mask: DispatchSource.FileSystemEvent,
+  queue: DispatchQueue
+) -> FileSystemEventSource {
+  DispatchSourceFileSystemWrapper(
+    fileDescriptor: fileDescriptor,
+    mask: mask,
+    queue: queue
+  )
+}
+
 // swiftlint:disable:next type_body_length
 internal final class FileWatcher: FileWatching {
   typealias SourceFactory = (
@@ -75,20 +88,14 @@ internal final class FileWatcher: FileWatching {
     bufferSize: Int = 4_096,
     // 1MB per-event cap avoids memory pressure spikes (FR-017).
     maxBytesPerEvent: Int = 1_048_576,
-    sourceFactory: @escaping SourceFactory = { fd, mask, queue in
-      DispatchSourceFileSystemWrapper(
-        fileDescriptor: fd,
-        mask: mask,
-        queue: queue
-      )
-    }
+    sourceFactory: SourceFactory? = nil
   ) {
     self.path = path
     self.fileSystem = fileSystem
     self.queue = queue
     self.bufferSize = bufferSize
     self.maxBytesPerEvent = maxBytesPerEvent
-    self.sourceFactory = sourceFactory
+    self.sourceFactory = sourceFactory ?? makeDispatchSourceFileSystemWrapper
   }
 
   deinit {
@@ -248,3 +255,21 @@ internal final class FileWatcher: FileWatching {
     }
   }
 }
+
+#if DEBUG
+extension FileWatcher {
+  /// Test helper used to manipulate internal descriptor state.
+  internal func testingSetFileDescriptor(_ descriptor: Int32) {
+    fileDescriptor = descriptor
+  }
+
+  /// Test helper used to control running state for coverage scenarios.
+  internal func testingSetIsRunning(_ running: Bool) {
+    isRunning = running
+  }
+
+  internal func testingHandleFileEvent() {
+    handleFileEvent()
+  }
+}
+#endif

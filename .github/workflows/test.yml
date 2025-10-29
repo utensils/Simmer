@@ -108,8 +108,8 @@ jobs:
           # Check critical paths (PatternMatcher, FileWatcher) have 100% coverage
           echo "Checking critical path coverage..."
 
-          PATTERN_MATCHER_COV=$(xcrun xccov view --report --files-for-target Simmer.app "$XCRESULT_PATH" | grep "PatternMatcher.swift" | awk '{print $4}' | sed 's/%//' || echo "0")
-          FILE_WATCHER_COV=$(xcrun xccov view --report --files-for-target Simmer.app "$XCRESULT_PATH" | grep "FileWatcher.swift" | awk '{print $4}' | sed 's/%//' || echo "0")
+          PATTERN_MATCHER_COV=$(python3 scripts/lcov_percentage.py coverage/coverage.lcov Simmer/Features/Patterns/PatternMatcher.swift)
+          FILE_WATCHER_COV=$(python3 scripts/lcov_percentage.py coverage/coverage.lcov Simmer/Features/Monitoring/FileWatcher.swift)
 
           echo "PatternMatcher.swift coverage: ${PATTERN_MATCHER_COV}%"
           echo "FileWatcher.swift coverage: ${FILE_WATCHER_COV}%"

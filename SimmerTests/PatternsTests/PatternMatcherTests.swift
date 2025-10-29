@@ -101,6 +101,16 @@ internal final class PatternMatcherTests: XCTestCase {
     XCTAssertEqual(result?.captureGroups.first, "")
   }
 
+  func test_regexCaching_returnsPreviouslyCompiledExpression() {
+    let pattern = "WARN"
+
+    let first = matcher.regex(for: pattern)
+    let second = matcher.regex(for: pattern)
+
+    XCTAssertNotNil(first)
+    XCTAssertTrue(first === second)
+  }
+
   // MARK: - Helpers
 
   private func logPattern(

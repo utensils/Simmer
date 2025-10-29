@@ -3,6 +3,7 @@
 //  SimmerTests
 //
 
+import Darwin
 import XCTest
 @testable import Simmer
 
@@ -167,6 +168,76 @@ internal final class FileWatcherTests: XCTestCase {
 
     XCTAssertEqual(delegate.receivedErrors.last, .fileDescriptorInvalid)
   }
+
+  func test_handleFileEvent_whenDescriptorInvalid_reportsErrorImmediately() {
+    delegate.errorExpectation = expectation(description: "Reported invalid descriptor")
+    watcher.testingSetFileDescriptor(-1)
+    eventSource.trigger()
+    waitForExpectations(timeout: 1)
+
+    XCTAssertEqual(delegate.receivedErrors.last, .fileDescriptorInvalid)
+  }
+
+  func test_handleFileEvent_respectsMaxBytesPerEventLimit() {
+    let limitedPath = "/tmp/limit.log"
+    let limitedFileSystem = MockFileSystem()
+    limitedFileSystem.overwriteFile(limitedPath, with: "")
+    let localDelegate = TestFileWatcherDelegate()
+    let limitedWatcher = FileWatcher(
+      path: limitedPath,
+      fileSystem: limitedFileSystem,
+      queue: DispatchQueue(label: "io.utensils.Simmer.FileWatcherTests.limited"),
+      bufferSize: 4,
+      maxBytesPerEvent: 8,
+      sourceFactory: { _, _, _ in TestFileSystemEventSource() }
+    )
+    localDelegate.linesExpectation = expectation(description: "Read limited chunk")
+    limitedWatcher.delegate = localDelegate
+    try? limitedWatcher.start()
+    defer { limitedWatcher.stop() }
+
+    guard let descriptor = limitedFileSystem.descriptor(forPath: limitedPath) else {
+      XCTFail("Descriptor unavailable")
+      return
+    }
+
+    limitedFileSystem.append("abc\ndef\nXYZ", to: limitedPath)
+    limitedWatcher.testingHandleFileEvent()
+
+    waitForExpectations(timeout: 1)
+
+    XCTAssertEqual(localDelegate.receivedLines.last, ["abc", "def"])
+    XCTAssertEqual(limitedFileSystem.offset(for: descriptor), 8)
+  }
+
+  func test_handleFileEvent_whenChunkNotUTF8_doesNotEmitLines() {
+    fileSystem.files[path]?.append(Data([0xFF, 0xFE]))
+    eventSource.trigger()
+
+    XCTAssertTrue(delegate.receivedLines.isEmpty)
+  }
+
+  func test_start_whenOpenFails_translatesErrno() {
+    let failingFileSystem = MockFileSystem()
+    failingFileSystem.openFailures[path] = ENOENT
+    let failingWatcher = FileWatcher(path: path, fileSystem: failingFileSystem)
+
+    XCTAssertThrowsError(try failingWatcher.start()) { error in
+      XCTAssertEqual(error as? FileWatcherError, .fileDeleted(path: path))
+    }
+  }
+
+  func test_start_whenLseekFails_throwsDescriptorInvalid() {
+    let failingFileSystem = MockFileSystem()
+    failingFileSystem.overwriteFile(path, with: "data")
+    failingFileSystem.lseekFailures[3] = EBADF
+    let failingWatcher = FileWatcher(path: path, fileSystem: failingFileSystem)
+
+    XCTAssertThrowsError(try failingWatcher.start()) { error in
+      XCTAssertEqual(error as? FileWatcherError, .fileDescriptorInvalid)
+    }
+  }
+
 }
 
 // MARK: - Test Doubles

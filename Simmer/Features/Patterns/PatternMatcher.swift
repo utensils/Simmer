@@ -58,7 +58,8 @@ internal final class RegexPatternMatcher: PatternMatcherProtocol {
     return MatchResult(range: result.range, captureGroups: captures)
   }
 
-  private func regex(for pattern: String) -> NSRegularExpression? {
+  /// Exposed internally to support test coverage of the cache path.
+  func regex(for pattern: String) -> NSRegularExpression? {
     let key = pattern as NSString
 
     var cached: NSRegularExpression?
