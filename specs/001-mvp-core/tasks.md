@@ -259,13 +259,13 @@
 
 **Context**: Mid-implementation decision to remove sandboxing resulted in stubbed bookmark code in LogMonitor. These tasks clean up the stubs and remove dead infrastructure. See spec.md Technical Debt section for full context.
 
-- [ ] TD-001 [P] Remove all stubbed bookmark methods from LogMonitor.swift: handleStaleBookmark(), registerBookmarkAccessIfNeeded(), handleBookmarkResolutionFailure(), handleBookmarkRefreshFailure() - delete entirely, not just stubs
-- [ ] TD-002 [P] Remove activeBookmarkURLs property and all related cleanup code from LogMonitor.swift - search for "// STUB:" comments and remove entire code blocks
-- [ ] TD-003 [P] Delete FileAccessManagerTests.swift entirely - all tests reference removed bookmark functionality, no longer relevant for non-sandboxed app
-- [ ] TD-004 Update LogMonitorTests.swift - remove any bookmark-related test cases, verify direct file path access works
-- [ ] TD-005 Update ConfigurationStoreTests.swift and ConfigurationExportImportTests.swift - remove bookmark field assertions if present
-- [ ] TD-006 Remove fileAccessManager injection parameter from LogMonitor init - no longer needed for bookmark operations, simplifies testing
-- [ ] TD-007 Verify all "// STUB:" and "// TODO: Remove" comments are gone from codebase with grep, ensure no dead code remains
+- [X] TD-001 [P] Remove all stubbed bookmark methods from LogMonitor.swift: handleStaleBookmark(), registerBookmarkAccessIfNeeded(), handleBookmarkResolutionFailure(), handleBookmarkRefreshFailure() - delete entirely, not just stubs
+- [X] TD-002 [P] Remove activeBookmarkURLs property and all related cleanup code from LogMonitor.swift - search for "// STUB:" comments and remove entire code blocks
+- [X] TD-003 [P] Delete FileAccessManagerTests.swift entirely - all tests reference removed bookmark functionality, no longer relevant for non-sandboxed app
+- [X] TD-004 Update LogMonitorTests.swift - remove any bookmark-related test cases, verify direct file path access works
+- [X] TD-005 Update ConfigurationStoreTests.swift and ConfigurationExportImportTests.swift - remove bookmark field assertions if present
+- [X] TD-006 Remove fileAccessManager injection parameter from LogMonitor init - no longer needed for bookmark operations, simplifies testing
+- [X] TD-007 Verify all "// STUB:" and "// TODO: Remove" comments are gone from codebase with grep, ensure no dead code remains
 
 ---
 
