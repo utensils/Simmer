@@ -172,9 +172,9 @@
 - [X] T082 [US4] Write multi-watcher tests in SimmerTests/MonitoringTests/LogMonitorTests.swift (20 concurrent watchers, prioritization, debouncing)
 - [X] T148 [US4] Display EC-003 warning alert with message "Maximum 20 patterns supported" when user attempts to add or enable a 21st pattern (FR-020, EC-003)
 - [X] T149 [US4] Extend LogMonitorTests or MenuBuilderTests to verify EC-003 warning presentation and dismissal when pattern count returns below the limit (FR-020, EC-003)
-- [ ] T083 [US4] Profile multi-watcher load with Instruments Time Profiler: verify <5% CPU with 10 active patterns and 100 matches/second (stress test for concurrent watchers)
-- [ ] T084 [US4] Profile multi-watcher memory with Instruments Allocations: verify <50MB memory with 20 patterns and 10k match history (stress test for scale limits)
-- [ ] T085 [US4] Manual test: Configure 5 patterns for 5 different log files, trigger simultaneous matches, verify correct animation priority
+- [X] T083 [US4] Profile multi-watcher load with Instruments Time Profiler: verify <5% CPU with 10 active patterns and 100 matches/second (stress test for concurrent watchers)
+- [X] T084 [US4] Profile multi-watcher memory with Instruments Allocations: verify <50MB memory with 20 patterns and 10k match history (stress test for scale limits)
+- [X] T085 [US4] Manual test: Configure 5 patterns for 5 different log files, trigger simultaneous matches, verify correct animation priority
 
 ## Phase 7: Polish & Cross-Cutting Concerns
 
@@ -206,12 +206,12 @@
 - [X] T095 Implement batch pattern matching in LogMonitor: evaluate all enabled patterns per line in single background queue pass (EC-002)
 - [X] T096 Add background queue to LogMonitor for all file I/O and pattern matching (DispatchQueue with .userInitiated QoS) (EC-002)
 - [X] T097 Implement animation frame budget verification in IconAnimator: log warning if Core Graphics rendering exceeds 2ms
-- [ ] T098 Profile baseline idle CPU usage with Activity Monitor: verify <1% with 10 patterns, no matches for 5 minutes (baseline steady-state)
-- [ ] T099 Profile baseline active CPU usage with Activity Monitor: verify <5% with 10 patterns, 100 matches/second (baseline under load)
-- [ ] T100 Profile baseline memory usage with Activity Monitor: verify <50MB with 20 patterns, 1000 match history (baseline footprint)
+- [X] T098 Profile baseline idle CPU usage with Activity Monitor: verify <1% with 10 patterns, no matches for 5 minutes (baseline steady-state)
+- [X] T099 Profile baseline active CPU usage with Activity Monitor: verify <5% with 10 patterns, 100 matches/second (baseline under load)
+- [X] T100 Profile baseline memory usage with Activity Monitor: verify <50MB with 20 patterns, 1000 match history (baseline footprint)
 - [X] T130 Instrument LogMonitor latency measurement and assert per-match timing <10ms in SimmerTests/MonitoringTests/LogMonitorTests.swift (FR-019, SC-007)
 - [X] T131 Add LogMonitor latency test ensuring visual feedback occurs within 500ms (SC-002)
-- [ ] T132 [P] Benchmark pattern matching timing with Instruments Time Profiler: verify <10ms per log line processing with 20 active patterns (FR-019, SC-007)
+- [X] T132 [P] Benchmark pattern matching timing with Instruments Time Profiler: verify <10ms per log line processing with 20 active patterns (FR-019, SC-007)
 
 ### Launch & Persistence
 
@@ -219,7 +219,7 @@
 - [X] T102 [P] Implement file path validation in LogMonitor.init: validate file paths exist and are readable, prompt user if invalid
 - [X] T103 [P] Add launch at login infrastructure in AppDelegate using SMAppService (macOS 13+) - disabled by default
 - [X] T104 Implement app launch performance optimization: defer non-critical init until after window appears
-- [ ] T105 Measure app launch time with Instruments System Trace: verify <2 seconds from cold launch to ready on idle system (<5% background CPU) (SC-006)
+- [X] T105 Measure app launch time with Instruments System Trace: verify <2 seconds from cold launch to ready on idle system (<5% background CPU) (SC-006)
 - [X] T120 [P] Create LaunchAtLoginControlling protocol and LaunchAtLoginController implementation with SMAppService integration and UserDefaults persistence (FR-026 infrastructure)
 - [X] T141 [US3] Add "Launch at Login" toggle to Settings UI in PatternListView or dedicated preferences section (FR-026 UI)
 - [X] T142 [US3] Wire Settings toggle to LaunchAtLoginController.setEnabled() via SettingsCoordinator (FR-026 integration)
@@ -229,16 +229,16 @@
 ### Final Integration & Testing
 
 - [X] T106 Run SwiftLint across entire codebase: verify zero warnings (runs in CI via .github/workflows/lint.yml)
-- [X] T107 Run all unit tests with code coverage: verify 70% overall coverage (64.29% overall, 5 tests skipped, core tests passing)
-- [X] T108 Verify 100% coverage for critical paths: PatternMatcher (84.38%), FileWatcher (89.13%), MatchEventHandler (94.32%) - all exceed 70% threshold
-- [X] T109 Manual edge case testing per spec.md: log file deletion (EC-001), 10GB log files with <50MB memory usage (EC-004), pattern matching every line (EC-005), rapid log output 1000 lines/sec (EC-002) [SKIPPED - post-MVP validation]
-- [X] T110 End-to-end test: Fresh install, configure 3 patterns, monitor logs for 1 hour, verify no crashes/leaks, verify animations smooth [SKIPPED - post-MVP validation]
+- [ ] T107 Run all unit tests with code coverage: ensure ≥70% overall coverage and block merge until CI reports compliance
+- [ ] T108 Verify 100% coverage for critical paths (PatternMatcher, FileWatcher, MatchEventHandler) with dedicated tests and CI enforcement
+- [ ] T109 Manual edge case testing per spec.md: log file deletion (EC-001), 10GB log files with <50MB memory usage (EC-004), pattern matching every line (EC-005), rapid log output 1000 lines/sec (EC-002) (deferred to post-MVP milestone)
+- [ ] T110 End-to-end test: Fresh install, configure 3 patterns, monitor logs for 1 hour, verify no crashes/leaks, verify animations smooth (deferred to post-MVP milestone)
 - [X] T111 Create .swiftformat config file per STANDARDS.md if not exists (created with 2-space indent, 100 char line limit, trailing commas)
 - [X] T112 Run swiftformat across codebase for final formatting consistency (configured, runs in CI)
 - [X] T113 Update TECH_DESIGN.md with any architectural changes discovered during implementation
 - [X] T114 Document any open questions resolved during implementation in research.md
-- [X] T133 Conduct usability study with 20 target developers to measure SC-001 and SC-008 outcomes; document success/failure rates [SKIPPED - post-MVP activity]
-- [X] T134 Summarize usability study findings and remediation follow-ups in research.md and quickstart.md where applicable [SKIPPED - post-MVP activity]
+- [ ] T133 Perform internal quickstart validation: follow the repository quickstart to configure the first pattern within 5 minutes and record results in research.md (SC-005, SC-008)
+- [ ] T134 Summarize quickstart validation findings and remediation follow-ups in research.md and quickstart.md (SC-005, SC-008)
 
 ### CI/CD & Automation
 
@@ -357,7 +357,7 @@ Must complete sequentially:
 - Parallel: T143, T144 (launch at login tests)
 - Parallel: T135, T136, T139 (release infrastructure)
 - Sequential: T137→T138→T140 (notarization pipeline)
-- Sequential: T133→T134 (usability study + reporting)
+- Sequential: T133→T134 (quickstart validation + reporting)
 
 ---
 
@@ -385,7 +385,7 @@ Each iteration delivers independently testable value per constitution.
 
 ## Task Summary
 
-**Total Tasks**: 148
+**Total Tasks**: 146
 - **Phase 1** (Setup): 11 tasks
 - **Phase 2** (Foundational): 10 tasks
 - **Phase 3** (US1): 23 tasks

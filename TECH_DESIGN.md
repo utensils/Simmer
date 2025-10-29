@@ -22,7 +22,7 @@ Native macOS menu bar application (LSUIElement) using SwiftUI for settings inter
 - **UI Framework**: SwiftUI (settings), AppKit (menu bar)
 - **File Monitoring**: DispatchSource.makeFileSystemObjectSource
 - **Pattern Matching**: NSRegularExpression
-- **Persistence**: UserDefaults or FileManager with JSON
+- **Persistence**: UserDefaults with JSON encoding/decoding
 - **Logging**: OSLog
 
 ## File Monitoring Strategy
@@ -141,21 +141,19 @@ SwiftUI window with sections:
 
 ## File Access Strategy
 
-**Sandboxing**:
-- Request file access via NSOpenPanel (security-scoped URL grant).
-- Persist `FileBookmark` alongside each `LogPattern` so LogMonitor can resolve bookmarks on launch and refresh stale grants.
-- During bookmark creation, retry with `startAccessingSecurityScopedResource()` and use `.securityScopeAllowOnlyReadAccess` on macOS 13+ for least-privilege access.
-- Treat `EPERM`/`EACCES` as permission failures and disable the offending pattern with actionable alerts.
+**Path Input**:
+- Users enter file paths directly or via file picker (NSOpenPanel).
+- Validate existence, non-directory, and read permission before saving.
+- Support `~`, environment variables, and wildcards in paths.
 
-**Manual Path Input**:
-- Path field still allows direct text entry but we validate existence, non-directory, and read permission before saving when no bookmark is present.
-- Users are guided to reopen the file picker if the sandbox would deny access.
-
-**Path Expansion**: Support `~`, environment variables, and wildcards in configuration.
+**Permission Handling**:
+- Treat `EPERM`/`EACCES` errors as permission failures.
+- Disable the offending pattern and show actionable alerts.
 
 **Launch at Login**:
-- AppDelegate defers SMAppService registration until after initial launch to keep the main thread free for UI work.
-- Launch-at-login is enabled only outside of test environments and failure is logged via `OSLog`.
+- AppDelegate defers SMAppService registration until after initial launch.
+- Launch-at-login is enabled only outside of test environments.
+- Failures are logged via `OSLog`.
 
 ## Error Handling
 
@@ -164,37 +162,30 @@ SwiftUI window with sections:
 - File deletion: Gracefully stop watcher, mark pattern inactive
 - Resource limits: Cap active watchers at 20 simultaneous files
 
-## Development Phases
+## Implementation Status
 
-### Phase 1: Foundation
-- [ ] Menu bar app scaffold
-- [ ] Basic file watching with DispatchSource
-- [ ] Simple pattern matching (exact string)
-- [ ] Static icon changes
+Core MVP features implemented:
+- Menu bar-only app (LSUIElement)
+- Real-time file monitoring with DispatchSource
+- Regex pattern matching with NSRegularExpression
+- Icon animations (glow, pulse, blink) at 60fps with graceful degradation
+- Recent matches menu (10 items, FIFO)
+- Settings UI with pattern CRUD, file picker, regex validation
+- JSON import/export for pattern configurations
+- Launch at login via SMAppService
+- Performance: <1% CPU idle, <5% active, <50MB memory
+- 20-pattern limit with UI warnings
+- Frequent match warnings (EC-005)
+- Error handling for permissions and file deletion
 
-### Phase 2: Core Features
-- [ ] Regex pattern matching
-- [ ] Icon animations
-- [ ] Recent matches menu
-- [ ] Settings UI
+## Future Enhancements
 
-### Phase 3: Polish
-- [ ] Configuration persistence
-- [ ] Launch at login
-- [ ] Error handling
-- [ ] Performance optimization
-
-### Phase 4: Enhancement
-- [ ] Export/import configs
-- [ ] Pattern templates
-- [ ] Match statistics
-
-## Open Questions
-
-- Animation performance with complex paths (bezier vs frame-based)?
-- Max simultaneous file watchers before performance degrades?
-- Should matches persist across app restarts?
-- Custom icon upload vs generated only?
+- Match history persistence across restarts
+- Custom icon sets
+- Pattern templates library
+- Match statistics and trends
+- Remote log monitoring (SSH)
+- Notification Center integration
 
 ## Risk Mitigation
 

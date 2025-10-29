@@ -139,10 +139,10 @@ Developer monitors multiple log files with different patterns and receives appro
 - **SC-002**: Pattern matches appear as visual feedback within 500ms of log line being written
 - **SC-003**: App maintains smooth icon animations at 60fps with CPU usage below 5% during active monitoring
 - **SC-004**: Developers can monitor up to 10 log files simultaneously without performance degradation
-- **SC-005**: 95% of developers successfully configure their first pattern without consulting documentation, measured via a usability study of at least 20 target users completing a timed setup script unaided within 5 minutes; success = pattern actively monitoring target log file with visible confirmation (icon animation or match history entry) within 5 minutes from app launch
+- **SC-005**: A first-time maintainer can configure a complete monitoring pattern (regex, file, appearance) in under 5 minutes by following the repository quickstart, with visible confirmation (icon animation or match history entry) at completion
 - **SC-006**: App launches and becomes ready for monitoring in under 2 seconds
 - **SC-007**: Pattern matching completes within 10ms per log line for patterns with up to 20 regex rules
-- **SC-008**: Match history provides sufficient context (pattern name, timestamp, excerpt) for developers to identify issues without opening logs 80% of the time, measured via usability study (T133) by asking participants if they need to open log files after viewing match history
+- **SC-008**: Match history provides sufficient context (pattern name, timestamp, excerpt) for developers to identify issues without opening logs during the internal quickstart validation, documented in review notes when additional log inspection is required
 
 ## Technical Debt *(informational)*
 

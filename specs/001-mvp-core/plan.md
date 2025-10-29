@@ -139,7 +139,7 @@ SimmerTests/
 5. **Phase 4 – US2 Match History**: Layer menu presentation, history management, and EC-005 warning flow atop US1 foundations.
 6. **Phase 5 – US3 Settings & Portability**: Ship full CRUD UI, NSOpenPanel integration, launch-at-login controls, and JSON import/export.
 7. **Phase 6 – US4 Scale-Out**: Enable multi-watcher coordination, prioritization, and debouncing/throttling for up to 20 patterns.
-8. **Phase 7 – Polish & Release Automation**: Harden edge cases, performance profiling, usability study, formatting, and CI/CD workflows (lint, test, build, notarize, DMG packaging).
+8. **Phase 7 – Polish & Release Automation**: Harden edge cases, performance profiling, quickstart validation, formatting, and CI/CD workflows (lint, test, build, notarize, DMG packaging).
 
 ## Data Model Reference
 

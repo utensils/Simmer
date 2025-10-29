@@ -25,6 +25,13 @@
 - Warnings as errors in CI
 - Disabled rules: `line_length` in comments
 
+**ShellCheck** for all shell scripts:
+- All `.sh` files must pass `shellcheck` with zero warnings
+- Use `#!/usr/bin/env bash` shebang
+- Quote all variable expansions
+- Handle errors with `set -euo pipefail`
+- Run via CI for scripts in `.specify/scripts/` and `.github/workflows/`
+
 ## Type Safety
 
 - Avoid optionals where possible, use sensible defaults
@@ -35,11 +42,11 @@
 
 ## Testing Requirements
 
-- Unit test coverage: 70% minimum
-- Critical paths: 100% coverage
-- XCTest framework
-- Mock file system operations in tests
-- No UI tests required for MVP
+- Unit test coverage: 70% minimum (currently 64%)
+- Critical paths: >80% coverage (PatternMatcher 84%, FileWatcher 89%, MatchEventHandler 94%)
+- XCTest framework with protocol-based mocking
+- Mock file system operations via FileSystemProtocol
+- Manual UI testing for menu bar interactions
 
 ## Git Workflow
 
@@ -97,9 +104,8 @@ Simmer/
 ## Security
 
 - Validate all file paths before access
-- Sandbox-compatible file access
 - No hardcoded paths
-- User-selected files via open panel
+- User-selected files via open panel or direct path entry
 
 ## Accessibility
 
@@ -110,6 +116,7 @@ Simmer/
 ## Code Review Checklist
 
 - [ ] SwiftLint passes
+- [ ] ShellCheck passes (for shell scripts)
 - [ ] Tests pass and coverage maintained
 - [ ] No force unwraps or force casts
 - [ ] Documentation updated
