@@ -10,5 +10,6 @@ import Foundation
 /// Runtime state for the menu bar icon animation system.
 internal enum IconAnimationState: Equatable {
   case idle
+
   case animating(style: AnimationStyle, color: CodableColor)
 }

@@ -156,9 +156,7 @@ internal final class PatternListViewModel: ObservableObject {
   /// - Parameter enabled: Desired value for launch at login.
   func setLaunchAtLoginEnabled(_ enabled: Bool) {
     guard launchAtLoginController.isAvailable else {
-      launchAtLoginEnabled = false
-      isLaunchAtLoginAvailable = false
-      errorMessage = LaunchAtLoginError.notSupported.errorDescription
+      handleLaunchAtLoginUnavailable()
       return
     }
 
@@ -167,15 +165,9 @@ internal final class PatternListViewModel: ObservableObject {
 
     do {
       try launchAtLoginController.setEnabled(enabled)
-      launchAtLoginEnabled = launchAtLoginController.resolvedPreference()
-      isLaunchAtLoginAvailable = launchAtLoginController.isAvailable
+      updateLaunchAtLoginState()
     } catch {
-      launchAtLoginEnabled = previous
-      if let localized = error as? LocalizedError, let message = localized.errorDescription {
-        errorMessage = message
-      } else {
-        errorMessage = "Failed to update Launch at Login: \(error.localizedDescription)"
-      }
+      handleLaunchAtLoginError(error, previousValue: previous)
     }
   }
 
@@ -225,6 +217,26 @@ internal final class PatternListViewModel: ObservableObject {
       return message
     }
     return (error as NSError).localizedDescription
+  }
+
+  private func handleLaunchAtLoginUnavailable() {
+    launchAtLoginEnabled = false
+    isLaunchAtLoginAvailable = false
+    errorMessage = LaunchAtLoginError.notSupported.errorDescription
+  }
+
+  private func updateLaunchAtLoginState() {
+    launchAtLoginEnabled = launchAtLoginController.resolvedPreference()
+    isLaunchAtLoginAvailable = launchAtLoginController.isAvailable
+  }
+
+  private func handleLaunchAtLoginError(_ error: Error, previousValue: Bool) {
+    launchAtLoginEnabled = previousValue
+    if let localized = error as? LocalizedError, let message = localized.errorDescription {
+      errorMessage = message
+    } else {
+      errorMessage = "Failed to update Launch at Login: \(error.localizedDescription)"
+    }
   }
 }
 

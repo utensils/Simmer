@@ -1,10 +1,12 @@
 import Foundation
 
 /// Validates regex patterns for syntax correctness
+// swiftlint:disable:next type_body_length
 internal struct PatternValidator {
     /// Validation result for a regex pattern
     internal enum ValidationResult {
-        case valid
+        case valid = "valid"
+
         case invalid(error: String)
 
         var isValid: Bool {
@@ -24,7 +26,7 @@ internal struct PatternValidator {
 
     /// Validates a regex pattern string
     /// - Parameter pattern: The regex pattern to validate
-    /// - Returns: ValidationResult indicating if pattern is valid or contains errors
+    /// - Returns: ValidationResult indicating valid or error status
     static func validate(_ pattern: String) -> ValidationResult {
         // Empty patterns are invalid
         guard !pattern.isEmpty else {

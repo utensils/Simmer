@@ -9,18 +9,24 @@ import Foundation
 
 internal enum ConfigurationImportError: LocalizedError {
   case failedToRead(underlying: Error)
+
   case decodingFailed(underlying: Error)
+
   case unsupportedVersion(Int)
+
   case validationFailed(messages: [String])
 
   var errorDescription: String? {
     switch self {
     case .failedToRead(let underlying):
       return "Failed to open configuration: \(underlying.localizedDescription)"
+
     case .decodingFailed(let underlying):
       return "Configuration file is invalid: \(underlying.localizedDescription)"
+
     case .unsupportedVersion(let version):
       return "Configuration version \(version) is not supported."
+
     case .validationFailed(let messages):
       return messages.joined(separator: "\n")
     }

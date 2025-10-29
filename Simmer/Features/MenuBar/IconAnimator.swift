@@ -49,6 +49,7 @@ internal struct SystemAnimationClock: IconAnimatorClock {
 internal final class IconAnimator {
   private enum PerformanceState {
     case normal
+
     case reduced
   }
 
@@ -90,6 +91,7 @@ internal final class IconAnimator {
     switch performanceState {
     case .normal:
       return "normal"
+
     case .reduced:
       return "reduced"
     }
@@ -162,6 +164,7 @@ internal final class IconAnimator {
     switch performanceState {
     case .normal:
       return normalFrameInterval
+
     case .reduced:
       return reducedFrameInterval
     }
@@ -235,8 +238,10 @@ internal final class IconAnimator {
     switch performanceState {
     case .normal where consecutiveBudgetViolations >= fallbackViolationThreshold:
       enterReducedPerformanceMode()
+
     case .normal:
       break
+
     case .reduced:
       break
     }
@@ -249,6 +254,7 @@ internal final class IconAnimator {
     switch performanceState {
     case .normal:
       consecutiveHealthyFrames = min(consecutiveHealthyFrames + 1, recoveryFrameThreshold)
+
     case .reduced:
       consecutiveHealthyFrames += 1
       if consecutiveHealthyFrames >= recoveryFrameThreshold {
@@ -286,12 +292,14 @@ internal final class IconAnimator {
       let cycle = normalizedCycle(elapsed: elapsed, duration: duration)
       let opacity = 0.5 + cycle * 0.5
       return FrameParameters(scale: 1.0, opacity: opacity, visible: true)
+
     case .pulse:
       let duration: TimeInterval = 1.5
       let cycle = normalizedCycle(elapsed: elapsed, duration: duration)
       let scale = 1.0 + cycle * 0.15
       let opacity = 0.85 + cycle * 0.15
       return FrameParameters(scale: scale, opacity: opacity, visible: true)
+
     case .blink:
       let interval: TimeInterval = 0.5
       let isOn = Int((elapsed / interval).rounded(.down)) % 2 == 0
@@ -332,10 +340,11 @@ internal final class IconAnimator {
     let rect = CGRect(x: origin, y: origin, width: baseDiameter, height: baseDiameter)
 
     if parameters.opacity > 0 {
+      let shadowColor = color.withAlphaComponent(parameters.opacity * 0.6).cgColor
       context.setShadow(
         offset: .zero,
         blur: size * 0.4 * parameters.scale,
-        color: color.withAlphaComponent(parameters.opacity * 0.6).cgColor
+        color: shadowColor
       )
 
       context.setFillColor(color.withAlphaComponent(parameters.opacity).cgColor)

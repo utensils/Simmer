@@ -15,7 +15,11 @@ internal protocol FileWatching: AnyObject {
 }
 
 internal protocol FileWatcherDelegate: AnyObject {
-  func fileWatcher(_ watcher: FileWatching, didReadLines lines: [String])
+  func fileWatcher(
+    _ watcher: FileWatching,
+    didReadLines lines: [String]
+  )
+
   func fileWatcher(
     _ watcher: FileWatching,
     didEncounterError error: FileWatcherError
@@ -24,6 +28,8 @@ internal protocol FileWatcherDelegate: AnyObject {
 
 internal enum FileWatcherError: Error, Equatable {
   case fileDeleted(path: String)
+
   case permissionDenied(path: String)
-  case fileDescriptorInvalid
+
+  case fileDescriptorInvalid = "fileDescriptorInvalid"
 }

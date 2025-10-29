@@ -121,7 +121,7 @@ internal struct ColorPickerView: View {
   }
 
   internal func updateColor(with color: Color) {
-#if os(macOS)
+    #if os(macOS)
     if let cgColor = color.cgColor, let nsColor = NSColor(cgColor: cgColor) {
       self.color = CodableColor(nsColor: nsColor)
       return
@@ -142,41 +142,43 @@ internal struct ColorPickerView: View {
 
   internal enum RGBComponent {
     case red
+
     case green
+
     case blue
   }
 
   // MARK: - Color panel integration
 
   internal static var isColorPanelVisible: () -> Bool = {
-#if os(macOS)
+    #if os(macOS)
     NSColorPanel.shared.isVisible
-#else
+    #else
     false
-#endif
+    #endif
   }
 
   internal static var dismissColorPanel: () -> Void = {
-#if os(macOS)
+    #if os(macOS)
     NSColorPanel.shared.orderOut(nil)
-#else
+    #else
     return
-#endif
+    #endif
   }
 
   internal static func closeActiveColorPanel() {
-#if os(macOS)
+    #if os(macOS)
     if isColorPanelVisible() {
       dismissColorPanel()
     }
-#endif
+    #endif
   }
 
   internal static func resetColorPanelHooks() {
-#if os(macOS)
+    #if os(macOS)
     isColorPanelVisible = { NSColorPanel.shared.isVisible }
     dismissColorPanel = { NSColorPanel.shared.orderOut(nil) }
-#endif
+    #endif
   }
 }
 

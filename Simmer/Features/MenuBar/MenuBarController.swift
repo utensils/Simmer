@@ -7,9 +7,10 @@
 
 import AppKit
 
-/// Manages the Simmer status item, including icon updates and dynamic menu construction.
+/// Manages the Simmer status item, including icon updates
+/// and dynamic menu construction.
 @MainActor
-final class MenuBarController: NSObject {
+internal final class MenuBarController: NSObject {
   private let statusBar: NSStatusBar
   private let statusItem: NSStatusItem
   private let iconAnimator: IconAnimator

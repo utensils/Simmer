@@ -56,7 +56,19 @@ struct LogPattern: Codable, Identifiable, Equatable {
   // MARK: - Codable
 
   enum CodingKeys: String, CodingKey {
-    case id, name, regex, logPath, color, animationStyle, enabled
+    case id = "id"
+
+    case name = "name"
+
+    case regex = "regex"
+
+    case logPath = "logPath"
+
+    case color = "color"
+
+    case animationStyle = "animationStyle"
+
+    case enabled = "enabled"
   }
 
   init(from decoder: Decoder) throws {

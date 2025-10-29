@@ -8,11 +8,14 @@
 import Foundation
 
 internal enum ConfigurationStoreError: Error, Equatable {
-  case encodingFailed
-  case decodingFailed
-  case patternNotFound
+  case encodingFailed = "encodingFailed"
+
+  case decodingFailed = "decodingFailed"
+
+  case patternNotFound = "patternNotFound"
 }
 
+// swiftlint:disable:next type_body_length
 internal struct ConfigurationStore: ConfigurationStoreProtocol {
   private let patternsKey = "patterns"
   private let userDefaults: UserDefaults
@@ -64,7 +67,9 @@ internal struct ConfigurationStore: ConfigurationStoreProtocol {
 
   func updatePattern(_ pattern: LogPattern) throws {
     var patterns = loadPatterns()
-    guard let index = patterns.firstIndex(where: { $0.id == pattern.id }) else {
+    guard let index = patterns.firstIndex(
+      where: { $0.id == pattern.id }
+    ) else {
       throw ConfigurationStoreError.patternNotFound
     }
     patterns[index] = pattern

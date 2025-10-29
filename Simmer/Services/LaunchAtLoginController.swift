@@ -12,8 +12,11 @@ import ServiceManagement
 /// Internal representation of the launch agent status returned by `SMAppService`.
 internal enum LaunchAtLoginServiceStatus: Equatable {
   case enabled
+
   case notRegistered
+
   case requiresApproval
+
   case unknown(String)
 }
 
@@ -37,10 +40,13 @@ internal final class SMAppServiceAdapter: LaunchAtLoginService {
     switch service.status {
     case .enabled:
       return .enabled
+
     case .notRegistered:
       return .notRegistered
+
     case .requiresApproval:
       return .requiresApproval
+
     @unknown default:
       return .unknown(String(describing: service.status))
     }
@@ -57,13 +63,15 @@ internal final class SMAppServiceAdapter: LaunchAtLoginService {
 
 /// Errors that can occur while configuring launch at login support.
 internal enum LaunchAtLoginError: LocalizedError, Equatable {
-  case notSupported
+  case notSupported = "notSupported"
+
   case operationFailed(message: String)
 
   var errorDescription: String? {
     switch self {
     case .notSupported:
       return "Launch at Login requires macOS 13 or newer."
+
     case .operationFailed(let message):
       return """
       Simmer couldn't update the Launch at Login setting: \(message)
@@ -119,11 +127,14 @@ internal final class LaunchAtLoginController: LaunchAtLoginControlling {
     case .enabled:
       userDefaults.set(true, forKey: Constants.preferenceKey)
       return true
+
     case .notRegistered:
       userDefaults.set(false, forKey: Constants.preferenceKey)
       return false
+
     case .requiresApproval:
       return userDefaults.bool(forKey: Constants.preferenceKey)
+
     case .unknown(let description):
       os_log(
         "Encountered unknown Launch at Login status: %{public}@",
@@ -144,14 +155,17 @@ internal final class LaunchAtLoginController: LaunchAtLoginControlling {
       switch (enabled, service.status) {
       case (true, .enabled):
         userDefaults.set(true, forKey: Constants.preferenceKey)
+
       case (true, .notRegistered), (true, .requiresApproval), (true, .unknown):
         try service.register()
         userDefaults.set(true, forKey: Constants.preferenceKey)
         os_log("Launch at Login enabled", log: Constants.logger, type: .info)
+
       case (false, .enabled):
         try service.unregister()
         userDefaults.set(false, forKey: Constants.preferenceKey)
         os_log("Launch at Login disabled", log: Constants.logger, type: .info)
+
       case (false, .notRegistered), (false, .requiresApproval), (false, .unknown):
         userDefaults.set(false, forKey: Constants.preferenceKey)
         os_log("Launch at Login disabled", log: Constants.logger, type: .info)

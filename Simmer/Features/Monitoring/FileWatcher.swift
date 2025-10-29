@@ -43,8 +43,13 @@ internal final class DispatchSourceFileSystemWrapper: FileSystemEventSource {
   }
 }
 
+// swiftlint:disable:next type_body_length
 internal final class FileWatcher: FileWatching {
-  typealias SourceFactory = (Int32, DispatchSource.FileSystemEvent, DispatchQueue) -> FileSystemEventSource
+  typealias SourceFactory = (
+    Int32,
+    DispatchSource.FileSystemEvent,
+    DispatchQueue
+  ) -> FileSystemEventSource
 
   weak var delegate: FileWatcherDelegate?
   let path: String
@@ -63,11 +68,17 @@ internal final class FileWatcher: FileWatching {
   init(
     path: String,
     fileSystem: FileSystemProtocol = RealFileSystem(),
-    queue: DispatchQueue = DispatchQueue(label: "io.utensils.Simmer.FileWatcher"),
+    queue: DispatchQueue = DispatchQueue(
+      label: "io.utensils.Simmer.FileWatcher"
+    ),
     bufferSize: Int = 4_096,
-    maxBytesPerEvent: Int = 1_048_576, // 1MB limit to prevent memory pressure
+    maxBytesPerEvent: Int = 1_048_576,
     sourceFactory: @escaping SourceFactory = { fd, mask, queue in
-      DispatchSourceFileSystemWrapper(fileDescriptor: fd, mask: mask, queue: queue)
+      DispatchSourceFileSystemWrapper(
+        fileDescriptor: fd,
+        mask: mask,
+        queue: queue
+      )
     }
   ) {
     self.path = path

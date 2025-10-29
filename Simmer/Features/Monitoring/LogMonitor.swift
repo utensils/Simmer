@@ -48,7 +48,10 @@ internal final class LogMonitor: NSObject {
   private var currentAnimation: (patternID: UUID, priority: Int)?
   private var didBootstrapPatterns = false
   private var suppressedAlertPatternIDs: Set<UUID> = []
+  /// Start timestamps for pending latency measurements; access is synchronized via `stateQueue`.
   private var pendingLatencyStartDates: [UUID: [Date]] = [:]
+  @MainActor
+  private var didWarnAboutPatternLimit = false
 
   @MainActor
   init(
@@ -174,6 +177,9 @@ internal final class LogMonitor: NSObject {
         preparedPatterns.count,
         maxWatcherCount
       )
+      presentPatternLimitAlert(totalPatternCount: preparedPatterns.count)
+    } else {
+      didWarnAboutPatternLimit = false
     }
 
     let priorities = Dictionary(uniqueKeysWithValues: limitedPatterns.enumerated().map { ($1.id, $0) })
@@ -240,8 +246,8 @@ internal final class LogMonitor: NSObject {
       disablePattern(
         updatedPattern,
         message: """
-        Simmer cannot find "\(expandedPath)". Verify the file exists or choose it again in \
-        Settings to continue monitoring "\(updatedPattern.name)".
+        Simmer cannot find "\(expandedPath)". Verify the file exists, then re-enable \
+        "\(updatedPattern.name)" in Settings.
         """
       )
       return nil
@@ -258,7 +264,7 @@ internal final class LogMonitor: NSObject {
       disablePattern(
         updatedPattern,
         message: """
-        "\(expandedPath)" is a directory. Select a specific log file in Settings before \
+        Simmer can only monitor files. Select a log file instead of "\(expandedPath)" before \
         re-enabling "\(updatedPattern.name)".
         """
       )
@@ -276,7 +282,8 @@ internal final class LogMonitor: NSObject {
       disablePattern(
         updatedPattern,
         message: """
-        Cannot read log file at "\(expandedPath)". Please verify the file exists and Simmer has permission to access it.
+        Simmer cannot read "\(expandedPath)". Check file permissions, then re-enable \
+        "\(updatedPattern.name)" in Settings.
         """
       )
       return nil
@@ -408,20 +415,20 @@ internal final class LogMonitor: NSObject {
     switch error {
     case .fileDeleted:
       return """
-      Simmer stopped monitoring "\(patternName)" because "\(filePath)" is missing. \
-      Restore the file or choose a new path in Settings, then re-enable the pattern.
+      Simmer stopped monitoring "\(patternName)" because "\(filePath)" is missing. Restore the \
+      file or choose a new path in Settings, then re-enable the pattern.
       """
 
     case .permissionDenied:
       return """
-      Simmer no longer has permission to read "\(filePath)" for pattern "\(patternName)". \
-      Update permissions or select a new file in Settings before re-enabling the pattern.
+      Simmer no longer has permission to read "\(filePath)" for pattern "\(patternName)". Update \
+      permissions or choose a new file in Settings before re-enabling the pattern.
       """
 
     case .fileDescriptorInvalid:
       return """
       Simmer hit an unexpected error while reading "\(filePath)" for pattern "\(patternName)". \
-      Verify the file is accessible and try re-enabling the pattern from Settings.
+      Verify the file is accessible and re-enable the pattern in Settings.
       """
     }
   }
@@ -643,6 +650,8 @@ private extension LogMonitor {
     stateQueue.sync { entriesByPatternID[patternID]?.context.pattern }
   }
 
+  /// Records the time when a match is detected on the processing queue.
+  /// Access stays synchronized via `stateQueue` to avoid racing with animation callbacks.
   func recordLatencyStart(for patternID: UUID, matchCount: Int) {
     let timestamp = dateProvider()
     stateQueue.sync {
@@ -655,6 +664,7 @@ private extension LogMonitor {
   }
 
   func dequeueLatencyStart(for patternID: UUID) -> Date? {
+    // Animation callbacks run on the main actor; this stateQueue guard prevents cross-queue races.
     stateQueue.sync {
       guard var queue = pendingLatencyStartDates[patternID], !queue.isEmpty else {
         return nil
@@ -697,3 +707,22 @@ extension LogMonitor: MatchEventHandlerDelegate {
 }
 
 extension LogMonitor: LogMonitoring {}
+
+// MARK: - Alerts
+
+@MainActor
+private extension LogMonitor {
+  func presentPatternLimitAlert(totalPatternCount: Int) {
+    guard !didWarnAboutPatternLimit else { return }
+    didWarnAboutPatternLimit = true
+    let droppedCount = totalPatternCount - maxWatcherCount
+    let patternWord = droppedCount == 1 ? "pattern was" : "patterns were"
+    alertPresenter.presentAlert(
+      title: "Pattern limit reached",
+      message: """
+      Simmer can monitor up to \(maxWatcherCount) patterns at a time. \(droppedCount) \(patternWord) \
+      left inactive after the latest import. Remove or disable patterns in Settings to resume monitoring.
+      """
+    )
+  }
+}
