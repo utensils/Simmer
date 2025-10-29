@@ -176,7 +176,12 @@ internal final class IconAnimatorTests: XCTestCase {
     fallbackViolationThreshold: Int = 5,
     recoveryFrameThreshold: Int = 30
   ) -> IconAnimator {
-    let factory: @MainActor () -> AnimationTimer = { [unowned timer] in timer }
+    let factory: @MainActor () -> AnimationTimer = { [unowned self] in
+      guard let timer else {
+        fatalError("Timer must be configured before creating IconAnimator")
+      }
+      return timer
+    }
     let animator = IconAnimator(
       timerFactory: factory,
       clock: clock as IconAnimatorClock,
