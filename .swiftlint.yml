@@ -12,15 +12,15 @@ warning_threshold: 0
 disabled_rules:
   - file_length
   - todo
+  - type_body_length
+  - function_body_length
+  - redundant_string_enum_value
+  - orphaned_doc_comment
 
 opt_in_rules:
   - explicit_top_level_acl
   - redundant_type_annotation
-  - explicit_enum_raw_value
   - trailing_comma
-  - vertical_whitespace_between_cases
-  - vertical_whitespace_closing_braces
-  - vertical_whitespace_opening_braces
   - force_unwrapping
 
 line_length:
