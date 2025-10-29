@@ -1,0 +1,58 @@
+name: SwiftLint
+
+on:
+  pull_request:
+    branches: [main, 'feature/**']
+    paths:
+      - '**.swift'
+      - '.swiftlint.yml'
+      - '.github/workflows/lint.yml'
+
+jobs:
+  swiftlint:
+    name: SwiftLint Enforcement
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_16.1.app
+
+      - name: Install SwiftLint
+        run: |
+          if ! command -v swiftlint &> /dev/null; then
+            brew install swiftlint
+          fi
+
+      - name: Show SwiftLint version
+        run: swiftlint version
+
+      - name: Run SwiftLint
+        run: |
+          swiftlint lint --strict --reporter github-actions-logging
+
+          # Capture exit code
+          LINT_EXIT_CODE=$?
+
+          if [ $LINT_EXIT_CODE -ne 0 ]; then
+            echo "❌ FAIL: SwiftLint found warnings or errors"
+            echo "Constitution quality gate: Zero warnings enforcement violated"
+            exit 1
+          fi
+
+          echo "✅ PASS: No SwiftLint warnings or errors found"
+
+      - name: Verify zero warnings
+        run: |
+          # Double-check no warnings exist
+          WARNING_COUNT=$(swiftlint lint --quiet | grep -c "warning:" || true)
+
+          if [ "$WARNING_COUNT" -gt 0 ]; then
+            echo "❌ FAIL: Found $WARNING_COUNT SwiftLint warnings"
+            echo "Per constitution Principle IV: SwiftLint zero warnings enforcement"
+            exit 1
+          fi
+
+          echo "✅ PASS: Zero warnings confirmed"

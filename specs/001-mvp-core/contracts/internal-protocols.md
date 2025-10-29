@@ -184,12 +184,19 @@ extension MenuBarController: IconAnimatorDelegate {
 - `MockWatcherDelegate` (tests)
 
 ```swift
+protocol FileWatching: AnyObject {
+    var path: String { get }
+    var delegate: FileWatcherDelegate? { get set }
+    func start() throws
+    func stop()
+}
+
 protocol FileWatcherDelegate: AnyObject {
     /// Called when new content appended to watched file
-    func fileWatcher(_ watcher: FileWatcher, didReadLines lines: [String])
+    func fileWatcher(_ watcher: FileWatching, didReadLines lines: [String])
 
     /// Called when file becomes inaccessible (deleted, permissions changed)
-    func fileWatcher(_ watcher: FileWatcher, didEncounterError error: FileWatcherError)
+    func fileWatcher(_ watcher: FileWatching, didEncounterError error: FileWatcherError)
 }
 
 enum FileWatcherError: Error {
@@ -213,9 +220,9 @@ class FileWatcher {
 
 // LogMonitor coordinates pattern matching on new lines
 extension LogMonitor: FileWatcherDelegate {
-    func fileWatcher(_ watcher: FileWatcher, didReadLines lines: [String]) {
+    func fileWatcher(_ watcher: FileWatching, didReadLines lines: [String]) {
         for line in lines {
-            evaluateAllPatterns(line: line, filePath: watcher.filePath)
+            evaluateAllPatterns(line: line, filePath: watcher.path)
         }
     }
 }

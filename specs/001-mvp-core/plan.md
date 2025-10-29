@@ -5,19 +5,19 @@
 
 ## Summary
 
-Build native macOS menu bar application for passive log monitoring with visual feedback. Core functionality includes real-time file monitoring using DispatchSource, regex pattern matching with NSRegularExpression, programmatic icon animations via Core Graphics, and SwiftUI-based configuration UI. App must maintain <1% CPU idle, <5% active, <50MB memory while monitoring up to 20 log files simultaneously with sub-500ms match feedback latency.
+Build native macOS menu bar application for passive log monitoring with visual feedback. Core functionality includes real-time file monitoring using DispatchSource, regex pattern matching with NSRegularExpression, programmatic icon animations via Core Graphics, JSON import/export of pattern configurations, and SwiftUI-based configuration UI. App must maintain <1% CPU idle, <5% active, <50MB memory while monitoring up to 20 log files simultaneously with sub-500ms match feedback latency.
 
 ## Technical Context
 
 **Language/Version**: Swift 5.9+
 **Primary Dependencies**: Foundation, AppKit (menu bar), SwiftUI (settings), Core Graphics (icon rendering)
-**Storage**: UserDefaults for pattern configurations with JSON encoding
-**Testing**: XCTest framework with file system mocking for watcher tests
+**Storage**: UserDefaults for pattern configurations with JSON encoding plus import/export pipeline writing JSON files to disk
+**Testing**: XCTest framework with file system mocking for watcher tests plus performance harness for pattern matching/detection latency
 **Target Platform**: macOS 14.0+ (Sonoma)
 **Project Type**: Single native macOS application
 **Performance Goals**: 60fps icon animations, <10ms pattern matching per line, <500ms match detection latency
-**Constraints**: <1% CPU idle, <5% CPU active, <50MB memory, menu bar-only (LSUIElement), sandboxed file access
-**Scale/Scope**: Support 20 simultaneous file watchers, 10 recent matches in history, unlimited pattern configurations
+**Constraints**: <1% CPU idle, <5% CPU active, <50MB memory, menu bar-only (LSUIElement), no sandbox (direct file access)
+**Scale/Scope**: Support up to 20 simultaneous file watchers/patterns (FR-020, EC-003), 10 recent matches in history, and JSON round-trip for all stored configurations
 
 ## Constitution Check
 
@@ -34,7 +34,7 @@ Build native macOS menu bar application for passive log monitoring with visual f
 - **Performance targets**: <1% CPU idle, <5% active, <50MB memory explicitly defined in FR-017, FR-018
 
 ### Principle III: Developer-Centric UX ✅
-- **Power-user features**: Raw regex syntax (FR-011), file path wildcards/env vars (FR-024), JSON export/import planned
+- **Power-user features**: Raw regex syntax (FR-011), file path wildcards/env vars (FR-024), JSON export/import for configuration portability (FR-027)
 - **No patronization**: Settings expose technical details (regex, file paths, RGB colors)
 - **Technical audience**: Developers monitoring worker queues, comfortable with log file concepts
 
@@ -43,6 +43,7 @@ Build native macOS menu bar application for passive log monitoring with visual f
 - **Test-first approach**: Tests required before merging (constitution quality gates)
 - **Mocking strategy**: File system operations mocked in tests (per STANDARDS.md)
 - **SwiftLint**: Zero warnings enforcement via quality gates
+- **CI/CD**: GitHub Actions workflows enforce automated testing, linting, and build verification on all PRs
 
 ### Principle V: Concise Documentation ✅
 - **Separation of concerns**: VISION.md (what/why), TECH_DESIGN.md (architecture), STANDARDS.md (how), claude.md (AI guidance)
@@ -71,7 +72,7 @@ specs/001-mvp-core/
 Simmer/
 ├── App/
 │   ├── SimmerApp.swift           # App lifecycle, LSUIElement configuration
-│   └── AppDelegate.swift         # Launch at login, app-level event handling
+│   └── AppDelegate.swift         # Launch at login infrastructure (opt-in via settings), app-level event handling
 ├── Features/
 │   ├── MenuBar/
 │   │   ├── MenuBarController.swift      # NSStatusItem management
@@ -80,7 +81,7 @@ Simmer/
 │   ├── Monitoring/
 │   │   ├── LogMonitor.swift             # Coordinates multiple FileWatchers
 │   │   ├── FileWatcher.swift            # DispatchSource wrapper for individual logs
-│   │   └── FileAccessManager.swift      # Security-scoped URL bookmarks
+│   │   └── FileAccessManager.swift      # NSOpenPanel file selection
 │   ├── Patterns/
 │   │   ├── PatternMatcher.swift         # NSRegularExpression evaluation
 │   │   ├── PatternValidator.swift       # Regex syntax validation
@@ -97,7 +98,10 @@ Simmer/
 │   └── IconAnimationState.swift   # Current animation state
 ├── Services/
 │   ├── ConfigurationStore.swift   # UserDefaults persistence
-│   └── PathExpander.swift         # Tilde/env var expansion
+│   ├── ConfigurationExporter.swift # JSON export of pattern configurations
+│   ├── ConfigurationImporter.swift # JSON import/validation with schema enforcement
+│   ├── PathExpander.swift         # Tilde/env var expansion
+│   └── LaunchAtLoginController.swift # SMAppService launch at login management
 └── Utilities/
     ├── CodableColor.swift         # RGB color encoding/decoding
     └── RelativeTimeFormatter.swift # "2m ago" timestamp formatting
@@ -106,6 +110,8 @@ SimmerTests/
 ├── MenuBarTests/
 │   ├── IconAnimatorTests.swift    # Animation state machine tests
 │   └── MenuBuilderTests.swift     # Menu structure tests
+├── UtilitiesTests/
+│   └── RelativeTimeFormatterTests.swift # Time formatting helpers
 ├── MonitoringTests/
 │   ├── FileWatcherTests.swift     # Mocked file system tests
 │   └── LogMonitorTests.swift      # Coordination tests
@@ -114,13 +120,34 @@ SimmerTests/
 │   ├── PatternValidatorTests.swift # Syntax validation tests
 │   └── MatchEventHandlerTests.swift # Prioritization tests
 ├── ServicesTests/
-│   └── ConfigurationStoreTests.swift # Persistence tests
+│   ├── ConfigurationStoreTests.swift # Persistence tests
+│   ├── ConfigurationExportImportTests.swift # JSON round-trip tests
+│   └── LaunchAtLoginControllerTests.swift # Launch at login tests
 └── Mocks/
     ├── MockFileHandle.swift       # File I/O mocking
     └── MockDispatchSource.swift   # DispatchSource mocking
 ```
 
 **Structure Decision**: Single macOS application structure following feature-based organization per STANDARDS.md and constitution. App/ for lifecycle, Features/ for domain logic, Models/ for shared data structures, Services/ for cross-cutting concerns, Utilities/ for helpers. Tests mirror source structure with dedicated Mocks/ directory for file system simulation.
+
+## Phased Delivery
+
+1. **Phase 0 – Research & Contracts**: Finalize problem validation artifacts (`research.md`, `contracts/internal-protocols.md`) and confirm constitutional gates before implementation.
+2. **Phase 1 – Architecture & Data Model**: Produce `data-model.md` and `quickstart.md`, validating domain types (LogPattern, MatchEvent, AnimationStyle) and end-to-end developer flow.
+3. **Phase 2 – Task Breakdown**: Generate `tasks.md` with sequenced work items; no coding until this phase is signed off.
+4. **Phase 3 – US1 Core Monitoring**: Build watch pipeline, icon animations, and baseline tests delivering the single-log MVP in isolation.
+5. **Phase 4 – US2 Match History**: Layer menu presentation, history management, and EC-005 warning flow atop US1 foundations.
+6. **Phase 5 – US3 Settings & Portability**: Ship full CRUD UI, NSOpenPanel integration, launch-at-login controls, and JSON import/export.
+7. **Phase 6 – US4 Scale-Out**: Enable multi-watcher coordination, prioritization, and debouncing/throttling for up to 20 patterns.
+8. **Phase 7 – Polish & Release Automation**: Harden edge cases, performance profiling, quickstart validation, formatting, and CI/CD workflows (lint, test, build, notarize, DMG packaging).
+
+## Data Model Reference
+
+- **LogPattern** (`data-model.md#logpattern`): Identifier, name, regex, expanded file path, RGB color, animation style, enabled flag; drives watcher lifecycle and JSON import/export format.
+- **MatchEvent** (`data-model.md#matchevent`): Pattern reference, timestamp, truncated line excerpt, priority; feeds MenuBar history and animation decisions.
+- **AnimationStyle** (`data-model.md#animationstyle`): Enum (glow, pulse, blink) informing IconAnimator frame generation.
+- **LaunchPreference** (`data-model.md#launchpreference`): Boolean with persisted state managed by `LaunchAtLoginController`.
+- **ConfigurationEnvelope** (`data-model.md#configurationenvelope`): Top-level collection used for import/export schema validation, guaranteeing round-trippable settings.
 
 ## Complexity Tracking
 

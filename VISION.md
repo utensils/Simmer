@@ -18,7 +18,7 @@ Simmer is a macOS menu bar application that provides passive, non-intrusive visu
 
 ## Technology Approach
 
-Native macOS app built with Swift and SwiftUI. File monitoring via `FSEventStreamCreate` or `DispatchSource` file handles. Zero dependencies beyond system frameworks. Launch at login support.
+Native macOS app built with Swift 5.9+, SwiftUI (settings), and AppKit (menu bar). File monitoring via DispatchSource. Pattern matching with NSRegularExpression. Zero dependencies beyond system frameworks. Launch at login via SMAppService.
 
 ## Strategic Priorities
 

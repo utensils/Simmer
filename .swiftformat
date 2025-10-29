@@ -1,0 +1,46 @@
+# SwiftFormat Configuration for Simmer
+# Based on STANDARDS.md requirements
+
+# Indentation
+--indent 2
+--indentcase false
+--indentstrings false
+
+# Line length
+--maxwidth 100
+
+# Spacing
+--linebreaks lf
+--elseposition same-line
+--guardelse same-line
+
+# Trailing commas
+--trailingcommas always
+
+# Blank lines
+--funcattributes prev-line
+--typeattributes prev-line
+--varattributes prev-line
+
+# Import organization
+--importgrouping testable-bottom
+
+# Self keyword
+--self insert
+--selfrequired
+
+# Swift conventions
+--stripunusedargs closure-only
+--wraparguments before-first
+--wrapparameters before-first
+--wrapcollections before-first
+
+# Code organization
+--enable trailingCommas
+--enable trailingSpace
+--enable consecutiveSpaces
+--enable duplicateImports
+--enable blankLinesAtEndOfScope
+--enable blankLinesAtStartOfScope
+--enable blankLinesBetweenScopes
+--enable redundantSelf

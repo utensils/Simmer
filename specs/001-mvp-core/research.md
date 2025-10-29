@@ -112,11 +112,11 @@ struct LogPattern: Codable, Identifiable {
 }
 ```
 
-**Security-Scoped Bookmarks**:
-- Use URL.bookmarkData(options: .withSecurityScope) for log file paths
-- Store bookmark data alongside logPath in UserDefaults
-- Resolve bookmarks on app launch via URL.init(resolvingBookmarkData:bookmarkDataIsStale:)
-- Required for sandboxed file access post-user selection via NSOpenPanel
+**Direct File Access (No Sandbox)**:
+- Rely on absolute file paths selected via NSOpenPanel; no security-scoped bookmarks required since the app runs without sandbox entitlements.
+- Validate existence and readability immediately after selection; surface actionable alerts if access fails (FR-021).
+- Persist resolved paths in UserDefaults; revalidate on launch before starting watchers, disabling any patterns whose files are unavailable.
+- Encourage manual path entry for power users, but expand `~` and environment variables via PathExpander to match expectations (FR-024).
 
 ## Testing Strategy
 
@@ -190,3 +190,11 @@ All open questions from TECH_DESIGN.md addressed:
 
 **Q: Custom icon upload vs generated only?**
 - A: Generated only for MVP - dynamic colors require programmatic generation anyway, custom uploads add file management complexity
+
+## Validation Log (Pending Execution)
+
+- **SC-001 (≤60s configuration)**: _Pending – capture elapsed time and obstacles during T133._
+- **SC-005 (≤5m quickstart completion)**: _Pending – document steps and success/failure during T133._
+- **SC-008 (zero auxiliary log views)**: _Pending – record whether any external log inspection was required; validation passes only if count remains zero._
+
+Update this section immediately after running the quickstart validation so historical measurements remain visible alongside research notes.

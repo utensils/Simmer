@@ -7,35 +7,36 @@
 
 import XCTest
 
-final class SimmerUITests: XCTestCase {
+internal final class SimmerUITests: XCTestCase {
+  override func setUpWithError() throws {
+    continueAfterFailure = false
+  }
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+  func testSettingsWindowOpens() throws {
+    let app = XCUIApplication()
+    app.launchEnvironment["SIMMER_UI_TEST_SHOW_SETTINGS"] = "1"
+    app.launch()
 
-        // In UI tests it is usually best to stop immediately when a failure occurs.
-        continueAfterFailure = false
-
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
+    var window = app.windows["Simmer Settings"]
+    var exists = window.waitForExistence(timeout: 8)
+    if !exists {
+      let fallback = app.windows["Log Patterns"]
+      exists = fallback.waitForExistence(timeout: 4)
+      if exists {
+        window = fallback
+      }
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-    }
+    XCTAssertTrue(exists, "Settings window should appear automatically")
 
-    @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
-        let app = XCUIApplication()
-        app.launch()
+    let frame = window.frame
+    XCTAssertGreaterThan(frame.width, 500, "Settings window width unexpectedly small")
+    XCTAssertGreaterThan(frame.height, 350, "Settings window height unexpectedly small")
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-    }
-
-    @MainActor
-    func testLaunchPerformance() throws {
-        // This measures how long it takes to launch your application.
-        measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
-        }
-    }
+    let screenshot = window.screenshot()
+    let attachment = XCTAttachment(screenshot: screenshot)
+    attachment.name = "Settings Window Visible"
+    attachment.lifetime = .keepAlways
+    add(attachment)
+  }
 }

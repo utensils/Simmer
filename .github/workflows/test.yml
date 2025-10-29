@@ -1,0 +1,134 @@
+name: Automated Testing
+
+on:
+  pull_request:
+    branches: [main, 'feature/**']
+  push:
+    branches: [main, 'feature/**']
+
+jobs:
+  test:
+    name: Run Tests & Coverage
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_16.1.app
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Run tests with coverage
+        run: |
+          xcodebuild test \
+            -scheme Simmer \
+            -destination 'platform=macOS' \
+            -enableCodeCoverage YES \
+            -derivedDataPath DerivedData \
+            -resultBundlePath DerivedData/Logs/Test/Simmer.xcresult \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
+            SWIFT_STRICT_CONCURRENCY=minimal \
+            | xcpretty --color
+
+      - name: Generate coverage report
+        run: |
+          # Create coverage directory
+          mkdir -p coverage
+          XCRESULT_PATH="DerivedData/Logs/Test/Simmer.xcresult"
+
+          # Try xcov first (likely not installed on runner)
+          xcrun xcov \
+            --scheme Simmer \
+            --derived_data_path DerivedData \
+            --json_report \
+            --output_directory coverage \
+            || echo "xcov not installed, using xccov instead"
+
+          # Fallback to xccov if xcov not available
+          if [ ! -f coverage/index.json ]; then
+            xcrun xccov view \
+              --report \
+              --json \
+              "$XCRESULT_PATH" > coverage/coverage.json
+          fi
+
+      - name: Convert coverage to LCOV format
+        run: |
+          python3 scripts/xccov_to_lcov.py \
+            DerivedData/Logs/Test/Simmer.xcresult \
+            coverage/coverage.lcov
+
+          echo "✅ Converted coverage to LCOV format"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage/coverage.lcov
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          verbose: true
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30
+
+      - name: Check coverage thresholds
+        run: |
+          # Extract coverage percentage from xccov report
+          COVERAGE_FILE="coverage/coverage.json"
+
+          if [ ! -f "$COVERAGE_FILE" ]; then
+            echo "❌ Coverage report not found"
+            exit 1
+          fi
+
+          # Parse overall coverage percentage
+          XCRESULT_PATH="DerivedData/Logs/Test/Simmer.xcresult"
+          OVERALL_COVERAGE=$(xcrun xccov view --report "$XCRESULT_PATH" | grep -E "^\s+Simmer.app" | awk '{print $3}' | sed 's/%//')
+
+          echo "Overall coverage: ${OVERALL_COVERAGE}%"
+
+          # Check minimum 70% overall coverage
+          if (( $(echo "$OVERALL_COVERAGE < 70" | bc -l) )); then
+            echo "❌ FAIL: Overall coverage (${OVERALL_COVERAGE}%) is below 70% threshold"
+            exit 1
+          fi
+
+          echo "✅ PASS: Overall coverage meets 70% threshold"
+
+          # Check critical paths (PatternMatcher, FileWatcher) have 100% coverage
+          echo "Checking critical path coverage..."
+
+          PATTERN_MATCHER_COV=$(python3 scripts/lcov_percentage.py coverage/coverage.lcov Simmer/Features/Patterns/PatternMatcher.swift)
+          FILE_WATCHER_COV=$(python3 scripts/lcov_percentage.py coverage/coverage.lcov Simmer/Features/Monitoring/FileWatcher.swift)
+
+          echo "PatternMatcher.swift coverage: ${PATTERN_MATCHER_COV}%"
+          echo "FileWatcher.swift coverage: ${FILE_WATCHER_COV}%"
+
+          CRITICAL_FAIL=0
+
+          if (( $(echo "$PATTERN_MATCHER_COV < 100" | bc -l) )); then
+            echo "⚠️  WARNING: PatternMatcher.swift coverage (${PATTERN_MATCHER_COV}%) is below 100%"
+            CRITICAL_FAIL=1
+          fi
+
+          if (( $(echo "$FILE_WATCHER_COV < 100" | bc -l) )); then
+            echo "⚠️  WARNING: FileWatcher.swift coverage (${FILE_WATCHER_COV}%) is below 100%"
+            CRITICAL_FAIL=1
+          fi
+
+          if [ $CRITICAL_FAIL -eq 1 ]; then
+            echo "❌ FAIL: Critical paths must have 100% coverage"
+            exit 1
+          fi
+
+          echo "✅ PASS: Critical paths meet 100% coverage requirement"

@@ -22,7 +22,9 @@ DerivedData/
 # Swift Package Manager
 .build/
 Packages/
+.swiftpm/
 *.xcodeproj/**/Package.resolved
+*.swiftpm/
 
 # Codex (ignore all except prompts)
 .codex/*
@@ -32,8 +34,16 @@ Packages/
 .DS_Store
 .AppleDouble
 .LSOverride
+Thumbs.db
+
+# IDEs
+.idea/
 
 # Temporary files
 *.swp
 *~.nib
 *.moved-aside
+
+# Environment and logs
+.env*
+*.log
