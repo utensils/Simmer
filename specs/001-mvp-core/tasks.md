@@ -221,10 +221,10 @@
 - [X] T104 Implement app launch performance optimization: defer non-critical init until after window appears
 - [ ] T105 Measure app launch time with Instruments System Trace: verify <2 seconds from cold launch to ready on idle system (<5% background CPU) (SC-006)
 - [X] T120 [P] Create LaunchAtLoginControlling protocol and LaunchAtLoginController implementation with SMAppService integration and UserDefaults persistence (FR-026 infrastructure)
-- [ ] T141 [US3] Add "Launch at Login" toggle to Settings UI in PatternListView or dedicated preferences section (FR-026 UI)
-- [ ] T142 [US3] Wire Settings toggle to LaunchAtLoginController.setEnabled() via SettingsCoordinator (FR-026 integration)
-- [ ] T143 [P] Write LaunchAtLoginController tests: mock SMAppService, verify register/unregister, test preference persistence and resolvedPreference logic (FR-026)
-- [ ] T144 [US3] Write Settings UI tests: verify toggle state reflects LaunchAtLoginController preference, test enable/disable actions (FR-026)
+- [X] T141 [US3] Add "Launch at Login" toggle to Settings UI in PatternListView or dedicated preferences section (FR-026 UI)
+- [X] T142 [US3] Wire Settings toggle to LaunchAtLoginController.setEnabled() via SettingsCoordinator (FR-026 integration)
+- [X] T143 [P] Write LaunchAtLoginController tests: mock SMAppService, verify register/unregister, test preference persistence and resolvedPreference logic (FR-026)
+- [X] T144 [US3] Write Settings UI tests: verify toggle state reflects LaunchAtLoginController preference, test enable/disable actions (FR-026)
 
 ### Final Integration & Testing
 

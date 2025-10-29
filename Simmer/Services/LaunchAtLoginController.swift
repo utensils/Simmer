@@ -9,6 +9,52 @@ import Foundation
 import os.log
 import ServiceManagement
 
+/// Internal representation of the launch agent status returned by `SMAppService`.
+enum LaunchAtLoginServiceStatus: Equatable {
+  case enabled
+  case notRegistered
+  case requiresApproval
+  case unknown(String)
+}
+
+/// Abstraction over `SMAppService` so tests can inject fakes without touching system state.
+protocol LaunchAtLoginService {
+  var status: LaunchAtLoginServiceStatus { get }
+  func register() throws
+  func unregister() throws
+}
+
+/// Adapter that bridges `SMAppService` to `LaunchAtLoginService`.
+@available(macOS 13, *)
+final class SMAppServiceAdapter: LaunchAtLoginService {
+  private let service: SMAppService
+
+  init(service: SMAppService = .mainApp) {
+    self.service = service
+  }
+
+  var status: LaunchAtLoginServiceStatus {
+    switch service.status {
+    case .enabled:
+      return .enabled
+    case .notRegistered:
+      return .notRegistered
+    case .requiresApproval:
+      return .requiresApproval
+    @unknown default:
+      return .unknown(String(describing: service.status))
+    }
+  }
+
+  func register() throws {
+    try service.register()
+  }
+
+  func unregister() throws {
+    try service.unregister()
+  }
+}
+
 /// Errors that can occur while configuring launch at login support.
 enum LaunchAtLoginError: LocalizedError, Equatable {
   case notSupported
@@ -47,28 +93,28 @@ final class LaunchAtLoginController: LaunchAtLoginControlling {
   }
 
   private let userDefaults: UserDefaults
+  private let serviceProvider: () -> LaunchAtLoginService?
 
-  init(userDefaults: UserDefaults = .standard) {
+  init(
+    userDefaults: UserDefaults = .standard,
+    serviceProvider: @escaping () -> LaunchAtLoginService? = {
+      guard #available(macOS 13, *) else { return nil }
+      return SMAppServiceAdapter()
+    }
+  ) {
     self.userDefaults = userDefaults
+    self.serviceProvider = serviceProvider
   }
 
   var isAvailable: Bool {
-    if #available(macOS 13, *) {
-      return true
-    }
-    return false
+    makeService() != nil
   }
 
   func resolvedPreference() -> Bool {
-    guard isAvailable else {
+    guard let service = makeService() else {
       return false
     }
 
-    guard #available(macOS 13, *) else {
-      return false
-    }
-
-    let service = SMAppService.mainApp
     switch service.status {
     case .enabled:
       userDefaults.set(true, forKey: Constants.preferenceKey)
@@ -78,39 +124,35 @@ final class LaunchAtLoginController: LaunchAtLoginControlling {
       return false
     case .requiresApproval:
       return userDefaults.bool(forKey: Constants.preferenceKey)
-    @unknown default:
+    case .unknown(let description):
       os_log(
-        "Encountered unknown SMAppService status: %{public}@",
+        "Encountered unknown Launch at Login status: %{public}@",
         log: Constants.logger,
         type: .error,
-        String(describing: service.status)
+        description
       )
       return userDefaults.bool(forKey: Constants.preferenceKey)
     }
   }
 
   func setEnabled(_ enabled: Bool) throws {
-    guard isAvailable else {
+    guard let service = makeService() else {
       throw LaunchAtLoginError.notSupported
     }
 
-    guard #available(macOS 13, *) else {
-      throw LaunchAtLoginError.notSupported
-    }
-
-    let service = SMAppService.mainApp
     do {
       switch (enabled, service.status) {
       case (true, .enabled):
         userDefaults.set(true, forKey: Constants.preferenceKey)
-      case (true, _):
+      case (true, .notRegistered), (true, .requiresApproval), (true, .unknown):
         try service.register()
         userDefaults.set(true, forKey: Constants.preferenceKey)
         os_log("Launch at Login enabled", log: Constants.logger, type: .info)
       case (false, .enabled):
         try service.unregister()
-        fallthrough
-      case (false, _):
+        userDefaults.set(false, forKey: Constants.preferenceKey)
+        os_log("Launch at Login disabled", log: Constants.logger, type: .info)
+      case (false, .notRegistered), (false, .requiresApproval), (false, .unknown):
         userDefaults.set(false, forKey: Constants.preferenceKey)
         os_log("Launch at Login disabled", log: Constants.logger, type: .info)
       }
@@ -123,5 +165,14 @@ final class LaunchAtLoginController: LaunchAtLoginControlling {
       )
       throw LaunchAtLoginError.operationFailed(message: error.localizedDescription)
     }
+  }
+
+  // MARK: - Helpers
+
+  private func makeService() -> LaunchAtLoginService? {
+    guard #available(macOS 13, *) else {
+      return nil
+    }
+    return serviceProvider()
   }
 }

@@ -28,7 +28,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     patternMatcher = RegexPatternMatcher()
     matchEventHandler = MatchEventHandler()
     iconAnimator = IconAnimator()
-    launchAtLoginController = LaunchAtLoginController()
+    let environment = ProcessInfo.processInfo.environment
+    if environment["SIMMER_USE_STUB_LAUNCH_AT_LOGIN"] == "1" {
+      launchAtLoginController = UITestLaunchAtLoginController(environment: environment)
+    } else {
+      launchAtLoginController = LaunchAtLoginController()
+    }
     super.init()
   }
 

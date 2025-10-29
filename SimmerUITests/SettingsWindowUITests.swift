@@ -37,4 +37,27 @@ final class SettingsWindowUITests: XCTestCase {
       add(attachment)
     }
   }
+
+  func testLaunchAtLoginToggleRespondsToInteraction() {
+    let app = XCUIApplication()
+    app.launchEnvironment["SIMMER_UI_TEST_SHOW_SETTINGS"] = "1"
+    app.launchEnvironment["SIMMER_USE_STUB_LAUNCH_AT_LOGIN"] = "1"
+    app.launchEnvironment["SIMMER_UI_TEST_LAUNCH_AT_LOGIN_AVAILABLE"] = "1"
+    app.launchEnvironment["SIMMER_UI_TEST_LAUNCH_AT_LOGIN_INITIAL"] = "1"
+    app.launch()
+    addTeardownBlock {
+      app.terminate()
+    }
+
+    let toggle = app.switches["Launch at Login"].firstMatch
+    XCTAssertTrue(toggle.waitForExistence(timeout: 8), "Launch at Login toggle not found")
+
+    XCTAssertEqual(toggle.value as? String, "1", "Expected toggle to start enabled")
+
+    toggle.tap()
+    XCTAssertEqual(toggle.value as? String, "0", "Expected toggle to disable after tap")
+
+    toggle.tap()
+    XCTAssertEqual(toggle.value as? String, "1", "Expected toggle to re-enable after second tap")
+  }
 }
