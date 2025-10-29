@@ -1,5 +1,13 @@
 # Simmer
 
+[![Build](https://github.com/utensils/Simmer/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/utensils/Simmer/actions/workflows/build.yml)
+[![Tests](https://github.com/utensils/Simmer/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/utensils/Simmer/actions/workflows/test.yml)
+[![Lint](https://github.com/utensils/Simmer/actions/workflows/lint.yml/badge.svg?branch=main)](https://github.com/utensils/Simmer/actions/workflows/lint.yml)
+[![codecov](https://codecov.io/gh/utensils/Simmer/branch/main/graph/badge.svg)](https://codecov.io/gh/utensils/Simmer)
+[![Swift 5.9+](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
+[![Platform](https://img.shields.io/badge/platform-macOS%2014.0+-blue.svg)](https://www.apple.com/macos)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 Passive log monitoring for macOS with subtle visual feedback.
 
 ## What is Simmer?

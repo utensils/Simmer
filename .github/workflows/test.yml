@@ -51,6 +51,33 @@ jobs:
               DerivedData/Logs/Test/*.xcresult > coverage/coverage.json
           fi
 
+      - name: Convert coverage to LCOV format
+        run: |
+          # Find the xcresult bundle
+          XCRESULT_PATH=$(find DerivedData/Logs/Test -name "*.xcresult" | head -n 1)
+
+          # Find the profdata file
+          PROFDATA_PATH=$(find "$XCRESULT_PATH" -name "*.profdata" | head -n 1)
+
+          # Find the app binary
+          BINARY_PATH="DerivedData/Build/Products/Debug/Simmer.app/Contents/MacOS/Simmer"
+
+          # Convert to lcov format
+          xcrun llvm-cov export \
+            -format="lcov" \
+            -instr-profile="$PROFDATA_PATH" \
+            "$BINARY_PATH" > coverage/coverage.lcov
+
+          echo "✅ Converted coverage to LCOV format"
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: ./coverage/coverage.lcov
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+          verbose: true
+
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
