@@ -67,14 +67,16 @@ internal final class LogMonitorTests: XCTestCase {
     let queue = bundle.queue
 
     let notificationExpectation = expectation(description: "patterns change broadcast")
-    var notificationFulfilled = false
-    let observer = notificationCenter.addObserver(
+    var observer: NSObjectProtocol?
+    observer = notificationCenter.addObserver(
       forName: .logMonitorPatternsDidChange,
       object: nil,
       queue: .main
     ) { _ in
-      guard !notificationFulfilled else { return }
-      notificationFulfilled = true
+      if let token = observer {
+        notificationCenter.removeObserver(token)
+        observer = nil
+      }
       notificationExpectation.fulfill()
     }
 
@@ -91,8 +93,6 @@ internal final class LogMonitorTests: XCTestCase {
     queue.sync { }
 
     await fulfillment(of: [alertExpectation, notificationExpectation], timeout: 1.0)
-
-    notificationCenter.removeObserver(observer)
 
     let updated = storeRef.loadPatterns().first { $0.id == patternID }
     XCTAssertEqual(updated?.enabled, false)
