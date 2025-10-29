@@ -177,7 +177,7 @@ internal final class IconAnimatorTests: XCTestCase {
     recoveryFrameThreshold: Int = 30
   ) -> IconAnimator {
     let animator = IconAnimator(
-      timerFactory: { [unowned timer] in timer },
+      timerFactory: { [unowned timer] () -> AnimationTimer in timer },
       clock: clock,
       frameBudget: frameBudget,
       budgetExceededHandler: nil,
