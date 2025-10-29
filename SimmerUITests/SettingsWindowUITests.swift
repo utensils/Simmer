@@ -49,15 +49,25 @@ final class SettingsWindowUITests: XCTestCase {
       app.terminate()
     }
 
-    let toggle = app.switches["Launch at Login"].firstMatch
+    let toggle = app.switches["launchAtLoginToggle"].firstMatch
     XCTAssertTrue(toggle.waitForExistence(timeout: 8), "Launch at Login toggle not found")
 
-    XCTAssertEqual(toggle.value as? String, "1", "Expected toggle to start enabled")
+    XCTAssertEqual(Self.switchValue(toggle), "1", "Expected toggle to start enabled")
 
     toggle.tap()
-    XCTAssertEqual(toggle.value as? String, "0", "Expected toggle to disable after tap")
+    XCTAssertEqual(Self.switchValue(toggle), "0", "Expected toggle to disable after tap")
 
     toggle.tap()
-    XCTAssertEqual(toggle.value as? String, "1", "Expected toggle to re-enable after second tap")
+    XCTAssertEqual(Self.switchValue(toggle), "1", "Expected toggle to re-enable after second tap")
+  }
+
+  private static func switchValue(_ element: XCUIElement) -> String? {
+    if let string = element.value as? String {
+      return string
+    }
+    if let number = element.value as? NSNumber {
+      return number.stringValue
+    }
+    return nil
   }
 }

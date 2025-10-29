@@ -95,6 +95,7 @@ struct PatternListView: View {
         )
       )
       .toggleStyle(.switch)
+      .accessibilityIdentifier("launchAtLoginToggle")
       .disabled(!viewModel.isLaunchAtLoginAvailable)
 
       if !viewModel.isLaunchAtLoginAvailable {
