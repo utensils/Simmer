@@ -45,6 +45,7 @@ internal struct SystemAnimationClock: IconAnimatorClock {
   }
 }
 
+/// Tracks animation performance and decides when to reduce or restore frame rate.
 internal struct IconAnimationPerformanceGovernor {
   internal enum State {
     case normal
@@ -280,65 +281,28 @@ internal final class IconAnimator {
     debugRenderBudgetExceeded = evaluation.exceeded
     lastBudgetWarning = evaluation.lastWarning
 
-    if evaluation.exceeded {
-      handleBudgetViolation()
-    } else {
-      handleHealthyFrame()
-    }
+    applyPerformanceEvaluation(exceededBudget: evaluation.exceeded)
   }
 
   func simulateRenderDurationForTesting(_ duration: TimeInterval, timestamp: TimeInterval) {
     recordRenderDuration(duration, timestamp: timestamp)
   }
 
-  private func handleBudgetViolation() {
+  private func applyPerformanceEvaluation(exceededBudget: Bool) {
     guard case .animating = state else { return }
-    consecutiveBudgetViolations += 1
-    consecutiveHealthyFrames = 0
-
-    switch performanceState {
-    case .normal where consecutiveBudgetViolations >= fallbackViolationThreshold:
-      enterReducedPerformanceMode()
-
-    case .normal:
-      break
-
-    case .reduced:
-      break
+    if let newState = performanceGovernor.recordFrame(exceededBudget: exceededBudget) {
+      handlePerformanceStateChange(newState)
     }
   }
 
-  private func handleHealthyFrame() {
-    guard case .animating = state else { return }
-    consecutiveBudgetViolations = 0
-
-    switch performanceState {
+  private func handlePerformanceStateChange(_ newState: IconAnimationPerformanceGovernor.State) {
+    restartTimerForPerformanceChange()
+    switch newState {
     case .normal:
-      consecutiveHealthyFrames = min(consecutiveHealthyFrames + 1, recoveryFrameThreshold)
-
+      logger.notice("Icon animation frame rate restored to 60fps after sustained recovery.")
     case .reduced:
-      consecutiveHealthyFrames += 1
-      if consecutiveHealthyFrames >= recoveryFrameThreshold {
-        restoreNormalPerformance()
-      }
+      logger.notice("Icon animation frame rate reduced to 30fps after repeated budget overruns.")
     }
-  }
-
-  private func enterReducedPerformanceMode() {
-    guard performanceState != .reduced else { return }
-    performanceState = .reduced
-    consecutiveBudgetViolations = 0
-    consecutiveHealthyFrames = 0
-    restartTimerForPerformanceChange()
-    logger.notice("Icon animation frame rate reduced to 30fps after repeated budget overruns.")
-  }
-
-  private func restoreNormalPerformance() {
-    guard performanceState == .reduced else { return }
-    performanceState = .normal
-    consecutiveHealthyFrames = 0
-    restartTimerForPerformanceChange()
-    logger.notice("Icon animation frame rate restored to 60fps after sustained recovery.")
   }
 
   private func restartTimerForPerformanceChange() {

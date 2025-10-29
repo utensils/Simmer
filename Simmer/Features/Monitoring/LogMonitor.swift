@@ -50,7 +50,6 @@ internal final class LogMonitor: NSObject {
   private var suppressedAlertPatternIDs: Set<UUID> = []
   /// Start timestamps for pending latency measurements; access is synchronized via `stateQueue`.
   private var pendingLatencyStartDates: [UUID: [Date]] = [:]
-  @MainActor
   private var didWarnAboutPatternLimit = false
 
   @MainActor

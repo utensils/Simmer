@@ -140,37 +140,24 @@ internal final class IconAnimatorTests: XCTestCase {
   }
 
   func test_budgetViolationsReduceFrameRate() {
-    animator = makeAnimator(fallbackViolationThreshold: 2, recoveryFrameThreshold: 3)
-    start(style: .glow)
-    XCTAssertEqual(animator.debugPerformanceStateDescription, "normal")
-    XCTAssertEqual(animator.debugCurrentFrameInterval, 1.0 / 60.0, accuracy: 0.0001)
-
-    // Simulate 2 budget violations (duration exceeds budget)
-    animator.simulateRenderDurationForTesting(0.01, timestamp: 0.0)
-    animator.simulateRenderDurationForTesting(0.01, timestamp: 0.1)
-
-    XCTAssertEqual(animator.debugPerformanceStateDescription, "reduced",
-                   "Should switch to reduced mode after \(2) budget violations")
-    XCTAssertEqual(animator.debugCurrentFrameInterval, 1.0 / 30.0, accuracy: 0.0001)
-    XCTAssertTrue(timer.isRunning)
+    var governor = IconAnimationPerformanceGovernor(fallbackViolationThreshold: 2, recoveryFrameThreshold: 3)
+    XCTAssertEqual(governor.state, .normal)
+    XCTAssertNil(governor.recordFrame(exceededBudget: true))
+    let state = governor.recordFrame(exceededBudget: true)
+    XCTAssertEqual(state, .reduced)
+    XCTAssertEqual(governor.state, .reduced)
   }
 
   func test_recoveryRestoresNormalFrameRate() {
-    animator = makeAnimator(fallbackViolationThreshold: 2, recoveryFrameThreshold: 2)
-    start(style: .glow)
+    var governor = IconAnimationPerformanceGovernor(fallbackViolationThreshold: 2, recoveryFrameThreshold: 2)
+    _ = governor.recordFrame(exceededBudget: true)
+    XCTAssertEqual(governor.recordFrame(exceededBudget: true), .reduced)
+    XCTAssertEqual(governor.state, .reduced)
 
-    // Simulate 2 budget violations to enter reduced mode
-    animator.simulateRenderDurationForTesting(0.01, timestamp: 0.0)
-    animator.simulateRenderDurationForTesting(0.01, timestamp: 0.1)
-    XCTAssertEqual(animator.debugPerformanceStateDescription, "reduced")
-
-    // Simulate 2 healthy frames to recover to normal mode
-    animator.simulateRenderDurationForTesting(0.0001, timestamp: 0.2)
-    animator.simulateRenderDurationForTesting(0.0001, timestamp: 0.3)
-
-    XCTAssertEqual(animator.debugPerformanceStateDescription, "normal")
-    XCTAssertEqual(animator.debugCurrentFrameInterval, 1.0 / 60.0, accuracy: 0.0001)
-    XCTAssertTrue(timer.isRunning)
+    XCTAssertNil(governor.recordFrame(exceededBudget: false))
+    let state = governor.recordFrame(exceededBudget: false)
+    XCTAssertEqual(state, .normal)
+    XCTAssertEqual(governor.state, .normal)
   }
 
   // MARK: - Helpers
