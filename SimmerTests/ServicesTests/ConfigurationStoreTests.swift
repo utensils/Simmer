@@ -114,7 +114,7 @@ internal final class ConfigurationStoreTests: XCTestCase {
   }
 }
 
-private final class ThrowingJSONEncoder: JSONEncoder {
+private final class ThrowingJSONEncoder: JSONEncoder, @unchecked Sendable {
   override func encode<T>(_ value: T) throws -> Data where T: Encodable {
     throw EncodingError.invalidValue(
       value,

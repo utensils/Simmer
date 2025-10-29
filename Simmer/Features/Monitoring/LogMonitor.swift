@@ -545,7 +545,7 @@ internal final class LogMonitor: NSObject {
     timestamp: Date
   ) -> Bool {
     if iconAnimator.state == .idle {
-      stateQueue.sync { currentAnimation = nil }
+      _ = stateQueue.sync { currentAnimation = nil }
     }
 
     let lastForPattern = stateQueue.sync { lastAnimationTimestamps[patternID] }
@@ -571,20 +571,20 @@ internal final class LogMonitor: NSObject {
 
   @MainActor
   private func recordAnimationStart(for patternID: UUID, priority: Int, timestamp: Date) {
-    stateQueue.sync {
+    _ = stateQueue.sync {
       currentAnimation = (patternID: patternID, priority: priority)
       lastAnimationTimestamps[patternID] = timestamp
     }
   }
 
   private func suppressAlerts(for patternID: UUID) {
-    stateQueue.sync {
+    _ = stateQueue.sync {
       suppressedAlertPatternIDs.insert(patternID)
     }
   }
 
   private func unsuppressAlerts(for patternID: UUID) {
-    stateQueue.sync {
+    _ = stateQueue.sync {
       suppressedAlertPatternIDs.remove(patternID)
     }
   }

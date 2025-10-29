@@ -35,7 +35,7 @@ internal final class ColorPickerViewTests: XCTestCase {
       set: { color = $0 }
     )
 
-    var view = ColorPickerView(color: binding)
+    let view = ColorPickerView(color: binding)
     let newColor = Color(red: 0.4, green: 0.5, blue: 0.6)
 
     view.updateColor(with: newColor)

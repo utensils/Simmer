@@ -55,7 +55,9 @@ internal final class PatternListViewModel: ObservableObject {
       object: nil,
       queue: .main
     ) { [weak self] _ in
-      self?.loadPatterns()
+      Task { @MainActor [weak self] in
+        self?.loadPatterns()
+      }
     }
     refreshLaunchAtLoginState()
   }

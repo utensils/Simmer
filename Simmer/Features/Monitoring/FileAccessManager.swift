@@ -33,10 +33,14 @@ internal protocol FileAccessManaging: AnyObject {
 /// Manages NSOpenPanel interactions for selecting log files in a non-sandboxed context.
 @MainActor
 internal final class FileAccessManager: FileAccessManaging {
-  private let panelFactory: () -> NSOpenPanel
+  private let panelFactory: @MainActor () -> NSOpenPanel
 
-  init(panelFactory: @escaping () -> NSOpenPanel = { NSOpenPanel() }) {
+  init(panelFactory: @escaping @MainActor () -> NSOpenPanel) {
     self.panelFactory = panelFactory
+  }
+
+  convenience init() {
+    self.init(panelFactory: { NSOpenPanel() })
   }
 
   /// Requests the user to select a file via an open panel.
