@@ -109,8 +109,7 @@ final class ConfigurationStoreTests: XCTestCase {
       logPath: "/tmp/test.log",
       color: CodableColor(red: 1, green: 0, blue: 0),
       animationStyle: .glow,
-      enabled: true,
-      bookmark: nil
+      enabled: true
     )
   }
 }

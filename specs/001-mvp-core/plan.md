@@ -11,7 +11,7 @@ Build native macOS menu bar application for passive log monitoring with visual f
 
 **Language/Version**: Swift 5.9+
 **Primary Dependencies**: Foundation, AppKit (menu bar), SwiftUI (settings), Core Graphics (icon rendering)
-**Storage**: UserDefaults for pattern configurations with JSON encoding plus import/export pipeline writing JSON files to disk using security-scoped bookmarks
+**Storage**: UserDefaults for pattern configurations with JSON encoding plus import/export pipeline writing JSON files to disk
 **Testing**: XCTest framework with file system mocking for watcher tests plus performance harness for pattern matching/detection latency
 **Target Platform**: macOS 14.0+ (Sonoma)
 **Project Type**: Single native macOS application
@@ -81,7 +81,7 @@ Simmer/
 │   ├── Monitoring/
 │   │   ├── LogMonitor.swift             # Coordinates multiple FileWatchers
 │   │   ├── FileWatcher.swift            # DispatchSource wrapper for individual logs
-│   │   └── FileAccessManager.swift      # Security-scoped URL bookmarks
+│   │   └── FileAccessManager.swift      # NSOpenPanel file selection
 │   ├── Patterns/
 │   │   ├── PatternMatcher.swift         # NSRegularExpression evaluation
 │   │   ├── PatternValidator.swift       # Regex syntax validation
@@ -98,7 +98,7 @@ Simmer/
 │   └── IconAnimationState.swift   # Current animation state
 ├── Services/
 │   ├── ConfigurationStore.swift   # UserDefaults persistence
-│   ├── ConfigurationExporter.swift # JSON export of pattern configurations with bookmark data
+│   ├── ConfigurationExporter.swift # JSON export of pattern configurations
 │   ├── ConfigurationImporter.swift # JSON import/validation with schema enforcement
 │   ├── PathExpander.swift         # Tilde/env var expansion
 │   └── LaunchAtLoginController.swift # SMAppService launch at login management

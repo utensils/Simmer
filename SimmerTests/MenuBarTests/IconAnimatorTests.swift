@@ -18,11 +18,7 @@ final class IconAnimatorTests: XCTestCase {
     timer = TestAnimationTimer()
     clock = TestAnimationClock()
     delegate = TestIconAnimatorDelegate()
-    animator = IconAnimator(
-      timerFactory: { [unowned timer] in timer },
-      clock: clock
-    )
-    animator.delegate = delegate
+    animator = makeAnimator()
   }
 
   override func tearDown() {
@@ -143,14 +139,70 @@ final class IconAnimatorTests: XCTestCase {
     XCTAssertEqual(warningCount, 2)
   }
 
+  func test_budgetViolationsReduceFrameRate() {
+    animator = makeAnimator(fallbackViolationThreshold: 2, recoveryFrameThreshold: 3)
+    start(style: .glow)
+    XCTAssertEqual(animator.debugPerformanceStateDescription, "normal")
+    XCTAssertEqual(animator.debugCurrentFrameInterval, 1.0 / 60.0, accuracy: 0.0001)
+
+    var timestamp: TimeInterval = 0
+    for _ in 0..<2 {
+      timestamp += 0.1
+      animator.simulateRenderDurationForTesting(0.01, timestamp: timestamp)
+    }
+
+    XCTAssertEqual(animator.debugPerformanceStateDescription, "reduced")
+    XCTAssertEqual(animator.debugCurrentFrameInterval, 1.0 / 30.0, accuracy: 0.0001)
+    XCTAssertTrue(timer.isRunning)
+  }
+
+  func test_recoveryRestoresNormalFrameRate() {
+    animator = makeAnimator(fallbackViolationThreshold: 2, recoveryFrameThreshold: 2)
+    start(style: .glow)
+
+    var timestamp: TimeInterval = 0
+    for _ in 0..<2 {
+      timestamp += 0.1
+      animator.simulateRenderDurationForTesting(0.01, timestamp: timestamp)
+    }
+    XCTAssertEqual(animator.debugPerformanceStateDescription, "reduced")
+
+    for _ in 0..<2 {
+      timestamp += 0.1
+      animator.simulateRenderDurationForTesting(0.0001, timestamp: timestamp)
+    }
+
+    XCTAssertEqual(animator.debugPerformanceStateDescription, "normal")
+    XCTAssertEqual(animator.debugCurrentFrameInterval, 1.0 / 60.0, accuracy: 0.0001)
+    XCTAssertTrue(timer.isRunning)
+  }
+
   // MARK: - Helpers
 
   private func start(style: AnimationStyle) {
+    animator.delegate = delegate
     animator.startAnimation(style: style, color: color())
   }
 
   private func color() -> CodableColor {
     CodableColor(red: 0.9, green: 0.2, blue: 0.2)
+  }
+
+  private func makeAnimator(
+    frameBudget: TimeInterval = 0.002,
+    fallbackViolationThreshold: Int = 5,
+    recoveryFrameThreshold: Int = 30
+  ) -> IconAnimator {
+    let animator = IconAnimator(
+      timerFactory: { [unowned timer] in timer },
+      clock: clock,
+      frameBudget: frameBudget,
+      budgetExceededHandler: nil,
+      fallbackViolationThreshold: fallbackViolationThreshold,
+      recoveryFrameThreshold: recoveryFrameThreshold
+    )
+    animator.delegate = delegate
+    return animator
   }
 }
 
@@ -159,11 +211,15 @@ private final class TestAnimationTimer: AnimationTimer {
   private(set) var interval: TimeInterval?
   private(set) var handler: (() -> Void)?
   private(set) var isRunning = false
+  var onStart: (() -> Void)?
+  private(set) var startCount = 0
 
   func start(interval: TimeInterval, handler: @escaping @MainActor () -> Void) {
     self.interval = interval
     self.handler = handler
     isRunning = true
+    startCount += 1
+    onStart?()
   }
 
   func stop() {

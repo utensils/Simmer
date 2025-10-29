@@ -7,10 +7,15 @@
 
 import Foundation
 import Combine
+import AppKit
+import UniformTypeIdentifiers
 
 /// View model managing pattern CRUD operations and state for PatternListView.
 @MainActor
 class PatternListViewModel: ObservableObject {
+  private static let maxPatternCount = 20
+  private static let patternLimitMessage = "Maximum 20 patterns supported"
+
   @Published var patterns: [LogPattern] = []
   @Published var errorMessage: String?
   @Published var launchAtLoginEnabled = false
@@ -19,16 +24,28 @@ class PatternListViewModel: ObservableObject {
   private let store: any ConfigurationStoreProtocol
   private let logMonitor: LogMonitoring?
   private let launchAtLoginController: LaunchAtLoginControlling
+  private let exporter: ConfigurationExporting
+  private let importer: ConfigurationImporting
+  private let exportURLProvider: @MainActor () -> URL?
+  private let importURLProvider: @MainActor () -> URL?
   private var patternsObserver: NSObjectProtocol?
 
   init(
     store: any ConfigurationStoreProtocol,
     logMonitor: LogMonitoring? = nil,
-    launchAtLoginController: LaunchAtLoginControlling = LaunchAtLoginController()
+    launchAtLoginController: LaunchAtLoginControlling = LaunchAtLoginController(),
+    exporter: ConfigurationExporting = ConfigurationExporter(),
+    importer: ConfigurationImporting = ConfigurationImporter(),
+    exportURLProvider: @escaping @MainActor () -> URL? = PatternListViewModel.defaultExportURL,
+    importURLProvider: @escaping @MainActor () -> URL? = PatternListViewModel.defaultImportURL
   ) {
     self.store = store
     self.logMonitor = logMonitor
     self.launchAtLoginController = launchAtLoginController
+    self.exporter = exporter
+    self.importer = importer
+    self.exportURLProvider = exportURLProvider
+    self.importURLProvider = importURLProvider
     patternsObserver = NotificationCenter.default.addObserver(
       forName: .logMonitorPatternsDidChange,
       object: nil,
@@ -54,6 +71,11 @@ class PatternListViewModel: ObservableObject {
   /// Adds a new pattern and persists to storage.
   /// - Parameter pattern: The pattern to add
   func addPattern(_ pattern: LogPattern) {
+    guard patterns.count < Self.maxPatternCount else {
+      errorMessage = Self.patternLimitMessage
+      return
+    }
+
     patterns.append(pattern)
     if savePatterns() {
       logMonitor?.reloadPatterns()
@@ -101,6 +123,30 @@ class PatternListViewModel: ObservableObject {
     updatePattern(pattern)
   }
 
+  /// Saves all patterns to a JSON file selected by the user.
+  func exportPatterns() {
+    guard let url = exportURLProvider() else { return }
+
+    do {
+      try exporter.export(patterns: patterns, to: url)
+    } catch {
+      errorMessage = localizedDescription(for: error) ?? "Failed to export patterns."
+    }
+  }
+
+  /// Imports patterns from a JSON file selected by the user and merges them with the current list.
+  func importPatterns() {
+    guard let url = importURLProvider() else { return }
+
+    do {
+      let importedPatterns = try importer.importPatterns(from: url)
+      try mergeImportedPatterns(importedPatterns)
+      logMonitor?.reloadPatterns()
+    } catch {
+      errorMessage = localizedDescription(for: error) ?? "Failed to import patterns."
+    }
+  }
+
   /// Clears any displayed error message.
   func clearError() {
     errorMessage = nil
@@ -111,14 +157,18 @@ class PatternListViewModel: ObservableObject {
   func setLaunchAtLoginEnabled(_ enabled: Bool) {
     guard launchAtLoginController.isAvailable else {
       launchAtLoginEnabled = false
+      isLaunchAtLoginAvailable = false
       errorMessage = LaunchAtLoginError.notSupported.errorDescription
       return
     }
 
     let previous = launchAtLoginEnabled
+    launchAtLoginEnabled = enabled
+
     do {
       try launchAtLoginController.setEnabled(enabled)
-      launchAtLoginEnabled = enabled
+      launchAtLoginEnabled = launchAtLoginController.resolvedPreference()
+      isLaunchAtLoginAvailable = launchAtLoginController.isAvailable
     } catch {
       launchAtLoginEnabled = previous
       if let localized = error as? LocalizedError, let message = localized.errorDescription {
@@ -146,5 +196,58 @@ class PatternListViewModel: ObservableObject {
   private func refreshLaunchAtLoginState() {
     launchAtLoginEnabled = launchAtLoginController.resolvedPreference()
     isLaunchAtLoginAvailable = launchAtLoginController.isAvailable
+  }
+
+  private func mergeImportedPatterns(_ imported: [LogPattern]) throws {
+    var merged = patterns
+    for pattern in imported {
+      if let index = merged.firstIndex(where: { $0.id == pattern.id }) {
+        merged[index] = pattern
+      } else {
+        merged.append(pattern)
+      }
+    }
+
+    guard merged.count <= Self.maxPatternCount else {
+      throw ConfigurationImportError.validationFailed(messages: [Self.patternLimitMessage])
+    }
+
+    do {
+      try store.savePatterns(merged)
+      patterns = merged
+    } catch {
+      throw error
+    }
+  }
+
+  private func localizedDescription(for error: Error) -> String? {
+    if let localized = error as? LocalizedError, let message = localized.errorDescription {
+      return message
+    }
+    return (error as NSError).localizedDescription
+  }
+}
+
+// MARK: - File Panel Helpers
+
+private extension PatternListViewModel {
+  @MainActor
+  static func defaultExportURL() -> URL? {
+    let panel = NSSavePanel()
+    panel.allowedContentTypes = [UTType.json]
+    panel.nameFieldStringValue = "SimmerPatterns.json"
+    panel.canCreateDirectories = true
+    panel.isExtensionHidden = false
+    return panel.runModal() == .OK ? panel.url : nil
+  }
+
+  @MainActor
+  static func defaultImportURL() -> URL? {
+    let panel = NSOpenPanel()
+    panel.allowedContentTypes = [UTType.json]
+    panel.canChooseDirectories = false
+    panel.canChooseFiles = true
+    panel.allowsMultipleSelection = false
+    return panel.runModal() == .OK ? panel.url : nil
   }
 }

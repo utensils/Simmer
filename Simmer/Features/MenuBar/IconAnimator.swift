@@ -47,6 +47,11 @@ struct SystemAnimationClock: IconAnimatorClock {
 
 @MainActor
 final class IconAnimator {
+  private enum PerformanceState {
+    case normal
+    case reduced
+  }
+
   struct FrameParameters: Equatable {
     let scale: CGFloat
     let opacity: CGFloat
@@ -58,7 +63,8 @@ final class IconAnimator {
   private(set) var state: IconAnimationState = .idle
 
   private let iconSize: CGFloat
-  private let frameInterval: TimeInterval = 1.0 / 60.0
+  private let normalFrameInterval: TimeInterval = 1.0 / 60.0
+  private let reducedFrameInterval: TimeInterval
   private let timerFactory: @MainActor () -> AnimationTimer
   private let clock: IconAnimatorClock
   private var timer: AnimationTimer?
@@ -67,6 +73,11 @@ final class IconAnimator {
   private let frameBudget: TimeInterval
   private var lastBudgetWarning: TimeInterval = 0
   private let budgetExceededHandler: (TimeInterval) -> Void
+  private let fallbackViolationThreshold: Int
+  private let recoveryFrameThreshold: Int
+  private var performanceState: PerformanceState = .normal
+  private var consecutiveBudgetViolations = 0
+  private var consecutiveHealthyFrames = 0
 
   /// The idle icon image used when no animation is active
   let idleIcon: NSImage
@@ -75,13 +86,26 @@ final class IconAnimator {
   internal private(set) var debugLastParameters: FrameParameters?
   internal private(set) var debugLastRenderDuration: TimeInterval?
   internal private(set) var debugRenderBudgetExceeded = false
-
+  internal var debugPerformanceStateDescription: String {
+    switch performanceState {
+    case .normal:
+      return "normal"
+    case .reduced:
+      return "reduced"
+    }
+  }
+  internal var debugCurrentFrameInterval: TimeInterval {
+    currentFrameInterval
+  }
   init(
     iconSize: CGFloat = 18,
     timerFactory: (@MainActor () -> AnimationTimer)? = nil,
     clock: IconAnimatorClock? = nil,
     frameBudget: TimeInterval = 0.002,
-    budgetExceededHandler: ((TimeInterval) -> Void)? = nil
+    budgetExceededHandler: ((TimeInterval) -> Void)? = nil,
+    fallbackViolationThreshold: Int = 5,
+    recoveryFrameThreshold: Int = 30,
+    reducedFrameInterval: TimeInterval = 1.0 / 30.0
   ) {
     self.iconSize = iconSize
     self.timerFactory = timerFactory ?? { TimerAnimationTimer() }
@@ -96,6 +120,9 @@ final class IconAnimator {
         )
       }
     }
+    self.fallbackViolationThreshold = max(1, fallbackViolationThreshold)
+    self.recoveryFrameThreshold = max(1, recoveryFrameThreshold)
+    self.reducedFrameInterval = reducedFrameInterval
     idleIcon = IconAnimator.renderIcon(
       size: iconSize,
       color: NSColor(calibratedWhite: 0.8, alpha: 1.0),
@@ -106,6 +133,9 @@ final class IconAnimator {
   func startAnimation(style: AnimationStyle, color: CodableColor) {
     animationStart = clock.now()
     state = .animating(style: style, color: color)
+    performanceState = .normal
+    consecutiveBudgetViolations = 0
+    consecutiveHealthyFrames = 0
     delegate?.animationDidStart(style: style, color: color)
     startTimer()
   }
@@ -120,11 +150,21 @@ final class IconAnimator {
 
   private func startTimer() {
     stopTimer()
+    guard case .animating = state else { return }
     let timer = timerFactory()
-    timer.start(interval: frameInterval) { [weak self] in
+    timer.start(interval: currentFrameInterval) { [weak self] in
       self?.tick()
     }
     self.timer = timer
+  }
+
+  private var currentFrameInterval: TimeInterval {
+    switch performanceState {
+    case .normal:
+      return normalFrameInterval
+    case .reduced:
+      return reducedFrameInterval
+    }
   }
 
   private func stopTimer() {
@@ -175,10 +215,68 @@ final class IconAnimator {
     )
     debugRenderBudgetExceeded = evaluation.exceeded
     lastBudgetWarning = evaluation.lastWarning
+
+    if evaluation.exceeded {
+      handleBudgetViolation()
+    } else {
+      handleHealthyFrame()
+    }
   }
 
   func simulateRenderDurationForTesting(_ duration: TimeInterval, timestamp: TimeInterval) {
     recordRenderDuration(duration, timestamp: timestamp)
+  }
+
+  private func handleBudgetViolation() {
+    guard case .animating = state else { return }
+    consecutiveBudgetViolations += 1
+    consecutiveHealthyFrames = 0
+
+    switch performanceState {
+    case .normal where consecutiveBudgetViolations >= fallbackViolationThreshold:
+      enterReducedPerformanceMode()
+    case .normal:
+      break
+    case .reduced:
+      break
+    }
+  }
+
+  private func handleHealthyFrame() {
+    guard case .animating = state else { return }
+    consecutiveBudgetViolations = 0
+
+    switch performanceState {
+    case .normal:
+      consecutiveHealthyFrames = min(consecutiveHealthyFrames + 1, recoveryFrameThreshold)
+    case .reduced:
+      consecutiveHealthyFrames += 1
+      if consecutiveHealthyFrames >= recoveryFrameThreshold {
+        restoreNormalPerformance()
+      }
+    }
+  }
+
+  private func enterReducedPerformanceMode() {
+    guard performanceState != .reduced else { return }
+    performanceState = .reduced
+    consecutiveBudgetViolations = 0
+    consecutiveHealthyFrames = 0
+    restartTimerForPerformanceChange()
+    logger.notice("Icon animation frame rate reduced to 30fps after repeated budget overruns.")
+  }
+
+  private func restoreNormalPerformance() {
+    guard performanceState == .reduced else { return }
+    performanceState = .normal
+    consecutiveHealthyFrames = 0
+    restartTimerForPerformanceChange()
+    logger.notice("Icon animation frame rate restored to 60fps after sustained recovery.")
+  }
+
+  private func restartTimerForPerformanceChange() {
+    guard case .animating = state else { return }
+    startTimer()
   }
 
   func frameParameters(for style: AnimationStyle, elapsed: TimeInterval) -> FrameParameters {

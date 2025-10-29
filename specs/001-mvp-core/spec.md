@@ -53,6 +53,8 @@ Developer opens settings to add, edit, and remove log patterns with associated f
 2. **Given** a pattern has invalid regex syntax, **When** user attempts to save, **Then** an inline error message appears explaining the regex syntax error
 3. **Given** multiple patterns exist, **When** user disables a pattern, **Then** monitoring stops for that pattern but continues for others
 4. **Given** user selects log file via file picker, **When** file requires permissions, **Then** system permission dialog appears and access is granted
+5. **Given** patterns exist, **When** user exports configurations from settings, **Then** a JSON file containing all pattern fields is saved and ready for distribution
+6. **Given** a valid JSON configuration previously exported from Simmer, **When** user imports it, **Then** patterns update in place without data loss, invalid entries surface inline errors, and monitoring resumes for enabled items automatically
 
 ---
 
@@ -95,11 +97,10 @@ Developer monitors multiple log files with different patterns and receives appro
 - **FR-010**: Settings window MUST allow adding patterns with: name, regex, log file path, color (RGB), animation style, enabled state
 - **FR-011**: Settings window MUST validate regex syntax before saving and display inline errors for invalid patterns
 - **FR-012**: Settings window MUST provide file picker for selecting log files
-- **FR-013**: System MUST request and store file access permissions for selected log files using security-scoped bookmarks
+- **FR-013**: System MUST provide file selection via NSOpenPanel for selecting log files (non-sandboxed, direct file path access)
 - **FR-014**: System MUST persist pattern configurations across app restarts
 - **FR-015**: System MUST support editing and deleting existing patterns
 - **FR-016**: System MUST support disabling patterns without deleting them
-- **FR-027**: Settings window MUST provide JSON export and import functionality for pattern configurations to enable programmatic backup, sharing, and version control
 - **FR-026**: Settings window MUST provide a "Launch at Login" toggle that persists user preference and registers/unregisters app with system login items via SMAppService (macOS 13+); launch at login MUST be disabled by default
 - **FR-017**: App MUST consume less than 1% CPU when idle and less than 5% CPU during active monitoring
 - **FR-018**: App MUST consume less than 50MB of sustained memory usage under typical load; transient spikes up to 75MB during bulk match processing (>50 matches/second) are acceptable if memory returns to baseline within 10 seconds
@@ -110,12 +111,7 @@ Developer monitors multiple log files with different patterns and receives appro
 - **FR-023**: System MUST read only newly appended content, not re-processing entire log files
 - **FR-024**: System MUST support tilde (~) expansion and environment variables in log file paths
 - **FR-025**: When multiple patterns match simultaneously, system MUST prioritize animation by pattern configuration order (first enabled pattern in list = highest priority)
-
-### Key Entities
-
-- **LogPattern**: Represents a monitoring configuration with name, regex pattern, target log file path, visual appearance (color, animation style), and enabled state
-- **MatchEvent**: Represents a detected pattern match with reference to source pattern, timestamp, matched line content, and line number
-- **IconAnimationState**: Represents current menu bar icon visual state (idle or animating with specific style and color)
+- **FR-027**: System MUST provide JSON import and export of pattern configurations, including regex, file path, color, animation style, and enabled state; operations MUST round-trip without data loss and validate imported content before activation
 
 ## Success Criteria *(mandatory)*
 
@@ -125,7 +121,26 @@ Developer monitors multiple log files with different patterns and receives appro
 - **SC-002**: Pattern matches appear as visual feedback within 500ms of log line being written
 - **SC-003**: App maintains smooth icon animations at 60fps with CPU usage below 5% during active monitoring
 - **SC-004**: Developers can monitor up to 10 log files simultaneously without performance degradation
-- **SC-005**: 95% of developers successfully configure their first pattern without consulting documentation
+- **SC-005**: 95% of developers successfully configure their first pattern without consulting documentation, measured via a usability study of at least 20 target users completing a timed setup script unaided within 5 minutes; success = pattern actively monitoring target log file with visible confirmation (icon animation or match history entry) within 5 minutes from app launch
 - **SC-006**: App launches and becomes ready for monitoring in under 2 seconds
 - **SC-007**: Pattern matching completes within 10ms per log line for patterns with up to 20 regex rules
-- **SC-008**: Match history provides sufficient context (pattern name, timestamp, excerpt) for developers to identify issues without opening logs 80% of the time
+- **SC-008**: Match history provides sufficient context (pattern name, timestamp, excerpt) for developers to identify issues without opening logs 80% of the time, measured via usability study (T133) by asking participants if they need to open log files after viewing match history
+
+## Technical Debt *(informational)*
+
+### Sandbox Removal - In Progress
+
+**Context**: Mid-implementation, the team decided to remove app sandboxing to eliminate file re-selection prompts on log rotation (common pain point for developers monitoring rotating logs). This aligns with peer developer tools (VS Code, iTerm2) that ship without sandbox for better file system UX.
+
+**Current State**: Sandbox removed from entitlements, LogPattern.bookmark property removed, FileAccessManager simplified to basic file picker only.
+
+**Stubbed Code**: LogMonitor contains extensive bookmark-related infrastructure that has been stubbed out (marked with `// STUB:` comments) to enable compilation and testing. This includes:
+- `preparePatternForMonitoring()` - bookmark resolution bypassed
+- `handleStaleBookmark()` - entire method stubbed
+- `registerBookmarkAccessIfNeeded()` - security-scoped access removed
+- `handleBookmarkResolutionFailure()` / `handleBookmarkRefreshFailure()` - error handling removed
+- `activeBookmarkURLs` property and all cleanup code
+
+**Why Stubbed**: LogMonitor is 850+ lines with deep bookmark integration. Rather than risk breaking core monitoring logic with hasty refactoring mid-sprint, we stubbed the bookmark code to unblock testing. The app now uses direct file path access without security-scoped bookmarks.
+
+**Cleanup Required**: See tasks.md for priority cleanup tasks (TD-001 through TD-003) to properly remove all stub comments and dead bookmark infrastructure.

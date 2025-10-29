@@ -227,6 +227,49 @@ final class LogMonitorTests: XCTestCase {
     }
   }
 
+  func test_latencyMeasurementReportedUnderFiveHundredMilliseconds() async {
+    let pattern = makePattern(name: "Latency", enabled: true)
+    let matcher = MockPatternMatcher()
+    matcher.fallbackResult = MatchResult(range: NSRange(location: 0, length: 6), captureGroups: [])
+    let dateProvider = TestDateProvider(now: Date(timeIntervalSince1970: 0))
+
+    let (monitor, registry, _, _, _, queue) = await MainActor.run {
+      makeMonitor(
+        patterns: [pattern],
+        matcher: matcher,
+        dateProvider: dateProvider
+      )
+    }
+
+    let latencyExpectation = expectation(description: "latency measured")
+    var measuredLatency: TimeInterval = .infinity
+
+    await MainActor.run {
+      monitor.onLatencyMeasured = { latency in
+        measuredLatency = latency
+        latencyExpectation.fulfill()
+      }
+      monitor.start()
+    }
+
+    let watcher = await MainActor.run { registry.watcher(for: pattern.id) }
+    await MainActor.run {
+      watcher?.send(lines: ["ERROR: latency test"])
+    }
+
+    dateProvider.advance(by: 0.005)
+    queue.sync { }
+
+    await fulfillment(of: [latencyExpectation], timeout: 1.0)
+
+    XCTAssertLessThan(measuredLatency, 0.5)
+    XCTAssertLessThan(measuredLatency, 0.010)
+
+    await MainActor.run {
+      monitor.stopAll()
+    }
+  }
+
   func test_fileWatcherProcessesMultipleLinesInBatch() async {
     let pattern = makePattern(name: "Batch", enabled: true)
     let matcher = MockPatternMatcher()
@@ -772,6 +815,10 @@ private final class TestWatcherRegistry {
 }
 
 private final class TestFileAccessManager: FileAccessManaging {
+  func requestAccess(allowedFileTypes: [String]?) throws -> URL {
+    URL(fileURLWithPath: "/tmp/fake.log")
+  }
+
   func resolveBookmark(_ bookmark: FileBookmark) throws -> (url: URL, isStale: Bool) {
     (URL(fileURLWithPath: bookmark.filePath), false)
   }
@@ -786,6 +833,10 @@ private final class RecordingFileAccessManager: FileAccessManaging {
   var refreshQueue: [Result<FileBookmark, Error>] = []
   private(set) var resolveCallCount = 0
   private(set) var refreshCallCount = 0
+
+  func requestAccess(allowedFileTypes: [String]?) throws -> URL {
+    URL(fileURLWithPath: "/tmp/fake.log")
+  }
 
   func resolveBookmark(_ bookmark: FileBookmark) throws -> (url: URL, isStale: Bool) {
     resolveCallCount += 1

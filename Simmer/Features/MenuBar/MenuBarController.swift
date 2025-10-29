@@ -49,6 +49,11 @@ final class MenuBarController: NSObject {
     refreshMenu()
   }
 
+  /// Called when warning state changes so the menu reflects new alerts.
+  func handleWarningsUpdate() {
+    refreshMenu()
+  }
+
   private func configureStatusItem() {
     guard let button = statusItem.button else { return }
     button.image = iconAnimator.idleIcon

@@ -28,8 +28,6 @@ struct PatternEditorView: View {
   @State private var isShowingErrorAlert = false
   @FocusState private var focusedField: Field?
 
-  @State private var selectedBookmark: FileBookmark?
-
   private let validator = PatternValidator.self
   private let fileAccessManager = FileAccessManager()
 
@@ -48,7 +46,6 @@ struct PatternEditorView: View {
       _color = State(initialValue: pattern.color)
       _animationStyle = State(initialValue: pattern.animationStyle)
       _enabled = State(initialValue: pattern.enabled)
-      _selectedBookmark = State(initialValue: pattern.bookmark)
     } else {
       self.mode = .create
       self.existingPatternID = nil
@@ -58,7 +55,6 @@ struct PatternEditorView: View {
       _color = State(initialValue: CodableColor(red: 0.2, green: 0.6, blue: 1.0))
       _animationStyle = State(initialValue: .glow)
       _enabled = State(initialValue: true)
-      _selectedBookmark = State(initialValue: nil)
     }
   }
 
@@ -154,15 +150,6 @@ struct PatternEditorView: View {
           }
           .help("Select a log file")
         }
-
-        if let bookmark = selectedBookmark {
-          Text("Access granted for \(bookmark.filePath)")
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-            .textSelection(.enabled)
-            .lineLimit(nil)
-            .fixedSize(horizontal: false, vertical: true)
-        }
       }
     }
   }
@@ -205,14 +192,12 @@ struct PatternEditorView: View {
 
     let expandedPath = PathExpander.expand(trimmedPath)
 
-    if selectedBookmark == nil {
-      do {
-        try validateManualPath(expandedPath)
-      } catch {
-        errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-        isShowingErrorAlert = true
-        return
-      }
+    do {
+      try validateManualPath(expandedPath)
+    } catch {
+      errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+      isShowingErrorAlert = true
+      return
     }
 
     let updatedPattern = LogPattern(
@@ -222,8 +207,7 @@ struct PatternEditorView: View {
       logPath: expandedPath,
       color: color,
       animationStyle: animationStyle,
-      enabled: enabled,
-      bookmark: selectedBookmark
+      enabled: enabled
     )
 
     onSave(updatedPattern)
@@ -232,9 +216,8 @@ struct PatternEditorView: View {
 
   private func openFilePicker() {
     do {
-      let bookmark = try fileAccessManager.requestAccess()
-      selectedBookmark = bookmark
-      logPath = bookmark.filePath
+      let url = try fileAccessManager.requestAccess()
+      logPath = url.path
     } catch {
       errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
       isShowingErrorAlert = true

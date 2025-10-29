@@ -47,9 +47,11 @@ final class LogMonitor: NSObject {
   private var patternPriorities: [UUID: Int] = [:]
   private var lastAnimationTimestamps: [UUID: Date] = [:]
   private var currentAnimation: (patternID: UUID, priority: Int)?
-  private var activeBookmarkURLs: [UUID: URL] = [:]
+  // STUB: activeBookmarkURLs removed - no longer needed (no sandbox)
+  // TODO: Remove completely during cleanup (see tasks.md)
   private var didBootstrapPatterns = false
   private var suppressedAlertPatternIDs: Set<UUID> = []
+  private var pendingLatencyStartDates: [UUID: [Date]] = [:]
 
   @MainActor
   init(
@@ -93,6 +95,14 @@ final class LogMonitor: NSObject {
   @MainActor
   var onHistoryUpdate: (([MatchEvent]) -> Void)?
 
+  /// Invoked on the main actor whenever high-frequency warnings change.
+  @MainActor
+  var onWarningsUpdate: (([FrequentMatchWarning]) -> Void)?
+
+  /// Invoked on the main actor whenever a match produces icon feedback, reporting elapsed time.
+  @MainActor
+  var onLatencyMeasured: ((TimeInterval) -> Void)?
+
   @MainActor
   private func bootstrapInitialPatterns() {
     let persisted = configurationStore.loadPatterns().filter(\.enabled)
@@ -123,23 +133,20 @@ final class LogMonitor: NSObject {
 
   /// Stops all active watchers and clears internal state.
   func stopAll() {
-    let result: ([FileWatching], [URL]) = stateQueue.sync {
+    let activeWatchers: [FileWatching] = stateQueue.sync {
       let currentWatchers = entriesByPatternID.values.map(\.watcher)
-      let bookmarkURLs = Array(activeBookmarkURLs.values)
       entriesByPatternID.removeAll()
       watcherIdentifiers.removeAll()
       patternPriorities.removeAll()
       lastAnimationTimestamps.removeAll()
       currentAnimation = nil
-      activeBookmarkURLs.removeAll()
+      // STUB: activeBookmarkURLs cleanup removed (no sandbox)
       suppressedAlertPatternIDs.removeAll()
-      return (currentWatchers, bookmarkURLs)
+      return currentWatchers
     }
-    let activeWatchers = result.0
-    let bookmarkURLs = result.1
 
     activeWatchers.forEach { $0.stop() }
-    bookmarkURLs.forEach { $0.stopAccessingSecurityScopedResource() }
+    // STUB: Bookmark URL cleanup removed (no sandbox)
 
     Task { @MainActor [iconAnimator] in
       iconAnimator.stopAnimation()
@@ -202,155 +209,19 @@ final class LogMonitor: NSObject {
 
   @MainActor
   private func preparePatternForMonitoring(_ pattern: LogPattern) -> LogPattern? {
-    if let bookmark = pattern.bookmark {
-      do {
-        let (url, isStale) = try fileAccessManager.resolveBookmark(bookmark)
-        if isStale {
-          return handleStaleBookmark(for: pattern, bookmark: bookmark)
-        }
-
-        return registerBookmarkAccessIfNeeded(url: url, for: pattern)
-      } catch {
-        handleBookmarkResolutionFailure(pattern: pattern, error: error)
-        return nil
-      }
-    }
-
+    // STUB: Bookmark logic removed - direct file access only (no sandbox)
+    // TODO: Clean up bookmark infrastructure completely (see tasks.md)
     return validateManualPatternAccess(for: pattern)
   }
 
-  @MainActor
-  private func handleStaleBookmark(
-    for pattern: LogPattern,
-    bookmark: FileBookmark
-  ) -> LogPattern? {
-    do {
-      let refreshed = try fileAccessManager.refreshStaleBookmark(bookmark)
-      var updatedPattern = pattern
-      updatedPattern.bookmark = refreshed
-      updatedPattern.logPath = refreshed.filePath
+  // STUB: Removed - bookmark logic no longer needed (no sandbox)
+  // TODO: Remove completely during cleanup (see tasks.md)
 
-      do {
-        try configurationStore.updatePattern(updatedPattern)
-      } catch {
-        os_log(
-          .error,
-          log: logger,
-          "Failed to persist refreshed bookmark for pattern '%{public}@': %{public}@",
-          pattern.name,
-          String(describing: error)
-        )
-      }
+  // STUB: Removed - bookmark logic no longer needed (no sandbox)
+  // TODO: Remove completely during cleanup (see tasks.md)
 
-      do {
-        let (url, isStillStale) = try fileAccessManager.resolveBookmark(refreshed)
-        guard !isStillStale else {
-          os_log(
-            .error,
-            log: logger,
-            "Bookmark for pattern '%{public}@' remained stale after refresh",
-            pattern.name
-          )
-          disablePattern(updatedPattern, message: """
-          Simmer still cannot access "\(updatedPattern.logPath)" after refreshing permissions. Try selecting the file again in Settings.
-          """)
-          return nil
-        }
-
-        return registerBookmarkAccessIfNeeded(url: url, for: updatedPattern)
-      } catch {
-        handleBookmarkResolutionFailure(pattern: updatedPattern, error: error)
-        return nil
-      }
-    } catch {
-      handleBookmarkRefreshFailure(pattern: pattern, error: error)
-      return nil
-    }
-  }
-
-  @MainActor
-  private func registerBookmarkAccessIfNeeded(
-    url: URL,
-    for pattern: LogPattern
-  ) -> LogPattern? {
-    let existingURL: URL? = stateQueue.sync {
-      activeBookmarkURLs[pattern.id]
-    }
-
-    if let current = existingURL, current == url {
-      return pattern
-    }
-
-    if let current = existingURL {
-      current.stopAccessingSecurityScopedResource()
-    }
-
-    var updatedPattern = pattern
-    updatedPattern.logPath = url.path
-
-    if url.startAccessingSecurityScopedResource() {
-      stateQueue.sync {
-        activeBookmarkURLs[pattern.id] = url
-      }
-    } else {
-      os_log(
-        .info,
-        log: logger,
-        "Security-scoped access unavailable for pattern '%{public}@'. Continuing without bookmark activation.",
-        pattern.name
-      )
-      stateQueue.sync {
-        activeBookmarkURLs.removeValue(forKey: pattern.id)
-      }
-    }
-
-    return updatedPattern
-  }
-
-  @MainActor
-  private func handleBookmarkResolutionFailure(pattern: LogPattern, error: Error) {
-    if isAlertSuppressed(for: pattern.id) {
-      return
-    }
-
-    os_log(
-      .error,
-      log: logger,
-      "Failed to resolve bookmark for pattern '%{public}@': %{public}@",
-      pattern.name,
-      String(describing: error)
-    )
-    disablePattern(pattern, message: """
-    Simmer lost access to "\(pattern.logPath)". Select the file again in Settings to resume monitoring.
-    """)
-  }
-
-  @MainActor
-  private func handleBookmarkRefreshFailure(pattern: LogPattern, error: Error) {
-    if let accessError = error as? FileAccessError, accessError == .userCancelled {
-      os_log(
-        .info,
-        log: logger,
-        "User cancelled bookmark refresh for pattern '%{public}@'",
-        pattern.name
-      )
-      disablePattern(pattern, message: """
-      Access to "\(pattern.logPath)" needs to be renewed before monitoring can continue. Open Settings and reselect the file.
-      """)
-      return
-    }
-
-    os_log(
-      .error,
-      log: logger,
-      "Failed to refresh bookmark for pattern '%{public}@': %{public}@",
-      pattern.name,
-      String(describing: error)
-    )
-    disablePattern(pattern, message: """
-    Simmer could not refresh access to "\(pattern.logPath)". Try selecting the file again from Settings.
-    """)
-  }
+  // STUB: Removed - bookmark error handling no longer needed (no sandbox)
+  // TODO: Remove completely during cleanup (see tasks.md)
 
   @MainActor
   private func validateManualPatternAccess(for pattern: LogPattern) -> LogPattern? {
@@ -475,6 +346,8 @@ final class LogMonitor: NSObject {
     updateLineCount(for: patternID, count: nextLineNumber)
 
     guard !matches.isEmpty else { return }
+
+    recordLatencyStart(for: patternID, matchCount: matches.count)
 
     DispatchQueue.main.async { [weak self] in
       guard let self else { return }
@@ -627,23 +500,20 @@ final class LogMonitor: NSObject {
 
   @discardableResult
   private func removeWatcher(forPatternID patternID: UUID) -> WatchEntry? {
-    let result: (WatchEntry?, URL?) = stateQueue.sync {
-      guard let entry = entriesByPatternID.removeValue(forKey: patternID) else { return (nil, nil) }
+    let entry: WatchEntry? = stateQueue.sync {
+      guard let entry = entriesByPatternID.removeValue(forKey: patternID) else { return nil }
       watcherIdentifiers.removeValue(forKey: ObjectIdentifier(entry.watcher))
       lastAnimationTimestamps.removeValue(forKey: patternID)
       if currentAnimation?.patternID == patternID {
         currentAnimation = nil
       }
       suppressedAlertPatternIDs.remove(patternID)
-      let bookmarkURL = activeBookmarkURLs.removeValue(forKey: patternID)
-      return (entry, bookmarkURL)
+      // STUB: Bookmark URL cleanup removed (no sandbox)
+      return entry
     }
 
-    let entry = result.0
-    let bookmarkURL = result.1
-
     entry?.watcher.stop()
-    bookmarkURL?.stopAccessingSecurityScopedResource()
+    // STUB: Bookmark URL cleanup removed (no sandbox)
     return entry
   }
 
@@ -785,6 +655,28 @@ private extension LogMonitor {
   func pattern(forPatternID patternID: UUID) -> LogPattern? {
     stateQueue.sync { entriesByPatternID[patternID]?.context.pattern }
   }
+
+  func recordLatencyStart(for patternID: UUID, matchCount: Int) {
+    let timestamp = dateProvider()
+    stateQueue.sync {
+      var queue = pendingLatencyStartDates[patternID] ?? []
+      for _ in 0..<matchCount {
+        queue.append(timestamp)
+      }
+      pendingLatencyStartDates[patternID] = queue
+    }
+  }
+
+  func dequeueLatencyStart(for patternID: UUID) -> Date? {
+    stateQueue.sync {
+      guard var queue = pendingLatencyStartDates[patternID], !queue.isEmpty else {
+        return nil
+      }
+      let start = queue.removeFirst()
+      pendingLatencyStartDates[patternID] = queue.isEmpty ? nil : queue
+      return start
+    }
+  }
 }
 
 extension LogMonitor: MatchEventHandlerDelegate {
@@ -797,11 +689,20 @@ extension LogMonitor: MatchEventHandlerDelegate {
     }
     iconAnimator.startAnimation(style: pattern.animationStyle, color: pattern.color)
     recordAnimationStart(for: event.patternID, priority: event.priority, timestamp: timestamp)
+    if let startDate = dequeueLatencyStart(for: event.patternID) {
+      let latency = dateProvider().timeIntervalSince(startDate)
+      onLatencyMeasured?(latency)
+    }
   }
 
   @MainActor
   func matchEventHandler(_ handler: MatchEventHandler, historyDidUpdate: [MatchEvent]) {
     onHistoryUpdate?(historyDidUpdate)
+  }
+
+  @MainActor
+  func matchEventHandler(_ handler: MatchEventHandler, didUpdateWarnings warnings: [FrequentMatchWarning]) {
+    onWarningsUpdate?(warnings)
   }
 }
 

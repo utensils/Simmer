@@ -14,4 +14,7 @@ protocol MatchEventHandlerDelegate: AnyObject {
 
     /// Called whenever the match history array changes.
     func matchEventHandler(_ handler: MatchEventHandler, historyDidUpdate: [MatchEvent])
+
+    /// Called when high-frequency match warnings change.
+    func matchEventHandler(_ handler: MatchEventHandler, didUpdateWarnings warnings: [FrequentMatchWarning])
 }

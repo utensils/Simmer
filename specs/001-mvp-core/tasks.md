@@ -56,7 +56,7 @@
 
 - [X] T022 [P] [US1] Create FileWatcherDelegate protocol in Simmer/Features/Monitoring/FileWatcherDelegate.swift per contracts/internal-protocols.md
 - [X] T023 [US1] Implement FileWatcher class in Simmer/Features/Monitoring/FileWatcher.swift using DispatchSource.makeFileSystemObjectSource with .write and .extend event masks
-- [X] T024 [US1] Write FileWatcher tests in SimmerTests/MonitoringTests/FileWatcherTests.swift (100% coverage: file appends, deletions, permission errors, rapid changes with MockFileSystem)
+- [X] T024 [US1] Write FileWatcher tests in SimmerTests/MonitoringTests/FileWatcherTests.swift (100% coverage: file appends, deletions with <100ms detection per EC-001, permission errors, rapid changes with MockFileSystem)
 - [X] T025 [P] [US1] Create IconAnimatorDelegate protocol in Simmer/Features/MenuBar/IconAnimatorDelegate.swift per contracts/internal-protocols.md
 
 ### Menu Bar Integration
@@ -126,10 +126,8 @@
 - [X] T056 [P] [US3] Create PatternValidator in Simmer/Features/Patterns/PatternValidator.swift with validateRegex method using NSRegularExpression syntax checking
 - [X] T057 [US3] Write PatternValidator tests in SimmerTests/PatternsTests/PatternValidatorTests.swift (valid regex, invalid regex, empty patterns, special chars)
 - [X] T058 [P] [US3] Create PathExpander utility in Simmer/Services/PathExpander.swift for tilde (~) and environment variable expansion
-- [X] T059 [P] [US3] Create FileAccessManager in Simmer/Features/Monitoring/FileAccessManager.swift for security-scoped bookmark creation/resolution
-- [X] T060 [US3] Implement requestAccess method in FileAccessManager using NSOpenPanel for file selection
-- [X] T061 [US3] Implement bookmarkData generation and storage in FileAccessManager (store in UserDefaults alongside pattern)
-- [X] T062 [US3] Implement bookmark resolution in FileAccessManager.resolveBookmark checking isStale flag
+- [X] T059 [P] [US3] Create FileAccessManager in Simmer/Features/Monitoring/FileAccessManager.swift for NSOpenPanel file selection
+- [X] T060 [US3] Implement requestAccess method in FileAccessManager using NSOpenPanel for file selection (non-sandboxed, no bookmarks needed)
 
 ### Settings UI Components
 
@@ -145,12 +143,12 @@
 - [X] T072 [US3] Implement enable/disable toggle in PatternListView updating LogPattern.enabled and stopping/starting FileWatcher
 - [X] T073 [US3] Wire Settings menu action in MenuBuilder to open SettingsWindow
 - [X] T074 [US3] Implement LogMonitor.reloadPatterns method to sync with ConfigurationStore changes from settings UI
-- [X] T124 [US3] Implement ConfigurationExporter in Simmer/Services/ConfigurationExporter.swift to serialize patterns (including bookmark data) to JSON files (FR-027)
-- [X] T125 [US3] Implement ConfigurationImporter in Simmer/Services/ConfigurationImporter.swift with schema validation, duplicate resolution, and bookmark restoration (FR-027)
-- [X] T126 [US3] Write ConfigurationExportImportTests in SimmerTests/ServicesTests/ConfigurationExportImportTests.swift covering round-trip, invalid JSON, missing bookmarks (FR-027)
-- [X] T127 [US3] Add export action in Settings UI (button/menu) invoking ConfigurationExporter with security-scoped save panel (FR-027)
+- [X] T124 [US3] Implement ConfigurationExporter in Simmer/Services/ConfigurationExporter.swift to serialize patterns to JSON files (FR-027)
+- [X] T125 [US3] Implement ConfigurationImporter in Simmer/Services/ConfigurationImporter.swift with schema validation and duplicate resolution (FR-027)
+- [X] T126 [US3] Write ConfigurationExportImportTests in SimmerTests/ServicesTests/ConfigurationExportImportTests.swift covering round-trip and invalid JSON (FR-027)
+- [X] T127 [US3] Add export action in Settings UI (button/menu) invoking ConfigurationExporter with save panel (FR-027)
 - [X] T128 [US3] Add import action in Settings UI invoking ConfigurationImporter, surfacing inline errors, and reloading LogMonitor (FR-027)
-- [ ] T129 [US3] Manual test: Export patterns, clear local store, import JSON, verify patterns restored with bookmarks and monitoring resumes (FR-027)
+- [X] T129 [US3] Manual test: Export patterns, clear local store, import JSON, verify patterns restored and monitoring resumes (FR-027)
 - [X] T075 [US3] Manual test: Open settings, add pattern with invalid regex (verify error), add valid pattern, save, verify monitoring starts, edit pattern, delete pattern
 
 ## Phase 6: User Story 4 - Monitor Multiple Logs Simultaneously (P4)
@@ -170,12 +168,12 @@
 - [X] T078 [US4] Implement LogMonitor.removeWatcher method cleaning up DispatchSource and file descriptor
 - [X] T079 [US4] Implement animation prioritization in LogMonitor based on pattern array order (first = highest priority) (FR-025)
 - [X] T080 [US4] Update MatchEventHandler to track pattern priority and only trigger animation for highest-priority active match
-- [X] T081 [US4] Implement debouncing in LogMonitor to coalesce rapid matches within 100ms window per TECH_DESIGN.md
+- [X] T081 [US4] Implement debouncing (100ms window) and throttling escalation (500ms interval if CPU >10%) in LogMonitor per EC-002
 - [X] T082 [US4] Write multi-watcher tests in SimmerTests/MonitoringTests/LogMonitorTests.swift (20 concurrent watchers, prioritization, debouncing)
 - [X] T148 [US4] Display EC-003 warning alert with message "Maximum 20 patterns supported" when user attempts to add or enable a 21st pattern (FR-020, EC-003)
 - [X] T149 [US4] Extend LogMonitorTests or MenuBuilderTests to verify EC-003 warning presentation and dismissal when pattern count returns below the limit (FR-020, EC-003)
-- [ ] T083 [US4] Profile with Instruments Time Profiler: verify <5% CPU with 10 active patterns and 100 matches/second
-- [ ] T084 [US4] Profile with Instruments Allocations: verify <50MB memory with 20 patterns and 10k match history
+- [ ] T083 [US4] Profile multi-watcher load with Instruments Time Profiler: verify <5% CPU with 10 active patterns and 100 matches/second (stress test for concurrent watchers)
+- [ ] T084 [US4] Profile multi-watcher memory with Instruments Allocations: verify <50MB memory with 20 patterns and 10k match history (stress test for scale limits)
 - [ ] T085 [US4] Manual test: Configure 5 patterns for 5 different log files, trigger simultaneous matches, verify correct animation priority
 
 ## Phase 7: Polish & Cross-Cutting Concerns
@@ -199,8 +197,8 @@
 
 ### Animation Resilience
 
-- [ ] T145 Implement animation fallback in IconAnimator so 60fps rendering gracefully drops to 30fps or pauses when frame budgets are exceeded, and resumes full speed once resources recover (FR-006)
-- [ ] T146 Write IconAnimator fallback tests in SimmerTests/MenuBarTests/IconAnimatorTests.swift covering degrade-to-30fps and resume-to-60fps scenarios (FR-006)
+- [X] T145 Implement animation fallback in IconAnimator so 60fps rendering gracefully drops to 30fps or pauses when frame budgets are exceeded, and resumes full speed once resources recover (FR-006)
+- [X] T146 Write IconAnimator fallback tests in SimmerTests/MenuBarTests/IconAnimatorTests.swift covering degrade-to-30fps and resume-to-60fps scenarios (FR-006)
 
 ### Performance Optimization
 
@@ -208,9 +206,9 @@
 - [X] T095 Implement batch pattern matching in LogMonitor: evaluate all enabled patterns per line in single background queue pass (EC-002)
 - [X] T096 Add background queue to LogMonitor for all file I/O and pattern matching (DispatchQueue with .userInitiated QoS) (EC-002)
 - [X] T097 Implement animation frame budget verification in IconAnimator: log warning if Core Graphics rendering exceeds 2ms
-- [ ] T098 Profile idle CPU usage with Activity Monitor: verify <1% with 10 patterns, no matches for 5 minutes
-- [ ] T099 Profile active CPU usage with Activity Monitor: verify <5% with 10 patterns, 100 matches/second
-- [ ] T100 Profile memory usage with Activity Monitor: verify <50MB with 20 patterns, 1000 match history
+- [ ] T098 Profile baseline idle CPU usage with Activity Monitor: verify <1% with 10 patterns, no matches for 5 minutes (baseline steady-state)
+- [ ] T099 Profile baseline active CPU usage with Activity Monitor: verify <5% with 10 patterns, 100 matches/second (baseline under load)
+- [ ] T100 Profile baseline memory usage with Activity Monitor: verify <50MB with 20 patterns, 1000 match history (baseline footprint)
 - [X] T130 Instrument LogMonitor latency measurement and assert per-match timing <10ms in SimmerTests/MonitoringTests/LogMonitorTests.swift (FR-019, SC-007)
 - [X] T131 Add LogMonitor latency test ensuring visual feedback occurs within 500ms (SC-002)
 - [ ] T132 [P] Benchmark pattern matching timing with Instruments Time Profiler: verify <10ms per log line processing with 20 active patterns (FR-019, SC-007)
@@ -218,10 +216,10 @@
 ### Launch & Persistence
 
 - [X] T101 [P] Implement pattern loading in LogMonitor.init: call ConfigurationStore.loadPatterns, create FileWatcher for each enabled pattern
-- [X] T102 [P] Implement security-scoped bookmark resolution in LogMonitor.init: resolve bookmarks via FileAccessManager, prompt user if stale
+- [X] T102 [P] Implement file path validation in LogMonitor.init: validate file paths exist and are readable, prompt user if invalid
 - [X] T103 [P] Add launch at login infrastructure in AppDelegate using SMAppService (macOS 13+) - disabled by default
 - [X] T104 Implement app launch performance optimization: defer non-critical init until after window appears
-- [ ] T105 Measure app launch time with Instruments: verify <2 seconds from click to ready (SC-006)
+- [ ] T105 Measure app launch time with Instruments System Trace: verify <2 seconds from cold launch to ready on idle system (<5% background CPU) (SC-006)
 - [X] T120 [P] Create LaunchAtLoginControlling protocol and LaunchAtLoginController implementation with SMAppService integration and UserDefaults persistence (FR-026 infrastructure)
 - [ ] T141 [US3] Add "Launch at Login" toggle to Settings UI in PatternListView or dedicated preferences section (FR-026 UI)
 - [ ] T142 [US3] Wire Settings toggle to LaunchAtLoginController.setEnabled() via SettingsCoordinator (FR-026 integration)
@@ -233,7 +231,7 @@
 - [ ] T106 Run SwiftLint across entire codebase: verify zero warnings
 - [ ] T107 Run all unit tests with code coverage: verify 70% overall coverage
 - [ ] T108 Verify 100% coverage for critical paths: PatternMatcher, FileWatcher, MatchEventHandler
-- [ ] T109 Manual edge case testing per spec.md: log file deletion, 10GB log files, 50+ patterns, pattern matching every line, rapid log output (1000 lines/sec)
+- [ ] T109 Manual edge case testing per spec.md: log file deletion (EC-001), 10GB log files with <50MB memory usage (EC-004), pattern matching every line (EC-005), rapid log output 1000 lines/sec (EC-002)
 - [ ] T110 End-to-end test: Fresh install, configure 3 patterns, monitor logs for 1 hour, verify no crashes/leaks, verify animations smooth
 - [ ] T111 Create .swiftformat config file per STANDARDS.md if not exists
 - [ ] T112 Run swiftformat across codebase for final formatting consistency
@@ -256,6 +254,18 @@
 - [X] T138 Implement stapling in release.yml: run `xcrun stapler staple` after notarization completes to embed approval ticket in .app bundle for offline verification (FR-029)
 - [X] T139 [P] Create .dmg installer in release.yml: use native hdiutil tooling to generate Simmer-{version}.dmg with /Applications symlink, custom background, and icon positioning (FR-030)
 - [X] T140 Create GitHub Release in release.yml: use actions/create-release to publish release with changelog, upload Simmer-{version}.dmg as asset, mark as draft for manual review (FR-030)
+
+### Technical Debt Cleanup (Sandbox Removal)
+
+**Context**: Mid-implementation decision to remove sandboxing resulted in stubbed bookmark code in LogMonitor. These tasks clean up the stubs and remove dead infrastructure. See spec.md Technical Debt section for full context.
+
+- [ ] TD-001 [P] Remove all stubbed bookmark methods from LogMonitor.swift: handleStaleBookmark(), registerBookmarkAccessIfNeeded(), handleBookmarkResolutionFailure(), handleBookmarkRefreshFailure() - delete entirely, not just stubs
+- [ ] TD-002 [P] Remove activeBookmarkURLs property and all related cleanup code from LogMonitor.swift - search for "// STUB:" comments and remove entire code blocks
+- [ ] TD-003 [P] Delete FileAccessManagerTests.swift entirely - all tests reference removed bookmark functionality, no longer relevant for non-sandboxed app
+- [ ] TD-004 Update LogMonitorTests.swift - remove any bookmark-related test cases, verify direct file path access works
+- [ ] TD-005 Update ConfigurationStoreTests.swift and ConfigurationExportImportTests.swift - remove bookmark field assertions if present
+- [ ] TD-006 Remove fileAccessManager injection parameter from LogMonitor init - no longer needed for bookmark operations, simplifies testing
+- [ ] TD-007 Verify all "// STUB:" and "// TODO: Remove" comments are gone from codebase with grep, ensure no dead code remains
 
 ---
 

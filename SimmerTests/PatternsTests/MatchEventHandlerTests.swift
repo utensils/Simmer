@@ -82,10 +82,20 @@ final class MatchEventHandlerTests: XCTestCase {
             filePath: "/tmp/file.log"
         )
 
+        (0..<49).forEach { index in
+            handler.handleMatch(
+                pattern: makePattern(name: "Pattern"),
+                line: "Line \(index)",
+                lineNumber: index,
+                filePath: "/tmp/file.log"
+            )
+        }
+
         handler.clearHistory()
 
         XCTAssertTrue(handler.history.isEmpty)
         XCTAssertEqual(delegate.historySnapshots.last?.count, 0)
+        XCTAssertTrue(delegate.warningSnapshots.last?.isEmpty ?? true)
     }
 
     func test_delegateReceivesEventsInInvocationOrder() {
@@ -130,6 +140,66 @@ final class MatchEventHandlerTests: XCTestCase {
         XCTAssertEqual(handler.history.first?.priority, 5)
     }
 
+    func test_warningEmittedAfterThresholdAndDelegateNotified() {
+        let handler = MatchEventHandler()
+        let delegate = MockMatchEventHandlerDelegate()
+        handler.delegate = delegate
+
+        let pattern = makePattern(name: "Verbose")
+        (0..<50).forEach { index in
+            handler.handleMatch(
+                pattern: pattern,
+                line: "line \(index)",
+                lineNumber: index,
+                filePath: "/tmp/file.log"
+            )
+        }
+
+        let warnings = delegate.warningSnapshots.last
+        XCTAssertEqual(warnings?.count, 1)
+        XCTAssertEqual(warnings?.first?.patternID, pattern.id)
+    }
+
+    func test_acknowledgeWarningClearsWarningAndResetsStreak() {
+        let handler = MatchEventHandler()
+        let delegate = MockMatchEventHandlerDelegate()
+        handler.delegate = delegate
+
+        let pattern = makePattern(name: "Verbose")
+        (0..<50).forEach { index in
+            handler.handleMatch(
+                pattern: pattern,
+                line: "line \(index)",
+                lineNumber: index,
+                filePath: "/tmp/file.log"
+            )
+        }
+
+        handler.acknowledgeWarning(for: pattern.id)
+        XCTAssertTrue(handler.activeWarnings.isEmpty)
+        XCTAssertTrue(delegate.warningSnapshots.last?.isEmpty ?? false)
+
+        (0..<49).forEach { index in
+            handler.handleMatch(
+                pattern: pattern,
+                line: "line \(index)",
+                lineNumber: index,
+                filePath: "/tmp/file.log"
+            )
+        }
+
+        XCTAssertTrue(handler.activeWarnings.isEmpty, "Threshold not yet reached")
+
+        handler.handleMatch(
+            pattern: pattern,
+            line: "final",
+            lineNumber: 999,
+            filePath: "/tmp/file.log"
+        )
+
+        XCTAssertEqual(handler.activeWarnings.count, 1)
+    }
+
     // MARK: - Helpers
 
     private func makePattern(name: String) -> LogPattern {
@@ -146,6 +216,7 @@ final class MatchEventHandlerTests: XCTestCase {
 private final class MockMatchEventHandlerDelegate: MatchEventHandlerDelegate {
     private(set) var detectedEvents: [MatchEvent] = []
     private(set) var historySnapshots: [[MatchEvent]] = []
+    fileprivate(set) var warningSnapshots: [[FrequentMatchWarning]] = []
 
     func matchEventHandler(_ handler: MatchEventHandler, didDetectMatch event: MatchEvent) {
         detectedEvents.append(event)
@@ -153,5 +224,9 @@ private final class MockMatchEventHandlerDelegate: MatchEventHandlerDelegate {
 
     func matchEventHandler(_ handler: MatchEventHandler, historyDidUpdate: [MatchEvent]) {
         historySnapshots.append(historyDidUpdate)
+    }
+
+    func matchEventHandler(_ handler: MatchEventHandler, didUpdateWarnings warnings: [FrequentMatchWarning]) {
+        warningSnapshots.append(warnings)
     }
 }

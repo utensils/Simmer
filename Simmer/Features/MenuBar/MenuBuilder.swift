@@ -36,6 +36,14 @@ final class MenuBuilder: NSObject {
   /// - Returns: An `NSMenu` ready to use for the status item's menu.
   func buildMatchHistoryMenu() -> NSMenu {
     let menu = NSMenu()
+    let warnings = matchEventHandler.activeWarnings
+    if !warnings.isEmpty {
+      warnings.forEach { warning in
+        menu.addItem(makeWarningItem(for: warning))
+      }
+      menu.addItem(.separator())
+    }
+
     let events = matchEventHandler.recentMatches(limit: historyLimit)
 
     if events.isEmpty {
@@ -69,6 +77,12 @@ final class MenuBuilder: NSObject {
   @objc
   private func quitAction(_ sender: Any?) {
     quitHandler()
+  }
+
+  @objc
+  private func acknowledgeWarningAction(_ sender: NSMenuItem?) {
+    guard let warning = sender?.representedObject as? FrequentMatchWarning else { return }
+    matchEventHandler.acknowledgeWarning(for: warning.patternID)
   }
 
   // MARK: - Menu Item Builders
@@ -115,6 +129,25 @@ final class MenuBuilder: NSObject {
   private func makeQuitItem() -> NSMenuItem {
     let item = NSMenuItem(title: "Quit Simmer", action: #selector(quitAction(_:)), keyEquivalent: "")
     item.target = self
+    return item
+  }
+
+  private func makeWarningItem(for warning: FrequentMatchWarning) -> NSMenuItem {
+    let item = NSMenuItem(
+      title: "⚠️ \(warning.message)",
+      action: #selector(acknowledgeWarningAction(_:)),
+      keyEquivalent: ""
+    )
+    item.target = self
+    item.representedObject = warning
+    item.toolTip = "Dismiss warning"
+    item.attributedTitle = NSAttributedString(
+      string: item.title,
+      attributes: [
+        .foregroundColor: NSColor.systemYellow,
+        .font: NSFont.boldSystemFont(ofSize: NSFont.systemFontSize)
+      ]
+    )
     return item
   }
 

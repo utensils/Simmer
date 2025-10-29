@@ -40,6 +40,20 @@ struct PatternListView: View {
             Label("Add Pattern", systemImage: "plus")
           }
         }
+        ToolbarItem(placement: .secondaryAction) {
+          Menu {
+            Button("Import…") {
+              viewModel.importPatterns()
+            }
+
+            Button("Export…") {
+              viewModel.exportPatterns()
+            }
+            .disabled(viewModel.patterns.isEmpty)
+          } label: {
+            Label("More Actions", systemImage: "ellipsis.circle")
+          }
+        }
       }
       .sheet(isPresented: $showingAddSheet) {
         PatternEditorView(pattern: nil) { newPattern in

@@ -120,6 +120,34 @@ final class MenuBuilderTests: XCTestCase {
     XCTAssertTrue(quitInvoked)
   }
 
+  func test_warningItemAppearsAfterThreshold_andDismissClearsWarning() {
+    let handler = MatchEventHandler()
+    let builder = MenuBuilder(matchEventHandler: handler, dateProvider: { Date(timeIntervalSince1970: 0) })
+    let pattern = makePattern(name: "Verbose")
+
+    (0..<50).forEach { index in
+      handler.handleMatch(
+        pattern: pattern,
+        line: "line \(index)",
+        lineNumber: index,
+        filePath: "/tmp/test.log"
+      )
+    }
+
+    let menu = builder.buildMatchHistoryMenu()
+    guard let warningItem = menu.items.first else {
+      XCTFail("Expected warning item")
+      return
+    }
+
+    XCTAssertTrue(warningItem.title.contains("⚠️"))
+    XCTAssertFalse(handler.activeWarnings.isEmpty)
+
+    _ = warningItem.target?.perform(warningItem.action, with: warningItem)
+
+    XCTAssertTrue(handler.activeWarnings.isEmpty)
+  }
+
   // MARK: - Helpers
 
   private func makePattern(name: String) -> LogPattern {

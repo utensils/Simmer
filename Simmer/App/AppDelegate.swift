@@ -89,6 +89,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       menuBarController?.handleHistoryUpdate()
     }
 
+    logMonitor.onWarningsUpdate = { [weak menuBarController] _ in
+      menuBarController?.handleWarningsUpdate()
+    }
+
     schedulePostLaunchTasks(isRunningUITests: isRunningUITests)
 
     if shouldShowSettings {
