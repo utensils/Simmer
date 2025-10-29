@@ -31,6 +31,7 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
+            SWIFT_VERSION=5.0 \
             | xcpretty --color
 
       - name: Generate coverage report
