@@ -7,10 +7,6 @@ import XCTest
 @testable import Simmer
 
 internal final class PatternMatcherTests: XCTestCase {
-  internal override init() {
-    super.init()
-  }
-
   private var matcher: RegexPatternMatcher!
 
   override func setUp() {

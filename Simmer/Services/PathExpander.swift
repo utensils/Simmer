@@ -27,8 +27,13 @@ internal struct PathExpander {
 
     // MARK: - Private Helpers
 
-    /// Expands environment variables in a string
-    /// Supports both $VAR and ${VAR} syntax
+    /// Expands environment variables in a string with case-insensitive matching.
+    ///
+    /// Supports both `$VAR` and `${VAR}` syntax. Environment variable names are matched
+    /// case-insensitively, meaning `$home`, `$HOME`, and `$HoMe` all resolve to the same value.
+    ///
+    /// - Parameter string: The string containing environment variables to expand
+    /// - Returns: The string with all environment variables replaced by their values
     private static func expandEnvironmentVariables(in string: String) -> String {
         var result = string
         let environment = ProcessInfo.processInfo.environment
@@ -81,6 +86,16 @@ internal struct PathExpander {
         return result
     }
 
+    /// Looks up an environment variable value with case-insensitive matching.
+    ///
+    /// First attempts an exact case-sensitive match, then falls back to case-insensitive
+    /// comparison if no exact match is found. This allows `$home`, `$HOME`, and `$HoMe`
+    /// to all resolve to the same environment variable value.
+    ///
+    /// - Parameters:
+    ///   - variable: The environment variable name to look up
+    ///   - environment: The environment dictionary to search
+    /// - Returns: The environment variable value if found, nil otherwise
     private static func lookupEnvironmentValue(
         for variable: String,
         environment: [String: String]

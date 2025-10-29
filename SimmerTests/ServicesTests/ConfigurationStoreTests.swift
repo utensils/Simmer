@@ -8,10 +8,6 @@ import XCTest
 
 @MainActor
 internal final class ConfigurationStoreTests: XCTestCase {
-  internal override init() {
-    super.init()
-  }
-
   private var suiteName: String!
   private var userDefaults: UserDefaults!
   private var store: ConfigurationStore!

@@ -1,10 +1,6 @@
 import XCTest
 
 internal final class SettingsWindowUITests: XCTestCase {
-  internal override init() {
-    super.init()
-  }
-
   func testSettingsWindowAppears() {
     let app = XCUIApplication()
     app.launchEnvironment["SIMMER_UI_TEST_SHOW_SETTINGS"] = "1"

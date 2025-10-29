@@ -8,10 +8,6 @@
 import XCTest
 
 internal final class SimmerUITestsLaunchTests: XCTestCase {
-  internal override init() {
-    super.init()
-  }
-
   override class var runsForEachTargetApplicationUIConfiguration: Bool {
     true
   }
