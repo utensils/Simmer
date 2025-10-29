@@ -12,6 +12,9 @@ import SwiftUI
 final class SettingsCoordinator: NSObject, NSWindowDelegate {
   private let configurationStore: any ConfigurationStoreProtocol
   private let logMonitor: LogMonitor?
+  private let launchAtLoginController: LaunchAtLoginControlling
+  private let defaultContentSize = NSSize(width: 800, height: 700)
+  private let minimumContentSize = NSSize(width: 720, height: 600)
 
   private(set) var windowController: NSWindowController?
   private var previousActivationPolicy: NSApplication.ActivationPolicy?
@@ -19,10 +22,12 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
 
   init(
     configurationStore: any ConfigurationStoreProtocol,
-    logMonitor: LogMonitor?
+    logMonitor: LogMonitor?,
+    launchAtLoginController: LaunchAtLoginControlling = LaunchAtLoginController()
   ) {
     self.configurationStore = configurationStore
     self.logMonitor = logMonitor
+    self.launchAtLoginController = launchAtLoginController
   }
 
   func show() {
@@ -36,12 +41,10 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
       return
     }
 
-    let defaultContentSize = NSSize(width: 800, height: 700)
-    let minimumContentSize = NSSize(width: 720, height: 600)
-
     let view = PatternListView(
       store: configurationStore,
-      logMonitor: logMonitor
+      logMonitor: logMonitor,
+      launchAtLoginController: launchAtLoginController
     )
     let hostingController = NSHostingController(rootView: view)
     hostingController.view.translatesAutoresizingMaskIntoConstraints = true
@@ -66,9 +69,17 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
     let controller = NSWindowController(window: window)
     controller.shouldCascadeWindows = true
     controller.showWindow(nil)
+    window.contentMinSize = minimumContentSize
     windowController = controller
 
     window.makeKeyAndOrderFront(nil)
+    DispatchQueue.main.async { [weak self, weak window] in
+      guard
+        let window,
+        let minimumContentSize = self?.minimumContentSize
+      else { return }
+      window.contentMinSize = minimumContentSize
+    }
     NSApp.activate(ignoringOtherApps: true)
     NSLog("[SettingsCoordinator] window presented")
   }
@@ -82,6 +93,21 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
 
     windowController = nil
     restoreActivationPolicyIfNeeded()
+  }
+
+  func windowDidBecomeMain(_ notification: Notification) {
+    guard let window = notification.object as? NSWindow else { return }
+    window.contentMinSize = minimumContentSize
+  }
+
+  func windowDidResize(_ notification: Notification) {
+    guard let window = notification.object as? NSWindow else { return }
+    window.contentMinSize = minimumContentSize
+  }
+
+  func windowDidUpdate(_ notification: Notification) {
+    guard let window = notification.object as? NSWindow else { return }
+    window.contentMinSize = minimumContentSize
   }
 
   // MARK: - Activation Policy Management

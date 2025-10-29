@@ -15,25 +15,21 @@ struct PatternListView: View {
 
   init(
     store: any ConfigurationStoreProtocol = ConfigurationStore(),
-    logMonitor: LogMonitoring? = nil
+    logMonitor: LogMonitoring? = nil,
+    launchAtLoginController: LaunchAtLoginControlling = LaunchAtLoginController()
   ) {
     _viewModel = StateObject(
       wrappedValue: PatternListViewModel(
         store: store,
-        logMonitor: logMonitor
+        logMonitor: logMonitor,
+        launchAtLoginController: launchAtLoginController
       )
     )
   }
 
   var body: some View {
     NavigationStack {
-      Group {
-        if viewModel.patterns.isEmpty {
-          emptyStateView
-        } else {
-          patternListView
-        }
-      }
+      patternListView
       .onAppear {
         viewModel.loadPatterns()
       }
@@ -64,52 +60,83 @@ struct PatternListView: View {
         Text(message)
       }
     }
-    .frame(minWidth: 640, minHeight: 480)
   }
 
   // MARK: - Subviews
 
-  private var emptyStateView: some View {
-    VStack(spacing: 16) {
-      Image(systemName: "doc.text.magnifyingglass")
-        .font(.system(size: 48))
-        .foregroundColor(.secondary)
-      Text("No Patterns Configured")
-        .font(.headline)
-      Text("Click + to add your first log monitoring pattern")
-        .font(.subheadline)
-        .foregroundColor(.secondary)
-        .multilineTextAlignment(.center)
-    }
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
-  }
-
   private var patternListView: some View {
     List {
-      ForEach(viewModel.patterns) { pattern in
-        PatternRow(
-          pattern: pattern,
-          onEdit: {
-            editingPattern = pattern
-          },
-          onToggle: {
-            viewModel.toggleEnabled(id: pattern.id)
-          },
-          onDelete: {
-            viewModel.deletePattern(id: pattern.id)
-          }
+      generalSettingsSection
+      patternsSection
+    }
+  }
+
+  private var generalSettingsSection: some View {
+    Section("General") {
+      Toggle(
+        "Launch at Login",
+        isOn: Binding(
+          get: { viewModel.launchAtLoginEnabled },
+          set: { viewModel.setLaunchAtLoginEnabled($0) }
         )
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-          Button(role: .destructive) {
-            viewModel.deletePattern(id: pattern.id)
-          } label: {
-            Label("Delete", systemImage: "trash")
+      )
+      .toggleStyle(.switch)
+      .disabled(!viewModel.isLaunchAtLoginAvailable)
+
+      if !viewModel.isLaunchAtLoginAvailable {
+        Text("Requires macOS 13 or newer.")
+          .font(.footnote)
+          .foregroundStyle(.secondary)
+      }
+    }
+  }
+
+  private var patternsSection: some View {
+    Section("Log Patterns") {
+      if viewModel.patterns.isEmpty {
+        emptyStateRow
+      } else {
+        ForEach(viewModel.patterns) { pattern in
+          PatternRow(
+            pattern: pattern,
+            onEdit: {
+              editingPattern = pattern
+            },
+            onToggle: {
+              viewModel.toggleEnabled(id: pattern.id)
+            },
+            onDelete: {
+              viewModel.deletePattern(id: pattern.id)
+            }
+          )
+          .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+              viewModel.deletePattern(id: pattern.id)
+            } label: {
+              Label("Delete", systemImage: "trash")
+            }
           }
         }
       }
     }
   }
 
+  private var emptyStateRow: some View {
+    VStack(spacing: 10) {
+      Image(systemName: "doc.text.magnifyingglass")
+        .font(.system(size: 40))
+        .foregroundStyle(.secondary)
+      Text("No Patterns Configured")
+        .font(.headline)
+      Text("Click + to add your first log monitoring pattern.")
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
+    }
+    .frame(maxWidth: .infinity, alignment: .center)
+    .padding(.vertical, 32)
+    .listRowInsets(EdgeInsets(top: 16, leading: 0, bottom: 16, trailing: 0))
+    .listRowSeparator(.hidden)
+  }
 }
 
 // MARK: - PatternRow

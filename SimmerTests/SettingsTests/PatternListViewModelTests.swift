@@ -20,7 +20,12 @@ final class PatternListViewModelTests: XCTestCase {
     )
     let store = InMemoryStore(initialPatterns: [pattern])
     let monitor = LogMonitorSpy()
-    let viewModel = PatternListViewModel(store: store, logMonitor: monitor)
+    let launchController = LaunchAtLoginControllerSpy()
+    let viewModel = PatternListViewModel(
+      store: store,
+      logMonitor: monitor,
+      launchAtLoginController: launchController
+    )
 
     viewModel.loadPatterns()
     viewModel.toggleEnabled(id: pattern.id)
@@ -41,13 +46,74 @@ final class PatternListViewModelTests: XCTestCase {
     )
     let store = InMemoryStore(initialPatterns: [pattern])
     let monitor = LogMonitorSpy()
-    let viewModel = PatternListViewModel(store: store, logMonitor: monitor)
+    let launchController = LaunchAtLoginControllerSpy()
+    let viewModel = PatternListViewModel(
+      store: store,
+      logMonitor: monitor,
+      launchAtLoginController: launchController
+    )
 
     viewModel.loadPatterns()
     viewModel.deletePattern(id: pattern.id)
 
     XCTAssertTrue(store.loadPatterns().isEmpty)
     XCTAssertEqual(monitor.calls, [.set(pattern.id, false)])
+  }
+
+  func test_setLaunchAtLoginEnabled_updatesController() {
+    let store = InMemoryStore()
+    let monitor = LogMonitorSpy()
+    let launchController = LaunchAtLoginControllerSpy(isAvailable: true, storedPreference: false)
+    let viewModel = PatternListViewModel(
+      store: store,
+      logMonitor: monitor,
+      launchAtLoginController: launchController
+    )
+
+    viewModel.setLaunchAtLoginEnabled(true)
+
+    XCTAssertTrue(viewModel.launchAtLoginEnabled)
+    XCTAssertEqual(launchController.setEnabledCalls, [true])
+    XCTAssertNil(viewModel.errorMessage)
+  }
+
+  func test_setLaunchAtLoginEnabled_whenControllerThrows_setsErrorAndReverts() {
+    let store = InMemoryStore()
+    let monitor = LogMonitorSpy()
+    let launchController = LaunchAtLoginControllerSpy(isAvailable: true, storedPreference: false)
+    launchController.errorToThrow = LaunchAtLoginError.operationFailed(message: "System denied")
+
+    let viewModel = PatternListViewModel(
+      store: store,
+      logMonitor: monitor,
+      launchAtLoginController: launchController
+    )
+
+    viewModel.setLaunchAtLoginEnabled(true)
+
+    XCTAssertFalse(viewModel.launchAtLoginEnabled)
+    XCTAssertEqual(launchController.setEnabledCalls, [true])
+    XCTAssertEqual(viewModel.errorMessage, LaunchAtLoginError.operationFailed(message: "System denied").errorDescription)
+  }
+
+  func test_setLaunchAtLoginEnabled_whenNotSupported_setsError() {
+    let store = InMemoryStore()
+    let monitor = LogMonitorSpy()
+    let launchController = LaunchAtLoginControllerSpy(isAvailable: false, storedPreference: false)
+
+    let viewModel = PatternListViewModel(
+      store: store,
+      logMonitor: monitor,
+      launchAtLoginController: launchController
+    )
+
+    viewModel.setLaunchAtLoginEnabled(true)
+
+    XCTAssertFalse(viewModel.launchAtLoginEnabled)
+    XCTAssertEqual(
+      viewModel.errorMessage,
+      LaunchAtLoginError.notSupported.errorDescription
+    )
   }
 }
 

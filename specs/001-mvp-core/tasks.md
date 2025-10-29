@@ -142,6 +142,10 @@
 - [X] T072 [US3] Implement enable/disable toggle in PatternListView updating LogPattern.enabled and stopping/starting FileWatcher
 - [X] T073 [US3] Wire Settings menu action in MenuBuilder to open SettingsWindow
 - [X] T074 [US3] Implement LogMonitor.reloadPatterns method to sync with ConfigurationStore changes from settings UI
+- [ ] T125 [US3] Implement JSON export in Settings UI: serialize all patterns via JSONEncoder, save to user-selected file via NSSavePanel (FR-027)
+- [ ] T126 [US3] Implement JSON import in Settings UI: load patterns from user-selected file via NSOpenPanel, validate schema, merge or replace existing patterns (FR-027)
+- [ ] T127 [US3] Add export/import menu items or buttons to PatternListView with confirmation dialogs for destructive operations (FR-027)
+- [ ] T128 [P] Write JSON export/import tests in SettingsTests: verify serialization, deserialization, schema validation, error handling
 - [X] T075 [US3] Manual test: Open settings, add pattern with invalid regex (verify error), add valid pattern, save, verify monitoring starts, edit pattern, delete pattern
 
 ## Phase 6: User Story 4 - Monitor Multiple Logs Simultaneously (P4)
@@ -185,6 +189,7 @@
 - [X] T093 [P] Implement match line truncation in MatchEvent init: limit matchedLine to 200 chars with "..." suffix per data-model.md
 - [X] T118 [P] Harden FileWatcher teardown so disabling patterns does not emit false errors; add unit coverage in FileWatcherTests.swift
 - [X] T119 Validate manually-entered log paths before enabling watchers; disable pattern with actionable alert when path is missing or unreadable
+- [ ] T129 [P] Implement consecutive match tracking in MatchEventHandler: count matches per pattern, display warning alert after 50 consecutive matches with message "Pattern '[name]' matching frequently - consider refining regex" (EC-005)
 
 ### Performance Optimization
 
@@ -195,14 +200,20 @@
 - [ ] T098 Profile idle CPU usage with Activity Monitor: verify <1% with 10 patterns, no matches for 5 minutes
 - [ ] T099 Profile active CPU usage with Activity Monitor: verify <5% with 10 patterns, 100 matches/second
 - [ ] T100 Profile memory usage with Activity Monitor: verify <50MB with 20 patterns, 1000 match history
+- [ ] T130 [P] Benchmark pattern matching timing with Instruments Time Profiler: verify <10ms per log line processing with 20 active patterns (FR-019, SC-007)
 
 ### Launch & Persistence
 
 - [X] T101 [P] Implement pattern loading in LogMonitor.init: call ConfigurationStore.loadPatterns, create FileWatcher for each enabled pattern
 - [X] T102 [P] Implement security-scoped bookmark resolution in LogMonitor.init: resolve bookmarks via FileAccessManager, prompt user if stale
-- [X] T103 [P] Add launch at login support in AppDelegate using SMAppService (macOS 13+) or LaunchServices
+- [X] T103 [P] Add launch at login infrastructure in AppDelegate using SMAppService (macOS 13+) - disabled by default
 - [X] T104 Implement app launch performance optimization: defer non-critical init until after window appears
 - [ ] T105 Measure app launch time with Instruments: verify <2 seconds from click to ready (SC-006)
+- [X] T120 [P] Create LaunchAtLoginControlling protocol and LaunchAtLoginController implementation with SMAppService integration and UserDefaults persistence (FR-026 infrastructure)
+- [ ] T121 [US3] Add "Launch at Login" toggle to Settings UI in PatternListView or dedicated preferences section (FR-026 UI)
+- [ ] T122 [US3] Wire Settings toggle to LaunchAtLoginController.setEnabled() via SettingsCoordinator (FR-026 integration)
+- [ ] T123 [P] Write LaunchAtLoginController tests: mock SMAppService, verify register/unregister, test preference persistence and resolvedPreference logic
+- [ ] T124 [US3] Write Settings UI tests: verify toggle state reflects LaunchAtLoginController preference, test enable/disable actions
 
 ### Final Integration & Testing
 
@@ -329,24 +340,24 @@ Each iteration delivers independently testable value per constitution.
 
 ## Task Summary
 
-**Total Tasks**: 119
+**Total Tasks**: 130
 - **Phase 1** (Setup): 11 tasks
 - **Phase 2** (Foundational): 10 tasks
 - **Phase 3** (US1): 23 tasks
 - **Phase 4** (US2): 11 tasks
-- **Phase 5** (US3): 20 tasks
+- **Phase 5** (US3): 27 tasks
 - **Phase 6** (US4): 10 tasks
-- **Phase 7** (Polish): 34 tasks
+- **Phase 7** (Polish): 38 tasks
 
-**Parallelizable Tasks**: 35 tasks marked with [P]
+**Parallelizable Tasks**: 40 tasks marked with [P]
 
-**Test Tasks**: 16 test suites covering all critical paths
+**Test Tasks**: 19 test suites covering all critical paths
 
 **CI/CD Tasks**: 3 workflow configurations for automated quality gates
 
 **User Story Distribution**:
 - US1 (Monitor Single Log): 23 tasks
 - US2 (Review Matches): 11 tasks
-- US3 (Configure Patterns): 20 tasks
+- US3 (Configure Patterns): 27 tasks
 - US4 (Multiple Logs): 10 tasks
-- Setup/Foundational/Polish: 50 tasks
+- Setup/Foundational/Polish: 54 tasks

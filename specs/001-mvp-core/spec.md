@@ -99,6 +99,8 @@ Developer monitors multiple log files with different patterns and receives appro
 - **FR-014**: System MUST persist pattern configurations across app restarts
 - **FR-015**: System MUST support editing and deleting existing patterns
 - **FR-016**: System MUST support disabling patterns without deleting them
+- **FR-027**: Settings window MUST provide JSON export and import functionality for pattern configurations to enable programmatic backup, sharing, and version control
+- **FR-026**: Settings window MUST provide a "Launch at Login" toggle that persists user preference and registers/unregisters app with system login items via SMAppService (macOS 13+); launch at login MUST be disabled by default
 - **FR-017**: App MUST consume less than 1% CPU when idle and less than 5% CPU during active monitoring
 - **FR-018**: App MUST consume less than 50MB of sustained memory usage under typical load; transient spikes up to 75MB during bulk match processing (>50 matches/second) are acceptable if memory returns to baseline within 10 seconds
 - **FR-019**: System MUST process pattern matching in less than 10ms per log line

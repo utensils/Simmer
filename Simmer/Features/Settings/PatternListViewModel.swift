@@ -13,17 +13,22 @@ import Combine
 class PatternListViewModel: ObservableObject {
   @Published var patterns: [LogPattern] = []
   @Published var errorMessage: String?
+  @Published var launchAtLoginEnabled = false
+  @Published var isLaunchAtLoginAvailable = false
 
   private let store: any ConfigurationStoreProtocol
   private let logMonitor: LogMonitoring?
+  private let launchAtLoginController: LaunchAtLoginControlling
   private var patternsObserver: NSObjectProtocol?
 
   init(
     store: any ConfigurationStoreProtocol,
-    logMonitor: LogMonitoring? = nil
+    logMonitor: LogMonitoring? = nil,
+    launchAtLoginController: LaunchAtLoginControlling = LaunchAtLoginController()
   ) {
     self.store = store
     self.logMonitor = logMonitor
+    self.launchAtLoginController = launchAtLoginController
     patternsObserver = NotificationCenter.default.addObserver(
       forName: .logMonitorPatternsDidChange,
       object: nil,
@@ -31,6 +36,7 @@ class PatternListViewModel: ObservableObject {
     ) { [weak self] _ in
       self?.loadPatterns()
     }
+    refreshLaunchAtLoginState()
   }
 
   deinit {
@@ -42,6 +48,7 @@ class PatternListViewModel: ObservableObject {
   /// Loads all patterns from persistent storage.
   func loadPatterns() {
     patterns = store.loadPatterns()
+    refreshLaunchAtLoginState()
   }
 
   /// Adds a new pattern and persists to storage.
@@ -99,6 +106,29 @@ class PatternListViewModel: ObservableObject {
     errorMessage = nil
   }
 
+  /// Updates the Launch at Login preference.
+  /// - Parameter enabled: Desired value for launch at login.
+  func setLaunchAtLoginEnabled(_ enabled: Bool) {
+    guard launchAtLoginController.isAvailable else {
+      launchAtLoginEnabled = false
+      errorMessage = LaunchAtLoginError.notSupported.errorDescription
+      return
+    }
+
+    let previous = launchAtLoginEnabled
+    do {
+      try launchAtLoginController.setEnabled(enabled)
+      launchAtLoginEnabled = enabled
+    } catch {
+      launchAtLoginEnabled = previous
+      if let localized = error as? LocalizedError, let message = localized.errorDescription {
+        errorMessage = message
+      } else {
+        errorMessage = "Failed to update Launch at Login: \(error.localizedDescription)"
+      }
+    }
+  }
+
   // MARK: - Private Helpers
 
   @discardableResult
@@ -111,5 +141,10 @@ class PatternListViewModel: ObservableObject {
       loadPatterns() // Reload to restore consistent state
       return false
     }
+  }
+
+  private func refreshLaunchAtLoginState() {
+    launchAtLoginEnabled = launchAtLoginController.resolvedPreference()
+    isLaunchAtLoginAvailable = launchAtLoginController.isAvailable
   }
 }

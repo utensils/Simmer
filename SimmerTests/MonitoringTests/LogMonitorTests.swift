@@ -698,6 +698,12 @@ final class LogMonitorTests: XCTestCase {
       try? FileManager.default.removeItem(atPath: path)
     }
 
+    let resolvedBookmark = bookmark ?? FileBookmark(
+      bookmarkData: Data(),
+      filePath: path,
+      isStale: false
+    )
+
     return LogPattern(
       name: name,
       regex: ".*",
@@ -705,7 +711,7 @@ final class LogMonitorTests: XCTestCase {
       color: CodableColor(red: 1, green: 0, blue: 0),
       animationStyle: .glow,
       enabled: enabled,
-      bookmark: bookmark
+      bookmark: resolvedBookmark
     )
   }
 

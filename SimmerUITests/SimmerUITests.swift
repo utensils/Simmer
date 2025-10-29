@@ -12,10 +12,6 @@ final class SimmerUITests: XCTestCase {
     continueAfterFailure = false
   }
 
-  override func tearDownWithError() throws {
-    XCUIApplication().terminate()
-  }
-
   func testSettingsWindowOpens() throws {
     let app = XCUIApplication()
     app.launchEnvironment["SIMMER_UI_TEST_SHOW_SETTINGS"] = "1"

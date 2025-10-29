@@ -17,7 +17,7 @@ Build native macOS menu bar application for passive log monitoring with visual f
 **Project Type**: Single native macOS application
 **Performance Goals**: 60fps icon animations, <10ms pattern matching per line, <500ms match detection latency
 **Constraints**: <1% CPU idle, <5% CPU active, <50MB memory, menu bar-only (LSUIElement), sandboxed file access
-**Scale/Scope**: Support 20 simultaneous file watchers, 10 recent matches in history, unlimited pattern configurations
+**Scale/Scope**: Support 20 simultaneous file watchers (FR-020), 10 recent matches in history, up to 20 stored pattern configurations
 
 ## Constitution Check
 
@@ -72,7 +72,7 @@ specs/001-mvp-core/
 Simmer/
 ├── App/
 │   ├── SimmerApp.swift           # App lifecycle, LSUIElement configuration
-│   └── AppDelegate.swift         # Launch at login, app-level event handling
+│   └── AppDelegate.swift         # Launch at login infrastructure (opt-in via settings), app-level event handling
 ├── Features/
 │   ├── MenuBar/
 │   │   ├── MenuBarController.swift      # NSStatusItem management
@@ -98,7 +98,8 @@ Simmer/
 │   └── IconAnimationState.swift   # Current animation state
 ├── Services/
 │   ├── ConfigurationStore.swift   # UserDefaults persistence
-│   └── PathExpander.swift         # Tilde/env var expansion
+│   ├── PathExpander.swift         # Tilde/env var expansion
+│   └── LaunchAtLoginController.swift # SMAppService launch at login management
 └── Utilities/
     ├── CodableColor.swift         # RGB color encoding/decoding
     └── RelativeTimeFormatter.swift # "2m ago" timestamp formatting
@@ -115,7 +116,8 @@ SimmerTests/
 │   ├── PatternValidatorTests.swift # Syntax validation tests
 │   └── MatchEventHandlerTests.swift # Prioritization tests
 ├── ServicesTests/
-│   └── ConfigurationStoreTests.swift # Persistence tests
+│   ├── ConfigurationStoreTests.swift # Persistence tests
+│   └── LaunchAtLoginControllerTests.swift # Launch at login tests
 └── Mocks/
     ├── MockFileHandle.swift       # File I/O mocking
     └── MockDispatchSource.swift   # DispatchSource mocking

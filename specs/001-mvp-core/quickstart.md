@@ -116,7 +116,7 @@ Follow prioritized user stories (P1→P4) for incremental delivery:
 1. `Services/PathExpander.swift` - Tilde and env var expansion
 2. Error handling in FileWatcher (FR-021, FR-022)
 3. Debouncing in LogMonitor (100ms window per TECH_DESIGN.md)
-4. Launch at login support in AppDelegate
+4. Launch at login infrastructure in AppDelegate (opt-in via settings toggle - T120)
 
 **Testing**:
 - Edge case testing per spec.md edge cases section

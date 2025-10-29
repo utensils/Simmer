@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   private let iconAnimator: IconAnimator
   private var menuBuilder: MenuBuilder?
   private var settingsCoordinator: SettingsCoordinator?
+  private let launchAtLoginController: LaunchAtLoginControlling
 
   private var menuBarController: MenuBarController?
   private var logMonitor: LogMonitor?
@@ -27,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     patternMatcher = RegexPatternMatcher()
     matchEventHandler = MatchEventHandler()
     iconAnimator = IconAnimator()
+    launchAtLoginController = LaunchAtLoginController()
     super.init()
   }
 
@@ -105,23 +107,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     DispatchQueue.main.async { [weak self, weak logMonitor] in
       logMonitor?.start()
-      if !isRunningUITests {
-        self?.configureLaunchAtLogin()
-      }
+      guard !isRunningUITests else { return }
+      self?.applyLaunchAtLoginPreference()
     }
   }
 
-  private func configureLaunchAtLogin() {
-    guard #available(macOS 13, *) else { return }
+  private func applyLaunchAtLoginPreference() {
+    guard launchAtLoginController.isAvailable else { return }
 
     do {
-      let service = SMAppService.mainApp
-      if service.status != .enabled {
-        try service.register()
-        os_log("Launch at login enabled", log: launchLogger, type: .info)
-      }
+      let desired = launchAtLoginController.resolvedPreference()
+      try launchAtLoginController.setEnabled(desired)
     } catch {
-      os_log("Failed to enable launch at login: %{public}@", log: launchLogger, type: .error, String(describing: error))
+      os_log(
+        "Failed to apply stored Launch at Login preference: %{public}@",
+        log: launchLogger,
+        type: .error,
+        String(describing: error)
+      )
     }
   }
 
@@ -129,7 +132,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     if settingsCoordinator == nil {
       settingsCoordinator = SettingsCoordinator(
         configurationStore: configurationStore,
-        logMonitor: logMonitor
+        logMonitor: logMonitor,
+        launchAtLoginController: launchAtLoginController
       )
     }
     settingsCoordinator?.show()
