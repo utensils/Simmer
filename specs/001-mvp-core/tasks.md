@@ -237,8 +237,8 @@
 - [X] T112 Run swiftformat across codebase for final formatting consistency (configured, runs in CI)
 - [X] T113 Update TECH_DESIGN.md with any architectural changes discovered during implementation
 - [X] T114 Document any open questions resolved during implementation in research.md
-- [ ] T133 Perform internal quickstart validation: attempt a timed configuration completing within 60 seconds (SC-001) and complete the full quickstart flow within 5 minutes (SC-005, SC-008), recording outcomes in research.md
-- [ ] T134 Summarize quickstart validation findings (including 60-second attempt and auxiliary log usage) and remediation follow-ups in research.md and quickstart.md (SC-001, SC-005, SC-008)
+- [ ] T133 Conduct usability study with 2-3 developers to measure SC-001 and SC-008 outcomes; document success/failure rates in research.md
+- [ ] T134 Summarize usability study findings and remediation follow-ups in research.md and quickstart.md where applicable
 
 ### CI/CD & Automation
 
