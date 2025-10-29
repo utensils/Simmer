@@ -53,6 +53,10 @@ internal final class LogMonitor: NSObject {
   private var pendingLatencyStartDates: [UUID: [Date]] = [:]
   private var didWarnAboutPatternLimit = false
 
+  private func mutateState(_ update: () -> Void) {
+    stateQueue.sync(execute: update)
+  }
+
   @MainActor
   init(
     configurationStore: ConfigurationStoreProtocol = ConfigurationStore(),
@@ -545,7 +549,7 @@ internal final class LogMonitor: NSObject {
     timestamp: Date
   ) -> Bool {
     if iconAnimator.state == .idle {
-      _ = stateQueue.sync { currentAnimation = nil }
+      mutateState { currentAnimation = nil }
     }
 
     let lastForPattern = stateQueue.sync { lastAnimationTimestamps[patternID] }
@@ -571,20 +575,20 @@ internal final class LogMonitor: NSObject {
 
   @MainActor
   private func recordAnimationStart(for patternID: UUID, priority: Int, timestamp: Date) {
-    _ = stateQueue.sync {
+    mutateState {
       currentAnimation = (patternID: patternID, priority: priority)
       lastAnimationTimestamps[patternID] = timestamp
     }
   }
 
   private func suppressAlerts(for patternID: UUID) {
-    _ = stateQueue.sync {
+    mutateState {
       suppressedAlertPatternIDs.insert(patternID)
     }
   }
 
   private func unsuppressAlerts(for patternID: UUID) {
-    _ = stateQueue.sync {
+    mutateState {
       suppressedAlertPatternIDs.remove(patternID)
     }
   }

@@ -15,7 +15,7 @@ internal final class PatternListViewModelTests: XCTestCase {
       logPath: "/tmp/log",
       color: CodableColor(red: 1, green: 0, blue: 0),
       animationStyle: .glow,
-      enabled: true,
+      enabled: true
     )
     let store = InMemoryStore(initialPatterns: [pattern])
     let monitor = LogMonitorSpy()
@@ -40,7 +40,7 @@ internal final class PatternListViewModelTests: XCTestCase {
       logPath: "/tmp/log",
       color: CodableColor(red: 0, green: 1, blue: 0),
       animationStyle: .pulse,
-      enabled: true,
+      enabled: true
     )
     let store = InMemoryStore(initialPatterns: [pattern])
     let monitor = LogMonitorSpy()
@@ -172,7 +172,7 @@ internal final class PatternListViewModelTests: XCTestCase {
       logPath: "/tmp/err.log",
       color: CodableColor(red: 0.5, green: 0.2, blue: 0.7),
       animationStyle: .blink,
-      enabled: true,
+      enabled: true
     )
     let store = InMemoryStore(initialPatterns: [pattern])
     let exporter = ConfigurationExporterSpy()
@@ -201,7 +201,7 @@ internal final class PatternListViewModelTests: XCTestCase {
       logPath: "/tmp/existing.log",
       color: CodableColor(red: 1, green: 0, blue: 0),
       animationStyle: .glow,
-      enabled: true,
+      enabled: true
     )
     let incoming = LogPattern(
       id: existing.id,
@@ -210,7 +210,7 @@ internal final class PatternListViewModelTests: XCTestCase {
       logPath: "/tmp/new.log",
       color: CodableColor(red: 0, green: 1, blue: 0),
       animationStyle: .pulse,
-      enabled: false,
+      enabled: false
     )
     let additional = LogPattern(
       name: "New",
@@ -218,7 +218,7 @@ internal final class PatternListViewModelTests: XCTestCase {
       logPath: "/tmp/new.log",
       color: CodableColor(red: 0, green: 0, blue: 1),
       animationStyle: .pulse,
-      enabled: true,
+      enabled: true
     )
 
     let store = InMemoryStore(initialPatterns: [existing])
@@ -277,7 +277,7 @@ internal final class PatternListViewModelTests: XCTestCase {
         logPath: "/tmp/pattern\(index).log",
         color: CodableColor(red: 1, green: 0, blue: 0),
         animationStyle: .glow,
-        enabled: true,
+        enabled: true
       )
     }
     let store = InMemoryStore(initialPatterns: existingPatterns)
@@ -295,7 +295,7 @@ internal final class PatternListViewModelTests: XCTestCase {
       logPath: "/tmp/overflow.log",
       color: CodableColor(red: 0, green: 0, blue: 1),
       animationStyle: .pulse,
-      enabled: true,
+      enabled: true
     )
 
     viewModel.addPattern(newPattern)
@@ -314,7 +314,7 @@ internal final class PatternListViewModelTests: XCTestCase {
         logPath: "/tmp/pattern\(index).log",
         color: CodableColor(red: 1, green: 0, blue: 0),
         animationStyle: .glow,
-        enabled: true,
+        enabled: true
       )
     }
     let additionalPatterns = (0..<3).map { index in
@@ -324,7 +324,7 @@ internal final class PatternListViewModelTests: XCTestCase {
         logPath: "/tmp/imported\(index).log",
         color: CodableColor(red: 0, green: 1, blue: 0),
         animationStyle: .pulse,
-        enabled: true,
+        enabled: true
       )
     }
 
