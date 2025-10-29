@@ -35,14 +35,16 @@ final class MatchEventHandler: NSObject {
         pattern: LogPattern,
         line: String,
         lineNumber: Int,
-        filePath: String
+        filePath: String,
+        priority: Int = 0
     ) {
         let event = MatchEvent(
             patternID: pattern.id,
             patternName: pattern.name,
             matchedLine: line,
             lineNumber: lineNumber,
-            filePath: filePath
+            filePath: filePath,
+            priority: priority
         )
 
         append(event: event)

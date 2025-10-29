@@ -157,6 +157,163 @@ final class LogMonitorTests: XCTestCase {
     }
   }
 
+  func test_start_respectsWatcherLimit() async {
+    let patterns = (0..<25).map { index in
+      makePattern(name: "Pattern \(index)", enabled: true)
+    }
+    let matcher = MockPatternMatcher()
+
+    let (monitor, registry, _, _, _) = await MainActor.run {
+      makeMonitor(patterns: patterns, matcher: matcher)
+    }
+
+    await MainActor.run {
+      monitor.start()
+    }
+
+    for index in 0..<20 {
+      let id = await MainActor.run { patterns[index].id }
+      XCTAssertNotNil(registry.watcher(for: id), "Expected watcher for pattern index \(index)")
+    }
+
+    for index in 20..<25 {
+      let id = await MainActor.run { patterns[index].id }
+      XCTAssertNil(registry.watcher(for: id), "Did not expect watcher for pattern index \(index)")
+    }
+
+    await MainActor.run {
+      monitor.stopAll()
+    }
+  }
+
+  func test_lowerPriorityMatchDoesNotOverrideActiveHighPriority() async {
+    let high = makePattern(name: "High", enabled: true)
+    let low = makePattern(name: "Low", enabled: true)
+    let matcher = MockPatternMatcher()
+    matcher.fallbackResult = MatchResult(range: NSRange(location: 0, length: 5), captureGroups: [])
+    let dateProvider = TestDateProvider()
+
+    let (monitor, registry, _, iconAnimator, _) = await MainActor.run {
+      makeMonitor(
+        patterns: [high, low],
+        matcher: matcher,
+        dateProvider: dateProvider
+      )
+    }
+
+    let startExpectation = expectation(description: "high priority animation started")
+    var startCount = 0
+    let delegate = await MainActor.run {
+      SpyIconAnimatorDelegate {
+        startCount += 1
+        if startCount == 1 {
+          startExpectation.fulfill()
+        }
+      }
+    }
+
+    await MainActor.run {
+      iconAnimator.delegate = delegate
+      monitor.start()
+    }
+
+    let highID = await MainActor.run { high.id }
+    let lowID = await MainActor.run { low.id }
+
+    guard
+      let highWatcher = registry.watcher(for: highID),
+      let lowWatcher = registry.watcher(for: lowID)
+    else {
+      XCTFail("Expected watchers for both patterns")
+      return
+    }
+
+    await MainActor.run {
+      highWatcher.send(lines: ["High"])
+    }
+
+    await fulfillment(of: [startExpectation], timeout: 1.0)
+
+    await MainActor.run {
+      dateProvider.advance(by: 0.2)
+      lowWatcher.send(lines: ["Low"])
+    }
+
+    try? await Task.sleep(nanoseconds: 200_000_000)
+
+    XCTAssertEqual(startCount, 1, "Lower priority match should not start animation while higher is active")
+
+    await MainActor.run {
+      monitor.stopAll()
+    }
+  }
+
+  func test_debounceSkipsRapidAnimationRestarts() async {
+    let pattern = makePattern(name: "Debounce", enabled: true)
+    let matcher = MockPatternMatcher()
+    matcher.fallbackResult = MatchResult(range: NSRange(location: 0, length: 3), captureGroups: [])
+    let dateProvider = TestDateProvider()
+
+    let (monitor, registry, _, iconAnimator, _) = await MainActor.run {
+      makeMonitor(
+        patterns: [pattern],
+        matcher: matcher,
+        dateProvider: dateProvider
+      )
+    }
+
+    let initialStart = expectation(description: "initial animation")
+    let restartExpectation = expectation(description: "animation restarted after debounce")
+    var startCount = 0
+
+    let delegate = await MainActor.run {
+      SpyIconAnimatorDelegate {
+        startCount += 1
+        if startCount == 1 {
+          initialStart.fulfill()
+        } else if startCount == 2 {
+          restartExpectation.fulfill()
+        }
+      }
+    }
+
+    await MainActor.run {
+      iconAnimator.delegate = delegate
+      monitor.start()
+    }
+
+    let patternID = await MainActor.run { pattern.id }
+    guard let watcher = registry.watcher(for: patternID) else {
+      XCTFail("Expected watcher for pattern")
+      return
+    }
+
+    await MainActor.run {
+      watcher.send(lines: ["A"])
+    }
+
+    await fulfillment(of: [initialStart], timeout: 1.0)
+
+    await MainActor.run {
+      watcher.send(lines: ["B"])
+    }
+
+    try? await Task.sleep(nanoseconds: 150_000_000)
+    XCTAssertEqual(startCount, 1, "Debounce should prevent immediate restart")
+
+    await MainActor.run {
+      dateProvider.advance(by: 0.2)
+      watcher.send(lines: ["C"])
+    }
+
+    await fulfillment(of: [restartExpectation], timeout: 1.0)
+    XCTAssertEqual(startCount, 2)
+
+    await MainActor.run {
+      monitor.stopAll()
+    }
+  }
+
   // MARK: - Helpers
 
   private func makePattern(name: String, enabled: Bool) -> LogPattern {
@@ -174,7 +331,8 @@ final class LogMonitorTests: XCTestCase {
   private func makeMonitor(
     patterns: [LogPattern],
     matcher: PatternMatcherProtocol,
-    store: InMemoryStore? = nil
+    store: InMemoryStore? = nil,
+    dateProvider: TestDateProvider? = nil
   ) -> (LogMonitor, TestWatcherRegistry, MatchEventHandler, IconAnimator, InMemoryStore) {
     let handler = MatchEventHandler()
     let timer = TestAnimationTimer()
@@ -188,7 +346,8 @@ final class LogMonitorTests: XCTestCase {
       patternMatcher: matcher,
       matchEventHandler: handler,
       iconAnimator: iconAnimator,
-      watcherFactory: registry.makeWatcher(for:)
+      watcherFactory: registry.makeWatcher(for:),
+      dateProvider: dateProvider?.now ?? Date.init
     )
 
     return (monitor, registry, handler, iconAnimator, backingStore)
@@ -245,6 +404,22 @@ private final class StubFileWatcher: FileWatching {
 private final class TestAnimationTimer: AnimationTimer {
   func start(interval: TimeInterval, handler: @escaping @MainActor () -> Void) {}
   func stop() {}
+}
+
+private final class TestDateProvider {
+  private(set) var current: Date
+
+  init(now: Date = Date()) {
+    current = now
+  }
+
+  func advance(by interval: TimeInterval) {
+    current = current.addingTimeInterval(interval)
+  }
+
+  func now() -> Date {
+    current
+  }
 }
 
 private struct TestAnimationClock: IconAnimatorClock {

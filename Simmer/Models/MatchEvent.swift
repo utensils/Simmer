@@ -16,6 +16,7 @@ struct MatchEvent: Codable, Identifiable, Equatable {
   let matchedLine: String
   let lineNumber: Int
   let filePath: String
+  let priority: Int
 
   init(
     id: UUID = UUID(),
@@ -24,7 +25,8 @@ struct MatchEvent: Codable, Identifiable, Equatable {
     timestamp: Date = Date(),
     matchedLine: String,
     lineNumber: Int,
-    filePath: String
+    filePath: String,
+    priority: Int
   ) {
     let truncatedLine = matchedLine.count > 200
       ? String(matchedLine.prefix(200)) + "..."
@@ -37,5 +39,6 @@ struct MatchEvent: Codable, Identifiable, Equatable {
     self.matchedLine = truncatedLine
     self.lineNumber = lineNumber
     self.filePath = filePath
+    self.priority = priority
   }
 }

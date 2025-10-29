@@ -32,6 +32,7 @@ final class MatchEventHandlerTests: XCTestCase {
         XCTAssertEqual(handler.history.count, 1)
         let event = handler.history.first
         XCTAssertEqual(event?.patternID, pattern.id)
+        XCTAssertEqual(event?.priority, 0)
         XCTAssertEqual(delegate.detectedEvents.count, 1)
         XCTAssertEqual(delegate.historySnapshots.count, 1)
         XCTAssertEqual(delegate.historySnapshots.first?.count, 1)
@@ -99,17 +100,34 @@ final class MatchEventHandlerTests: XCTestCase {
             pattern: highPriority,
             line: "First",
             lineNumber: 1,
-            filePath: "/tmp/file.log"
+            filePath: "/tmp/file.log",
+            priority: 0
         )
 
         handler.handleMatch(
             pattern: lowPriority,
             line: "Second",
             lineNumber: 2,
-            filePath: "/tmp/file.log"
+            filePath: "/tmp/file.log",
+            priority: 1
         )
 
         XCTAssertEqual(delegate.detectedEvents.map(\.patternName), ["High", "Low"])
+        XCTAssertEqual(delegate.detectedEvents.first?.priority, 0)
+        XCTAssertEqual(delegate.detectedEvents.last?.priority, 1)
+    }
+
+    func test_handleMatchStoresProvidedPriority() {
+        let handler = MatchEventHandler()
+        handler.handleMatch(
+            pattern: makePattern(name: "Priority"),
+            line: "line",
+            lineNumber: 1,
+            filePath: "/tmp/file.log",
+            priority: 5
+        )
+
+        XCTAssertEqual(handler.history.first?.priority, 5)
     }
 
     // MARK: - Helpers

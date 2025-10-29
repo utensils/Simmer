@@ -156,13 +156,13 @@
 
 ### Multi-Watcher Coordination
 
-- [ ] T076 [US4] Implement LogMonitor.watchers dictionary mapping pattern ID to FileWatcher instances
-- [ ] T077 [US4] Implement LogMonitor.addWatcher method creating FileWatcher for new patterns, enforce 20-watcher limit (FR-020)
-- [ ] T078 [US4] Implement LogMonitor.removeWatcher method cleaning up DispatchSource and file descriptor
-- [ ] T079 [US4] Implement animation prioritization in LogMonitor based on pattern array order (first = highest priority)
-- [ ] T080 [US4] Update MatchEventHandler to track pattern priority and only trigger animation for highest-priority active match
-- [ ] T081 [US4] Implement debouncing in LogMonitor to coalesce rapid matches within 100ms window per TECH_DESIGN.md
-- [ ] T082 [US4] Write multi-watcher tests in SimmerTests/MonitoringTests/LogMonitorTests.swift (20 concurrent watchers, prioritization, debouncing)
+- [X] T076 [US4] Implement LogMonitor.watchers dictionary mapping pattern ID to FileWatcher instances
+- [X] T077 [US4] Implement LogMonitor.addWatcher method creating FileWatcher for new patterns, enforce 20-watcher limit (FR-020)
+- [X] T078 [US4] Implement LogMonitor.removeWatcher method cleaning up DispatchSource and file descriptor
+- [X] T079 [US4] Implement animation prioritization in LogMonitor based on pattern array order (first = highest priority)
+- [X] T080 [US4] Update MatchEventHandler to track pattern priority and only trigger animation for highest-priority active match
+- [X] T081 [US4] Implement debouncing in LogMonitor to coalesce rapid matches within 100ms window per TECH_DESIGN.md
+- [X] T082 [US4] Write multi-watcher tests in SimmerTests/MonitoringTests/LogMonitorTests.swift (20 concurrent watchers, prioritization, debouncing)
 - [ ] T083 [US4] Profile with Instruments Time Profiler: verify <5% CPU with 10 active patterns and 100 matches/second
 - [ ] T084 [US4] Profile with Instruments Allocations: verify <50MB memory with 20 patterns and 10k match history
 - [ ] T085 [US4] Manual test: Configure 5 patterns for 5 different log files, trigger simultaneous matches, verify correct animation priority
