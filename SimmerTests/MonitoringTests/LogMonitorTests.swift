@@ -35,6 +35,92 @@ final class LogMonitorTests: XCTestCase {
     }
   }
 
+  func test_initCreatesWatchersForPersistedPatterns() async {
+    let pattern = makePattern(name: "Boot", enabled: true)
+    let matcher = MockPatternMatcher()
+
+    let (monitor, registry, _, _, _, _) = await MainActor.run {
+      makeMonitor(patterns: [pattern], matcher: matcher)
+    }
+
+    XCTAssertNotNil(registry.watcher(for: pattern.id))
+
+    await MainActor.run {
+      monitor.stopAll()
+    }
+  }
+
+  func test_initResolvesBookmarksForPersistedPatterns() async {
+    let bookmark = FileBookmark(
+      bookmarkData: Data([0x00]),
+      filePath: "/tmp/bookmarked.log",
+      isStale: false
+    )
+    let pattern = makePattern(name: "Bookmarked", enabled: true, bookmark: bookmark)
+    let matcher = MockPatternMatcher()
+    let accessManager = RecordingFileAccessManager()
+    accessManager.resolveQueue = [
+      .success((URL(fileURLWithPath: bookmark.filePath), false))
+    ]
+
+    let (monitor, registry, _, _, _, _) = await MainActor.run {
+      makeMonitor(
+        patterns: [pattern],
+        matcher: matcher,
+        fileAccessManager: accessManager
+      )
+    }
+
+    XCTAssertEqual(accessManager.resolveCallCount, 1)
+    XCTAssertNotNil(registry.watcher(for: pattern.id))
+
+    await MainActor.run {
+      monitor.stopAll()
+    }
+  }
+
+  func test_initRefreshesStaleBookmarks() async {
+    let originalBookmark = FileBookmark(
+      bookmarkData: Data([0x01]),
+      filePath: "/tmp/original.log",
+      isStale: false
+    )
+    let refreshedBookmark = FileBookmark(
+      bookmarkData: Data([0x02]),
+      filePath: "/tmp/refreshed.log",
+      isStale: false
+    )
+    let pattern = makePattern(name: "Refresh", enabled: true, bookmark: originalBookmark)
+    let matcher = MockPatternMatcher()
+    let store = InMemoryStore(initialPatterns: [pattern])
+    let accessManager = RecordingFileAccessManager()
+    accessManager.resolveQueue = [
+      .success((URL(fileURLWithPath: originalBookmark.filePath), true)),
+      .success((URL(fileURLWithPath: refreshedBookmark.filePath), false))
+    ]
+    accessManager.refreshQueue = [
+      .success(refreshedBookmark)
+    ]
+
+    let (monitor, registry, _, _, storeRef, _) = await MainActor.run {
+      makeMonitor(
+        patterns: [pattern],
+        matcher: matcher,
+        store: store,
+        fileAccessManager: accessManager
+      )
+    }
+
+    XCTAssertEqual(accessManager.refreshCallCount, 1)
+    XCTAssertEqual(accessManager.resolveCallCount, 2)
+    XCTAssertEqual(storeRef.loadPatterns().first?.bookmark, refreshedBookmark)
+    XCTAssertEqual(registry.watcher(for: pattern.id)?.path, refreshedBookmark.filePath)
+
+    await MainActor.run {
+      monitor.stopAll()
+    }
+  }
+
   func test_fileWatcherErrorDisablesPatternAndShowsAlert() async {
     let pattern = makePattern(name: "Errored", enabled: true)
     let matcher = MockPatternMatcher()
@@ -435,14 +521,19 @@ final class LogMonitorTests: XCTestCase {
 
   // MARK: - Helpers
 
-  private func makePattern(name: String, enabled: Bool) -> LogPattern {
+  private func makePattern(
+    name: String,
+    enabled: Bool,
+    bookmark: FileBookmark? = nil
+  ) -> LogPattern {
     LogPattern(
       name: name,
       regex: ".*",
       logPath: "/tmp/\(UUID().uuidString).log",
       color: CodableColor(red: 1, green: 0, blue: 0),
       animationStyle: .glow,
-      enabled: enabled
+      enabled: enabled,
+      bookmark: bookmark
     )
   }
 
@@ -454,7 +545,8 @@ final class LogMonitorTests: XCTestCase {
     dateProvider: TestDateProvider? = nil,
     alertPresenter: LogMonitorAlertPresenting? = nil,
     notificationCenter: NotificationCenter = NotificationCenter(),
-    processingQueue: DispatchQueue? = nil
+    processingQueue: DispatchQueue? = nil,
+    fileAccessManager: FileAccessManaging? = nil
   ) -> (LogMonitor, TestWatcherRegistry, MatchEventHandler, IconAnimator, InMemoryStore, DispatchQueue) {
     let handler = MatchEventHandler()
     let timer = TestAnimationTimer()
@@ -464,9 +556,11 @@ final class LogMonitorTests: XCTestCase {
     let backingStore = store ?? InMemoryStore(initialPatterns: patterns)
     let queue = processingQueue ?? DispatchQueue(label: "com.quantierra.Simmer.tests.log-monitor-processing")
     let presenter = alertPresenter ?? NoOpAlertPresenter()
+    let accessManager = fileAccessManager ?? TestFileAccessManager()
 
     let monitor = LogMonitor(
       configurationStore: backingStore,
+      fileAccessManager: accessManager,
       patternMatcher: matcher,
       matchEventHandler: handler,
       iconAnimator: iconAnimator,
@@ -494,6 +588,51 @@ private final class TestWatcherRegistry {
 
   func watcher(for id: UUID) -> StubFileWatcher? {
     storage[id]
+  }
+}
+
+private final class TestFileAccessManager: FileAccessManaging {
+  func resolveBookmark(_ bookmark: FileBookmark) throws -> (url: URL, isStale: Bool) {
+    (URL(fileURLWithPath: bookmark.filePath), false)
+  }
+
+  func refreshStaleBookmark(_ bookmark: FileBookmark) throws -> FileBookmark {
+    bookmark
+  }
+}
+
+private final class RecordingFileAccessManager: FileAccessManaging {
+  var resolveQueue: [Result<(url: URL, isStale: Bool), Error>] = []
+  var refreshQueue: [Result<FileBookmark, Error>] = []
+  private(set) var resolveCallCount = 0
+  private(set) var refreshCallCount = 0
+
+  func resolveBookmark(_ bookmark: FileBookmark) throws -> (url: URL, isStale: Bool) {
+    resolveCallCount += 1
+    if !resolveQueue.isEmpty {
+      let result = resolveQueue.removeFirst()
+      switch result {
+      case .success(let value):
+        return value
+      case .failure(let error):
+        throw error
+      }
+    }
+    return (URL(fileURLWithPath: bookmark.filePath), false)
+  }
+
+  func refreshStaleBookmark(_ bookmark: FileBookmark) throws -> FileBookmark {
+    refreshCallCount += 1
+    if !refreshQueue.isEmpty {
+      let result = refreshQueue.removeFirst()
+      switch result {
+      case .success(let value):
+        return value
+      case .failure(let error):
+        throw error
+      }
+    }
+    return bookmark
   }
 }
 

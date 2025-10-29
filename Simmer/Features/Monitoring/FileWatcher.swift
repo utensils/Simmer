@@ -209,6 +209,8 @@ final class FileWatcher: FileWatching {
       return .fileDeleted(path: path)
     case EACCES:
       return .permissionDenied(path: path)
+    case EPERM:
+      return .permissionDenied(path: path)
     case EBADF:
       return .fileDescriptorInvalid
     default:

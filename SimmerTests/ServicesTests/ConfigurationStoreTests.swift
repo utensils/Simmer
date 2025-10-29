@@ -6,6 +6,7 @@
 import XCTest
 @testable import Simmer
 
+@MainActor
 final class ConfigurationStoreTests: XCTestCase {
   private var suiteName: String!
   private var userDefaults: UserDefaults!
@@ -108,7 +109,8 @@ final class ConfigurationStoreTests: XCTestCase {
       logPath: "/tmp/test.log",
       color: CodableColor(red: 1, green: 0, blue: 0),
       animationStyle: .glow,
-      enabled: true
+      enabled: true,
+      bookmark: nil
     )
   }
 }

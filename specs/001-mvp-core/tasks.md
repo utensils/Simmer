@@ -196,10 +196,10 @@
 
 ### Launch & Persistence
 
-- [ ] T101 [P] Implement pattern loading in LogMonitor.init: call ConfigurationStore.loadPatterns, create FileWatcher for each enabled pattern
-- [ ] T102 [P] Implement security-scoped bookmark resolution in LogMonitor.init: resolve bookmarks via FileAccessManager, prompt user if stale
-- [ ] T103 [P] Add launch at login support in AppDelegate using SMAppService (macOS 13+) or LaunchServices
-- [ ] T104 Implement app launch performance optimization: defer non-critical init until after window appears
+- [X] T101 [P] Implement pattern loading in LogMonitor.init: call ConfigurationStore.loadPatterns, create FileWatcher for each enabled pattern
+- [X] T102 [P] Implement security-scoped bookmark resolution in LogMonitor.init: resolve bookmarks via FileAccessManager, prompt user if stale
+- [X] T103 [P] Add launch at login support in AppDelegate using SMAppService (macOS 13+) or LaunchServices
+- [X] T104 Implement app launch performance optimization: defer non-critical init until after window appears
 - [ ] T105 Measure app launch time with Instruments: verify <2 seconds from click to ready (SC-006)
 
 ### Final Integration & Testing

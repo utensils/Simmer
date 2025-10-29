@@ -10,7 +10,7 @@ import Foundation
 import UniformTypeIdentifiers
 
 /// Errors that can occur during file access operations
-enum FileAccessError: Error, LocalizedError {
+enum FileAccessError: Error, LocalizedError, Equatable {
     case userCancelled
     case bookmarkCreationFailed
     case bookmarkResolutionFailed
@@ -22,19 +22,27 @@ enum FileAccessError: Error, LocalizedError {
         case .userCancelled:
             return "File selection was cancelled"
         case .bookmarkCreationFailed:
-            return "Failed to create security-scoped bookmark"
+            return "Failed to create security-scoped bookmark. Select the file again to grant access."
         case .bookmarkResolutionFailed:
             return "Failed to resolve security-scoped bookmark"
         case .fileNotAccessible(let path):
-            return "Cannot access file at: \(path)"
+            return """
+            Simmer cannot access “\(path)”. Use the Choose… button to select the file so macOS can grant permission.
+            """
         case .bookmarkDataInvalid:
             return "Bookmark data is invalid or corrupted"
         }
     }
 }
 
+/// Protocol abstraction so consumers (e.g. ``LogMonitor``) can mock bookmark operations in tests.
+protocol FileAccessManaging: AnyObject {
+    func resolveBookmark(_ bookmark: FileBookmark) throws -> (url: URL, isStale: Bool)
+    func refreshStaleBookmark(_ bookmark: FileBookmark) throws -> FileBookmark
+}
+
 /// Encapsulates security-scoped bookmark data for sandboxed file access
-struct FileBookmark: Codable {
+struct FileBookmark: Codable, Equatable {
     let bookmarkData: Data
     let filePath: String
     var isStale: Bool
@@ -78,35 +86,46 @@ final class FileAccessManager {
     }
 
     /// Creates a security-scoped bookmark for the given URL
-    /// - Parameter url: The file URL to create a bookmark for
+    /// - Parameter url: The file URL to create a bookmark for (typically from NSOpenPanel)
     /// - Returns: FileBookmark containing the security-scoped bookmark data
     /// - Throws: FileAccessError if bookmark creation fails
     func createBookmark(for url: URL) throws -> FileBookmark {
-        // Start accessing the security-scoped resource
-        guard url.startAccessingSecurityScopedResource() else {
-            throw FileAccessError.fileNotAccessible(path: url.path)
-        }
-        defer {
-            url.stopAccessingSecurityScopedResource()
+        let options: URL.BookmarkCreationOptions
+        if #available(macOS 13, *) {
+            options = [.withSecurityScope, .securityScopeAllowOnlyReadAccess]
+        } else {
+            options = [.withSecurityScope]
         }
 
-        // Create bookmark data with security scope
-        let bookmarkData: Data
-        do {
-            bookmarkData = try url.bookmarkData(
-                options: .withSecurityScope,
+        let attemptBookmark = {
+            try url.bookmarkData(
+                options: options,
                 includingResourceValuesForKeys: nil,
                 relativeTo: nil
             )
-        } catch {
-            throw FileAccessError.bookmarkCreationFailed
         }
 
-        return FileBookmark(
-            bookmarkData: bookmarkData,
-            filePath: url.path,
-            isStale: false
-        )
+        do {
+            let data = try attemptBookmark()
+            return FileBookmark(bookmarkData: data, filePath: url.path, isStale: false)
+        } catch {
+            let hasAccess = url.startAccessingSecurityScopedResource()
+            defer {
+                if hasAccess {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+
+            do {
+                let data = try attemptBookmark()
+                return FileBookmark(bookmarkData: data, filePath: url.path, isStale: false)
+            } catch {
+                if !FileManager.default.isReadableFile(atPath: url.path) || !hasAccess {
+                    throw FileAccessError.fileNotAccessible(path: url.path)
+                }
+                throw FileAccessError.bookmarkCreationFailed
+            }
+        }
     }
 
     /// Resolves a security-scoped bookmark to access the file
@@ -193,3 +212,5 @@ final class FileAccessManager {
         }
     }
 }
+
+extension FileAccessManager: FileAccessManaging {}

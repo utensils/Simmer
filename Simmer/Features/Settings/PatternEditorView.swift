@@ -48,6 +48,7 @@ struct PatternEditorView: View {
       _color = State(initialValue: pattern.color)
       _animationStyle = State(initialValue: pattern.animationStyle)
       _enabled = State(initialValue: pattern.enabled)
+      _selectedBookmark = State(initialValue: pattern.bookmark)
     } else {
       self.mode = .create
       self.existingPatternID = nil
@@ -57,6 +58,7 @@ struct PatternEditorView: View {
       _color = State(initialValue: CodableColor(red: 0.2, green: 0.6, blue: 1.0))
       _animationStyle = State(initialValue: .glow)
       _enabled = State(initialValue: true)
+      _selectedBookmark = State(initialValue: nil)
     }
   }
 
@@ -184,6 +186,17 @@ struct PatternEditorView: View {
     }
 
     let expandedPath = PathExpander.expand(trimmedPath)
+
+    if selectedBookmark == nil {
+      do {
+        try validateManualPath(expandedPath)
+      } catch {
+        errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        isShowingErrorAlert = true
+        return
+      }
+    }
+
     let updatedPattern = LogPattern(
       id: existingPatternID ?? UUID(),
       name: trimmedName,
@@ -191,7 +204,8 @@ struct PatternEditorView: View {
       logPath: expandedPath,
       color: color,
       animationStyle: animationStyle,
-      enabled: enabled
+      enabled: enabled,
+      bookmark: selectedBookmark
     )
 
     onSave(updatedPattern)
@@ -259,6 +273,60 @@ private extension AnimationStyle {
     case .blink:
       return "Blink"
     }
+  }
+}
+
+// MARK: - Manual Path Validation
+
+private enum ManualPathValidationError: LocalizedError {
+  case missing(path: String)
+  case directory(path: String)
+  case unreadable(path: String)
+
+  var errorDescription: String? {
+    switch self {
+    case .missing(let path):
+      return """
+      “\(path)” does not exist. Use the Choose… button to select an existing log file.
+      """
+    case .directory(let path):
+      return """
+      “\(path)” is a directory. Select a specific log file instead.
+      """
+    case .unreadable(let path):
+      return """
+      Simmer does not have permission to read “\(path)”. Use the Choose… button so macOS can grant access.
+      """
+    }
+  }
+}
+
+private func validateManualPath(_ path: String) throws {
+  let fileManager = FileManager.default
+  var isDirectory: ObjCBool = false
+
+  guard fileManager.fileExists(atPath: path, isDirectory: &isDirectory) else {
+    throw ManualPathValidationError.missing(path: path)
+  }
+
+  if isDirectory.boolValue {
+    throw ManualPathValidationError.directory(path: path)
+  }
+
+  guard fileManager.isReadableFile(atPath: path) else {
+    throw ManualPathValidationError.unreadable(path: path)
+  }
+
+  let url = URL(fileURLWithPath: path)
+  do {
+    let handle = try FileHandle(forReadingFrom: url)
+    if #available(macOS 13, *) {
+      try handle.close()
+    } else {
+      handle.closeFile()
+    }
+  } catch {
+    throw ManualPathValidationError.unreadable(path: path)
   }
 }
 

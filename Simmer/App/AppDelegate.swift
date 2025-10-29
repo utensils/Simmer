@@ -6,6 +6,8 @@
 //
 
 import AppKit
+import os.log
+import ServiceManagement
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -18,6 +20,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
   private var menuBarController: MenuBarController?
   private var logMonitor: LogMonitor?
+  private let launchLogger = OSLog(subsystem: "com.quantierra.Simmer", category: "LaunchAtLogin")
 
   override init() {
     configurationStore = ConfigurationStore()
@@ -62,16 +65,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     )
     self.logMonitor = logMonitor
 
-    let settingsCoordinator = SettingsCoordinator(
-      configurationStore: configurationStore,
-      logMonitor: logMonitor
-    )
-    self.settingsCoordinator = settingsCoordinator
-
     let menuBuilder = MenuBuilder(
       matchEventHandler: matchEventHandler,
       settingsHandler: { [weak self] in
-        self?.settingsCoordinator?.show()
+        self?.presentSettingsWindow()
       },
       quitHandler: {
         NSApplication.shared.terminate(nil)
@@ -90,16 +87,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       menuBarController?.handleHistoryUpdate()
     }
 
-    logMonitor.start()
+    schedulePostLaunchTasks(isRunningUITests: isRunningUITests)
 
     if shouldShowSettings {
       DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-        self?.settingsCoordinator?.show()
+        self?.presentSettingsWindow()
       }
     }
   }
 
   func applicationWillTerminate(_ notification: Notification) {
     logMonitor?.stopAll()
+  }
+
+  private func schedulePostLaunchTasks(isRunningUITests: Bool) {
+    guard let logMonitor else { return }
+
+    DispatchQueue.main.async { [weak self, weak logMonitor] in
+      logMonitor?.start()
+      if !isRunningUITests {
+        self?.configureLaunchAtLogin()
+      }
+    }
+  }
+
+  private func configureLaunchAtLogin() {
+    guard #available(macOS 13, *) else { return }
+
+    do {
+      let service = SMAppService.mainApp
+      if service.status != .enabled {
+        try service.register()
+        os_log("Launch at login enabled", log: launchLogger, type: .info)
+      }
+    } catch {
+      os_log("Failed to enable launch at login: %{public}@", log: launchLogger, type: .error, String(describing: error))
+    }
+  }
+
+  private func presentSettingsWindow() {
+    if settingsCoordinator == nil {
+      settingsCoordinator = SettingsCoordinator(
+        configurationStore: configurationStore,
+        logMonitor: logMonitor
+      )
+    }
+    settingsCoordinator?.show()
   }
 }

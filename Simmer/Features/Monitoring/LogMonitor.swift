@@ -13,6 +13,7 @@ final class LogMonitor: NSObject {
   typealias WatcherFactory = (LogPattern) -> FileWatching
 
   private let configurationStore: ConfigurationStoreProtocol
+  private let fileAccessManager: FileAccessManaging
   private let patternMatcher: PatternMatcherProtocol
   private let matchEventHandler: MatchEventHandler
   private let iconAnimator: IconAnimator
@@ -41,34 +42,40 @@ final class LogMonitor: NSObject {
   private var patternPriorities: [UUID: Int] = [:]
   private var lastAnimationTimestamps: [UUID: Date] = [:]
   private var currentAnimation: (patternID: UUID, priority: Int)?
+  private var activeBookmarkURLs: [UUID: URL] = [:]
+  private var didBootstrapPatterns = false
 
+  @MainActor
   init(
     configurationStore: ConfigurationStoreProtocol = ConfigurationStore(),
-    patternMatcher: PatternMatcherProtocol = RegexPatternMatcher(),
+    fileAccessManager: FileAccessManaging? = nil,
+    patternMatcher: PatternMatcherProtocol? = nil,
     matchEventHandler: MatchEventHandler,
     iconAnimator: IconAnimator,
-    watcherFactory: @escaping WatcherFactory = { pattern in
-      FileWatcher(path: pattern.logPath)
-    },
+    watcherFactory: WatcherFactory? = nil,
     dateProvider: @escaping () -> Date = Date.init,
     processingQueue: DispatchQueue = DispatchQueue(
       label: "com.quantierra.Simmer.log-monitor.processing",
       qos: .userInitiated
     ),
-    alertPresenter: LogMonitorAlertPresenting = NSAlertPresenter(),
+    alertPresenter: LogMonitorAlertPresenting? = nil,
     notificationCenter: NotificationCenter = .default
   ) {
     self.configurationStore = configurationStore
-    self.patternMatcher = patternMatcher
+    self.fileAccessManager = fileAccessManager ?? FileAccessManager()
+    self.patternMatcher = patternMatcher ?? RegexPatternMatcher()
     self.matchEventHandler = matchEventHandler
     self.iconAnimator = iconAnimator
-    self.watcherFactory = watcherFactory
+    self.watcherFactory = watcherFactory ?? { pattern in
+      FileWatcher(path: pattern.logPath)
+    }
     self.dateProvider = dateProvider
     self.processingQueue = processingQueue
-    self.alertPresenter = alertPresenter
+    self.alertPresenter = alertPresenter ?? NSAlertPresenter()
     self.notificationCenter = notificationCenter
     super.init()
     self.matchEventHandler.delegate = self
+    bootstrapInitialPatterns()
   }
 
   /// Exposes the match event handler for UI components that need history access.
@@ -80,7 +87,15 @@ final class LogMonitor: NSObject {
   @MainActor
   var onHistoryUpdate: (([MatchEvent]) -> Void)?
 
+  @MainActor
+  private func bootstrapInitialPatterns() {
+    let persisted = configurationStore.loadPatterns().filter(\.enabled)
+    configureWatchers(for: persisted)
+    didBootstrapPatterns = true
+  }
+
   /// Reloads patterns from storage and reconciles active watchers.
+  @MainActor
   func reloadPatterns() {
     let patterns = configurationStore.loadPatterns()
     configureWatchers(for: patterns.filter(\.enabled))
@@ -92,25 +107,32 @@ final class LogMonitor: NSObject {
   }
 
   /// Loads persisted patterns and begins monitoring enabled entries.
+  @MainActor
   func start() {
     let patterns = configurationStore.loadPatterns().filter(\.enabled)
     configureWatchers(for: patterns)
+    didBootstrapPatterns = true
     notifyPatternsDidChange()
   }
 
   /// Stops all active watchers and clears internal state.
   func stopAll() {
-    let activeWatchers: [FileWatching] = stateQueue.sync {
-      let current = entriesByPatternID.values.map(\.watcher)
+    let result: ([FileWatching], [URL]) = stateQueue.sync {
+      let currentWatchers = entriesByPatternID.values.map(\.watcher)
+      let bookmarkURLs = Array(activeBookmarkURLs.values)
       entriesByPatternID.removeAll()
       watcherIdentifiers.removeAll()
       patternPriorities.removeAll()
       lastAnimationTimestamps.removeAll()
       currentAnimation = nil
-      return current
+      activeBookmarkURLs.removeAll()
+      return (currentWatchers, bookmarkURLs)
     }
+    let activeWatchers = result.0
+    let bookmarkURLs = result.1
 
     activeWatchers.forEach { $0.stop() }
+    bookmarkURLs.forEach { $0.stopAccessingSecurityScopedResource() }
 
     Task { @MainActor [iconAnimator] in
       iconAnimator.stopAnimation()
@@ -121,14 +143,16 @@ final class LogMonitor: NSObject {
     notificationCenter.post(name: .logMonitorPatternsDidChange, object: self)
   }
 
+  @MainActor
   private func configureWatchers(for patterns: [LogPattern]) {
-    let limitedPatterns = Array(patterns.prefix(maxWatcherCount))
-    if patterns.count > maxWatcherCount {
+    let preparedPatterns = preparePatterns(patterns)
+    let limitedPatterns = Array(preparedPatterns.prefix(maxWatcherCount))
+    if preparedPatterns.count > maxWatcherCount {
       os_log(
         .error,
         log: logger,
         "Watcher limit exceeded (%{public}d > %{public}d). Additional patterns will not be monitored.",
-        patterns.count,
+        preparedPatterns.count,
         maxWatcherCount
       )
     }
@@ -148,6 +172,186 @@ final class LogMonitor: NSObject {
       if updatePattern(pattern) { continue }
       addWatcher(for: pattern)
     }
+  }
+
+  @MainActor
+  private func preparePatterns(_ patterns: [LogPattern]) -> [LogPattern] {
+    patterns.compactMap { pattern in
+      preparePatternForMonitoring(pattern)
+    }
+  }
+
+  @MainActor
+  private func preparePatternForMonitoring(_ pattern: LogPattern) -> LogPattern? {
+    guard let bookmark = pattern.bookmark else {
+      return pattern
+    }
+
+    do {
+      let (url, isStale) = try fileAccessManager.resolveBookmark(bookmark)
+      if isStale {
+        return handleStaleBookmark(for: pattern, bookmark: bookmark)
+      }
+
+      return registerBookmarkAccessIfNeeded(url: url, for: pattern)
+    } catch {
+      handleBookmarkResolutionFailure(pattern: pattern, error: error)
+      return nil
+    }
+  }
+
+  @MainActor
+  private func handleStaleBookmark(
+    for pattern: LogPattern,
+    bookmark: FileBookmark
+  ) -> LogPattern? {
+    do {
+      let refreshed = try fileAccessManager.refreshStaleBookmark(bookmark)
+      var updatedPattern = pattern
+      updatedPattern.bookmark = refreshed
+      updatedPattern.logPath = refreshed.filePath
+
+      do {
+        try configurationStore.updatePattern(updatedPattern)
+      } catch {
+        os_log(
+          .error,
+          log: logger,
+          "Failed to persist refreshed bookmark for pattern '%{public}@': %{public}@",
+          pattern.name,
+          String(describing: error)
+        )
+      }
+
+      do {
+        let (url, isStillStale) = try fileAccessManager.resolveBookmark(refreshed)
+        guard !isStillStale else {
+          os_log(
+            .error,
+            log: logger,
+            "Bookmark for pattern '%{public}@' remained stale after refresh",
+            pattern.name
+          )
+          disablePattern(updatedPattern, message: """
+          Simmer still cannot access "\(updatedPattern.logPath)" after refreshing permissions. Try selecting the file again in Settings.
+          """)
+          return nil
+        }
+
+        return registerBookmarkAccessIfNeeded(url: url, for: updatedPattern)
+      } catch {
+        handleBookmarkResolutionFailure(pattern: updatedPattern, error: error)
+        return nil
+      }
+    } catch {
+      handleBookmarkRefreshFailure(pattern: pattern, error: error)
+      return nil
+    }
+  }
+
+  @MainActor
+  private func registerBookmarkAccessIfNeeded(
+    url: URL,
+    for pattern: LogPattern
+  ) -> LogPattern? {
+    let existingURL: URL? = stateQueue.sync {
+      activeBookmarkURLs[pattern.id]
+    }
+
+    if let current = existingURL, current == url {
+      return pattern
+    }
+
+    if let current = existingURL {
+      current.stopAccessingSecurityScopedResource()
+    }
+
+    var updatedPattern = pattern
+    updatedPattern.logPath = url.path
+
+    if url.startAccessingSecurityScopedResource() {
+      stateQueue.sync {
+        activeBookmarkURLs[pattern.id] = url
+      }
+    } else {
+      os_log(
+        .info,
+        log: logger,
+        "Security-scoped access unavailable for pattern '%{public}@'. Continuing without bookmark activation.",
+        pattern.name
+      )
+      stateQueue.sync {
+        activeBookmarkURLs.removeValue(forKey: pattern.id)
+      }
+    }
+
+    return updatedPattern
+  }
+
+  @MainActor
+  private func handleBookmarkResolutionFailure(pattern: LogPattern, error: Error) {
+    os_log(
+      .error,
+      log: logger,
+      "Failed to resolve bookmark for pattern '%{public}@': %{public}@",
+      pattern.name,
+      String(describing: error)
+    )
+    disablePattern(pattern, message: """
+    Simmer lost access to "\(pattern.logPath)". Select the file again in Settings to resume monitoring.
+    """)
+  }
+
+  @MainActor
+  private func handleBookmarkRefreshFailure(pattern: LogPattern, error: Error) {
+    if let accessError = error as? FileAccessError, accessError == .userCancelled {
+      os_log(
+        .info,
+        log: logger,
+        "User cancelled bookmark refresh for pattern '%{public}@'",
+        pattern.name
+      )
+      disablePattern(pattern, message: """
+      Access to "\(pattern.logPath)" needs to be renewed before monitoring can continue. Open Settings and reselect the file.
+      """)
+      return
+    }
+
+    os_log(
+      .error,
+      log: logger,
+      "Failed to refresh bookmark for pattern '%{public}@': %{public}@",
+      pattern.name,
+      String(describing: error)
+    )
+    disablePattern(pattern, message: """
+    Simmer could not refresh access to "\(pattern.logPath)". Try selecting the file again from Settings.
+    """)
+  }
+
+  @MainActor
+  private func disablePattern(_ pattern: LogPattern, message: String) {
+    var updatedPattern = pattern
+    if updatedPattern.enabled {
+      updatedPattern.enabled = false
+      do {
+        try configurationStore.updatePattern(updatedPattern)
+      } catch {
+        os_log(
+          .error,
+          log: logger,
+          "Failed to disable pattern '%{public}@' after access error: %{public}@",
+          pattern.name,
+          String(describing: error)
+        )
+      }
+    }
+
+    alertPresenter.presentAlert(
+      title: "File access required",
+      message: message
+    )
+    notifyPatternsDidChange()
   }
 
   private func process(
@@ -317,17 +521,22 @@ final class LogMonitor: NSObject {
 
   @discardableResult
   private func removeWatcher(forPatternID patternID: UUID) -> WatchEntry? {
-    let entry: WatchEntry? = stateQueue.sync {
-      guard let entry = entriesByPatternID.removeValue(forKey: patternID) else { return nil }
+    let result: (WatchEntry?, URL?) = stateQueue.sync {
+      guard let entry = entriesByPatternID.removeValue(forKey: patternID) else { return (nil, nil) }
       watcherIdentifiers.removeValue(forKey: ObjectIdentifier(entry.watcher))
       lastAnimationTimestamps.removeValue(forKey: patternID)
       if currentAnimation?.patternID == patternID {
         currentAnimation = nil
       }
-      return entry
+      let bookmarkURL = activeBookmarkURLs.removeValue(forKey: patternID)
+      return (entry, bookmarkURL)
     }
 
+    let entry = result.0
+    let bookmarkURL = result.1
+
     entry?.watcher.stop()
+    bookmarkURL?.stopAccessingSecurityScopedResource()
     return entry
   }
 
