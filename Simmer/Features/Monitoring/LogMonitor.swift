@@ -651,7 +651,7 @@ private extension LogMonitor {
 
   /// Records the time when a match is detected on the processing queue.
   /// Access stays synchronized via `stateQueue` to avoid racing with animation callbacks.
-  func recordLatencyStart(for patternID: UUID, matchCount: Int) {
+  nonisolated func recordLatencyStart(for patternID: UUID, matchCount: Int) {
     let timestamp = dateProvider()
     stateQueue.sync {
       var queue = pendingLatencyStartDates[patternID] ?? []
