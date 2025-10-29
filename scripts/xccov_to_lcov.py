@@ -70,8 +70,6 @@ def generate_lcov(xcresult_path: Path, output_path: Path, repo_root: Path) -> No
                     continue
                 line_no = entry["line"]
                 exec_count = entry.get("executionCount", 0)
-                if rel_path.name in {"FileWatcher.swift", "PatternMatcher.swift"}:
-                    exec_count = max(exec_count, 1)
                 lines.append(f"DA:{line_no},{exec_count}")
             lines.append("end_of_record")
 

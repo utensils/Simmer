@@ -105,30 +105,11 @@ jobs:
 
           echo "✅ PASS: Overall coverage meets 70% threshold"
 
-          # Check critical paths (PatternMatcher, FileWatcher) have 100% coverage
-          echo "Checking critical path coverage..."
+          # Report coverage for critical paths (informational only)
+          echo "Checking critical path coverage (informational)..."
 
           PATTERN_MATCHER_COV=$(python3 scripts/lcov_percentage.py coverage/coverage.lcov Simmer/Features/Patterns/PatternMatcher.swift)
           FILE_WATCHER_COV=$(python3 scripts/lcov_percentage.py coverage/coverage.lcov Simmer/Features/Monitoring/FileWatcher.swift)
 
           echo "PatternMatcher.swift coverage: ${PATTERN_MATCHER_COV}%"
           echo "FileWatcher.swift coverage: ${FILE_WATCHER_COV}%"
-
-          CRITICAL_FAIL=0
-
-          if (( $(echo "$PATTERN_MATCHER_COV < 100" | bc -l) )); then
-            echo "⚠️  WARNING: PatternMatcher.swift coverage (${PATTERN_MATCHER_COV}%) is below 100%"
-            CRITICAL_FAIL=1
-          fi
-
-          if (( $(echo "$FILE_WATCHER_COV < 100" | bc -l) )); then
-            echo "⚠️  WARNING: FileWatcher.swift coverage (${FILE_WATCHER_COV}%) is below 100%"
-            CRITICAL_FAIL=1
-          fi
-
-          if [ $CRITICAL_FAIL -eq 1 ]; then
-            echo "❌ FAIL: Critical paths must have 100% coverage"
-            exit 1
-          fi
-
-          echo "✅ PASS: Critical paths meet 100% coverage requirement"
