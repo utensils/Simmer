@@ -5,19 +5,19 @@
 
 ## Summary
 
-Build native macOS menu bar application for passive log monitoring with visual feedback. Core functionality includes real-time file monitoring using DispatchSource, regex pattern matching with NSRegularExpression, programmatic icon animations via Core Graphics, and SwiftUI-based configuration UI. App must maintain <1% CPU idle, <5% active, <50MB memory while monitoring up to 20 log files simultaneously with sub-500ms match feedback latency.
+Build native macOS menu bar application for passive log monitoring with visual feedback. Core functionality includes real-time file monitoring using DispatchSource, regex pattern matching with NSRegularExpression, programmatic icon animations via Core Graphics, JSON import/export of pattern configurations, and SwiftUI-based configuration UI. App must maintain <1% CPU idle, <5% active, <50MB memory while monitoring up to 20 log files simultaneously with sub-500ms match feedback latency.
 
 ## Technical Context
 
 **Language/Version**: Swift 5.9+
 **Primary Dependencies**: Foundation, AppKit (menu bar), SwiftUI (settings), Core Graphics (icon rendering)
-**Storage**: UserDefaults for pattern configurations with JSON encoding
-**Testing**: XCTest framework with file system mocking for watcher tests
+**Storage**: UserDefaults for pattern configurations with JSON encoding plus import/export pipeline writing JSON files to disk using security-scoped bookmarks
+**Testing**: XCTest framework with file system mocking for watcher tests plus performance harness for pattern matching/detection latency
 **Target Platform**: macOS 14.0+ (Sonoma)
 **Project Type**: Single native macOS application
 **Performance Goals**: 60fps icon animations, <10ms pattern matching per line, <500ms match detection latency
-**Constraints**: <1% CPU idle, <5% CPU active, <50MB memory, menu bar-only (LSUIElement), sandboxed file access
-**Scale/Scope**: Support 20 simultaneous file watchers (FR-020), 10 recent matches in history, up to 20 stored pattern configurations
+**Constraints**: <1% CPU idle, <5% CPU active, <50MB memory, menu bar-only (LSUIElement), no sandbox (direct file access)
+**Scale/Scope**: Support up to 20 simultaneous file watchers/patterns (FR-020, EC-003), 10 recent matches in history, and JSON round-trip for all stored configurations
 
 ## Constitution Check
 
@@ -34,7 +34,7 @@ Build native macOS menu bar application for passive log monitoring with visual f
 - **Performance targets**: <1% CPU idle, <5% active, <50MB memory explicitly defined in FR-017, FR-018
 
 ### Principle III: Developer-Centric UX ✅
-- **Power-user features**: Raw regex syntax (FR-011), file path wildcards/env vars (FR-024), JSON export/import planned
+- **Power-user features**: Raw regex syntax (FR-011), file path wildcards/env vars (FR-024), JSON export/import for configuration portability (FR-027)
 - **No patronization**: Settings expose technical details (regex, file paths, RGB colors)
 - **Technical audience**: Developers monitoring worker queues, comfortable with log file concepts
 
@@ -98,6 +98,8 @@ Simmer/
 │   └── IconAnimationState.swift   # Current animation state
 ├── Services/
 │   ├── ConfigurationStore.swift   # UserDefaults persistence
+│   ├── ConfigurationExporter.swift # JSON export of pattern configurations with bookmark data
+│   ├── ConfigurationImporter.swift # JSON import/validation with schema enforcement
 │   ├── PathExpander.swift         # Tilde/env var expansion
 │   └── LaunchAtLoginController.swift # SMAppService launch at login management
 └── Utilities/
@@ -108,6 +110,8 @@ SimmerTests/
 ├── MenuBarTests/
 │   ├── IconAnimatorTests.swift    # Animation state machine tests
 │   └── MenuBuilderTests.swift     # Menu structure tests
+├── UtilitiesTests/
+│   └── RelativeTimeFormatterTests.swift # Time formatting helpers
 ├── MonitoringTests/
 │   ├── FileWatcherTests.swift     # Mocked file system tests
 │   └── LogMonitorTests.swift      # Coordination tests
@@ -117,6 +121,7 @@ SimmerTests/
 │   └── MatchEventHandlerTests.swift # Prioritization tests
 ├── ServicesTests/
 │   ├── ConfigurationStoreTests.swift # Persistence tests
+│   ├── ConfigurationExportImportTests.swift # JSON round-trip tests
 │   └── LaunchAtLoginControllerTests.swift # Launch at login tests
 └── Mocks/
     ├── MockFileHandle.swift       # File I/O mocking

@@ -107,9 +107,9 @@
 - [X] T053 [US2] Integrate MenuBuilder with MenuBarController to build menu on statusItem click
 - [X] T054 [US2] Implement menu refresh on MatchEventHandlerDelegate.historyDidUpdate callback in MenuBarController
 - [X] T055 [US2] Manual test: Trigger multiple matches, click icon, verify menu shows recent 10 with timestamps, test Clear All
-- [ ] T121 [US2] Extend MatchEventHandler to track consecutive matches per pattern and emit warning events after 50 consecutive matches (EC-005)
-- [ ] T122 [US2] Surface EC-005 warning in MenuBuilder/MenuBar UI (dedicated menu item + highlight) and clear warning after manual reset
-- [ ] T123 [US2] Write tests for EC-005 warning flow covering threshold detection, reset, and UI rendering (MatchEventHandlerTests, MenuBuilderTests)
+- [X] T121 [US2] Extend MatchEventHandler to track consecutive matches per pattern and emit warning events after 50 consecutive matches (EC-005)
+- [X] T122 [US2] Surface EC-005 warning in MenuBuilder/MenuBar UI (dedicated menu item + highlight) and clear warning after manual reset
+- [X] T123 [US2] Write tests for EC-005 warning flow covering threshold detection, reset, and UI rendering (MatchEventHandlerTests, MenuBuilderTests)
 
 ## Phase 5: User Story 3 - Configure Patterns and Files (P3)
 
@@ -145,11 +145,11 @@
 - [X] T072 [US3] Implement enable/disable toggle in PatternListView updating LogPattern.enabled and stopping/starting FileWatcher
 - [X] T073 [US3] Wire Settings menu action in MenuBuilder to open SettingsWindow
 - [X] T074 [US3] Implement LogMonitor.reloadPatterns method to sync with ConfigurationStore changes from settings UI
-- [ ] T124 [US3] Implement ConfigurationExporter in Simmer/Services/ConfigurationExporter.swift to serialize patterns (including bookmark data) to JSON files (FR-027)
-- [ ] T125 [US3] Implement ConfigurationImporter in Simmer/Services/ConfigurationImporter.swift with schema validation, duplicate resolution, and bookmark restoration (FR-027)
-- [ ] T126 [US3] Write ConfigurationExportImportTests in SimmerTests/ServicesTests/ConfigurationExportImportTests.swift covering round-trip, invalid JSON, missing bookmarks (FR-027)
-- [ ] T127 [US3] Add export action in Settings UI (button/menu) invoking ConfigurationExporter with security-scoped save panel (FR-027)
-- [ ] T128 [US3] Add import action in Settings UI invoking ConfigurationImporter, surfacing inline errors, and reloading LogMonitor (FR-027)
+- [X] T124 [US3] Implement ConfigurationExporter in Simmer/Services/ConfigurationExporter.swift to serialize patterns (including bookmark data) to JSON files (FR-027)
+- [X] T125 [US3] Implement ConfigurationImporter in Simmer/Services/ConfigurationImporter.swift with schema validation, duplicate resolution, and bookmark restoration (FR-027)
+- [X] T126 [US3] Write ConfigurationExportImportTests in SimmerTests/ServicesTests/ConfigurationExportImportTests.swift covering round-trip, invalid JSON, missing bookmarks (FR-027)
+- [X] T127 [US3] Add export action in Settings UI (button/menu) invoking ConfigurationExporter with security-scoped save panel (FR-027)
+- [X] T128 [US3] Add import action in Settings UI invoking ConfigurationImporter, surfacing inline errors, and reloading LogMonitor (FR-027)
 - [ ] T129 [US3] Manual test: Export patterns, clear local store, import JSON, verify patterns restored with bookmarks and monitoring resumes (FR-027)
 - [X] T075 [US3] Manual test: Open settings, add pattern with invalid regex (verify error), add valid pattern, save, verify monitoring starts, edit pattern, delete pattern
 
@@ -172,8 +172,8 @@
 - [X] T080 [US4] Update MatchEventHandler to track pattern priority and only trigger animation for highest-priority active match
 - [X] T081 [US4] Implement debouncing in LogMonitor to coalesce rapid matches within 100ms window per TECH_DESIGN.md
 - [X] T082 [US4] Write multi-watcher tests in SimmerTests/MonitoringTests/LogMonitorTests.swift (20 concurrent watchers, prioritization, debouncing)
-- [ ] T148 [US4] Display EC-003 warning alert with message "Maximum 20 patterns supported" when user attempts to add or enable a 21st pattern (FR-020, EC-003)
-- [ ] T149 [US4] Extend LogMonitorTests or MenuBuilderTests to verify EC-003 warning presentation and dismissal when pattern count returns below the limit (FR-020, EC-003)
+- [X] T148 [US4] Display EC-003 warning alert with message "Maximum 20 patterns supported" when user attempts to add or enable a 21st pattern (FR-020, EC-003)
+- [X] T149 [US4] Extend LogMonitorTests or MenuBuilderTests to verify EC-003 warning presentation and dismissal when pattern count returns below the limit (FR-020, EC-003)
 - [ ] T083 [US4] Profile with Instruments Time Profiler: verify <5% CPU with 10 active patterns and 100 matches/second
 - [ ] T084 [US4] Profile with Instruments Allocations: verify <50MB memory with 20 patterns and 10k match history
 - [ ] T085 [US4] Manual test: Configure 5 patterns for 5 different log files, trigger simultaneous matches, verify correct animation priority
@@ -250,7 +250,7 @@
 
 ### Release & Distribution
 
-- [X] T135 [P] Create Simmer.entitlements file with hardened runtime entitlements (com.apple.security.app-sandbox, com.apple.security.files.user-selected.read-write) for notarization (FR-028)
+- [X] T135 [P] Create Simmer.entitlements file with hardened runtime entitlements (no sandbox, hardened runtime only) for notarization (FR-028)
 - [X] T136 [P] Create release.yml workflow: trigger on v* tags, import signing certificate from GitHub Secrets (APPLE_CERTIFICATE_P12, APPLE_CERTIFICATE_PASSWORD) (FR-028, FR-030)
 - [X] T137 Set up notarization in release.yml: submit .app to Apple using notarytool with App Store Connect API key (APPLE_API_KEY_ID, APPLE_API_ISSUER, APPLE_API_KEY_CONTENT), poll for completion (FR-028)
 - [X] T138 Implement stapling in release.yml: run `xcrun stapler staple` after notarization completes to embed approval ticket in .app bundle for offline verification (FR-029)
