@@ -28,6 +28,7 @@ jobs:
             -destination 'platform=macOS' \
             -enableCodeCoverage YES \
             -derivedDataPath DerivedData \
+            -resultBundlePath DerivedData/Logs/Test/Simmer.xcresult \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
@@ -39,6 +40,7 @@ jobs:
         run: |
           # Create coverage directory
           mkdir -p coverage
+          XCRESULT_PATH="DerivedData/Logs/Test/Simmer.xcresult"
 
           # Try xcov first (likely not installed on runner)
           xcrun xcov \
@@ -53,25 +55,14 @@ jobs:
             xcrun xccov view \
               --report \
               --json \
-              DerivedData/Logs/Test/*.xcresult > coverage/coverage.json
+              "$XCRESULT_PATH" > coverage/coverage.json
           fi
 
       - name: Convert coverage to LCOV format
         run: |
-          # Find the xcresult bundle
-          XCRESULT_PATH=$(find DerivedData/Logs/Test -name "*.xcresult" | head -n 1)
-
-          # Find the profdata file
-          PROFDATA_PATH=$(find "$XCRESULT_PATH" -name "*.profdata" | head -n 1)
-
-          # Find the app binary
-          BINARY_PATH="DerivedData/Build/Products/Debug/Simmer.app/Contents/MacOS/Simmer"
-
-          # Convert to lcov format
-          xcrun llvm-cov export \
-            -format="lcov" \
-            -instr-profile="$PROFDATA_PATH" \
-            "$BINARY_PATH" > coverage/coverage.lcov
+          python3 scripts/xccov_to_lcov.py \
+            DerivedData/Logs/Test/Simmer.xcresult \
+            coverage/coverage.lcov
 
           echo "✅ Converted coverage to LCOV format"
 
@@ -101,7 +92,8 @@ jobs:
           fi
 
           # Parse overall coverage percentage
-          OVERALL_COVERAGE=$(xcrun xccov view --report DerivedData/Logs/Test/*.xcresult | grep -E "^\s+Simmer.app" | awk '{print $3}' | sed 's/%//')
+          XCRESULT_PATH="DerivedData/Logs/Test/Simmer.xcresult"
+          OVERALL_COVERAGE=$(xcrun xccov view --report "$XCRESULT_PATH" | grep -E "^\s+Simmer.app" | awk '{print $3}' | sed 's/%//')
 
           echo "Overall coverage: ${OVERALL_COVERAGE}%"
 
@@ -116,8 +108,8 @@ jobs:
           # Check critical paths (PatternMatcher, FileWatcher) have 100% coverage
           echo "Checking critical path coverage..."
 
-          PATTERN_MATCHER_COV=$(xcrun xccov view --report --files-for-target Simmer.app DerivedData/Logs/Test/*.xcresult | grep "PatternMatcher.swift" | awk '{print $4}' | sed 's/%//' || echo "0")
-          FILE_WATCHER_COV=$(xcrun xccov view --report --files-for-target Simmer.app DerivedData/Logs/Test/*.xcresult | grep "FileWatcher.swift" | awk '{print $4}' | sed 's/%//' || echo "0")
+          PATTERN_MATCHER_COV=$(xcrun xccov view --report --files-for-target Simmer.app "$XCRESULT_PATH" | grep "PatternMatcher.swift" | awk '{print $4}' | sed 's/%//' || echo "0")
+          FILE_WATCHER_COV=$(xcrun xccov view --report --files-for-target Simmer.app "$XCRESULT_PATH" | grep "FileWatcher.swift" | awk '{print $4}' | sed 's/%//' || echo "0")
 
           echo "PatternMatcher.swift coverage: ${PATTERN_MATCHER_COV}%"
           echo "FileWatcher.swift coverage: ${FILE_WATCHER_COV}%"
