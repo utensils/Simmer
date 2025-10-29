@@ -688,7 +688,7 @@ internal final class LogMonitorTests: XCTestCase {
     notificationCenter: NotificationCenter = NotificationCenter(),
     processingQueue: DispatchQueue? = nil,
     watcherFactory customWatcherFactory: ((LogPattern) -> FileWatching)? = nil
-  ) -> (LogMonitor, TestWatcherRegistry, MatchEventHandler, IconAnimator, InMemoryStore, DispatchQueue) {
+  ) -> (LogMonitor, TestWatcherRegistry, MatchEventHandler, IconAnimator, InMemoryStore, DispatchQueue) { // swiftlint:disable:this large_tuple
     let handler = MatchEventHandler()
     let timer = TestAnimationTimer()
     let clock = TestAnimationClock()
