@@ -16,7 +16,10 @@ internal protocol FileWatching: AnyObject {
 
 internal protocol FileWatcherDelegate: AnyObject {
   func fileWatcher(_ watcher: FileWatching, didReadLines lines: [String])
-  func fileWatcher(_ watcher: FileWatching, didEncounterError error: FileWatcherError)
+  func fileWatcher(
+    _ watcher: FileWatching,
+    didEncounterError error: FileWatcherError
+  )
 }
 
 internal enum FileWatcherError: Error, Equatable {

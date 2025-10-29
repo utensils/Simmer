@@ -9,7 +9,7 @@ import AppKit
 import SwiftUI
 
 @MainActor
-final class SettingsCoordinator: NSObject, NSWindowDelegate {
+internal final class SettingsCoordinator: NSObject, NSWindowDelegate {
   private let configurationStore: any ConfigurationStoreProtocol
   private let logMonitor: LogMonitor?
   private let launchAtLoginController: LaunchAtLoginControlling
@@ -35,12 +35,21 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
     prepareActivationPolicyIfNeeded()
 
     if let controller = windowController {
-      NSLog("[SettingsCoordinator] reusing existing window")
-      controller.window?.orderFrontRegardless()
-      NSApp.activate(ignoringOtherApps: true)
+      reuseExistingWindow(controller)
       return
     }
 
+    createAndShowNewWindow()
+    NSLog("[SettingsCoordinator] window presented")
+  }
+
+  private func reuseExistingWindow(_ controller: NSWindowController) {
+    NSLog("[SettingsCoordinator] reusing existing window")
+    controller.window?.orderFrontRegardless()
+    NSApp.activate(ignoringOtherApps: true)
+  }
+
+  private func createAndShowNewWindow() {
     let view = createPatternListView()
     let hostingController = createHostingController(with: view)
     let window = createWindow(with: hostingController)
@@ -49,9 +58,7 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
     controller.showWindow(nil)
     window.contentMinSize = minimumContentSize
     windowController = controller
-
     presentWindow(window)
-    NSLog("[SettingsCoordinator] window presented")
   }
 
   private func createPatternListView() -> PatternListView {

@@ -766,7 +766,10 @@ private final class StubFileWatcher: FileWatching {
 
   @MainActor
   func send(error: FileWatcherError) {
-    delegate?.fileWatcher(self, didEncounterError: error)
+    delegate?.fileWatcher(
+      self,
+      didEncounterError: error
+    )
   }
 }
 

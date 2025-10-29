@@ -129,7 +129,10 @@ internal final class FileWatcher: FileWatching {
     }
 
     guard fileDescriptor >= 0 else {
-      delegate?.fileWatcher(self, didEncounterError: .fileDescriptorInvalid)
+      delegate?.fileWatcher(
+        self,
+        didEncounterError: .fileDescriptorInvalid
+      )
       return
     }
 
@@ -137,7 +140,10 @@ internal final class FileWatcher: FileWatching {
 
     let seekResult = fileSystem.lseek(fileDescriptor, readOffset, SEEK_SET)
     if seekResult == -1 {
-      delegate?.fileWatcher(self, didEncounterError: mapErrnoToError(Darwin.errno))
+      delegate?.fileWatcher(
+        self,
+        didEncounterError: mapErrnoToError(Darwin.errno)
+      )
       stop()
       return
     }
@@ -165,7 +171,10 @@ internal final class FileWatcher: FileWatching {
       } else if bytesRead == 0 {
         break
       } else {
-        delegate?.fileWatcher(self, didEncounterError: mapErrnoToError(Darwin.errno))
+        delegate?.fileWatcher(
+          self,
+          didEncounterError: mapErrnoToError(Darwin.errno)
+        )
         stop()
         return
       }
@@ -211,12 +220,16 @@ internal final class FileWatcher: FileWatching {
     switch value {
     case ENOENT:
       return .fileDeleted(path: path)
+
     case EACCES:
       return .permissionDenied(path: path)
+
     case EPERM:
       return .permissionDenied(path: path)
+
     case EBADF:
       return .fileDescriptorInvalid
+
     default:
       return .fileDescriptorInvalid
     }

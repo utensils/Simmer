@@ -195,7 +195,10 @@ private final class TestFileWatcherDelegate: FileWatcherDelegate {
     linesExpectation?.fulfill()
   }
 
-  func fileWatcher(_ watcher: FileWatching, didEncounterError error: FileWatcherError) {
+  func fileWatcher(
+    _ watcher: FileWatching,
+    didEncounterError error: FileWatcherError
+  ) {
     receivedErrors.append(error)
     errorExpectation?.fulfill()
   }

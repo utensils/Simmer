@@ -8,7 +8,7 @@
 import Foundation
 
 /// Describes persistence capabilities used by the monitoring coordinator.
-protocol ConfigurationStoreProtocol {
+internal protocol ConfigurationStoreProtocol {
   /// Loads all stored log patterns; returns an empty array when nothing is persisted.
   func loadPatterns() -> [LogPattern]
 

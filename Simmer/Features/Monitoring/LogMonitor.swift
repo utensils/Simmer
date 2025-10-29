@@ -240,7 +240,8 @@ internal final class LogMonitor: NSObject {
       disablePattern(
         updatedPattern,
         message: """
-        Simmer cannot find "\(expandedPath)". Verify the file exists or choose it again in Settings to continue monitoring "\(updatedPattern.name)".
+        Simmer cannot find "\(expandedPath)". Verify the file exists or choose it again in \
+        Settings to continue monitoring "\(updatedPattern.name)".
         """
       )
       return nil
@@ -257,7 +258,8 @@ internal final class LogMonitor: NSObject {
       disablePattern(
         updatedPattern,
         message: """
-        "\(expandedPath)" is a directory. Select a specific log file in Settings before re-enabling "\(updatedPattern.name)".
+        "\(expandedPath)" is a directory. Select a specific log file in Settings before \
+        re-enabling "\(updatedPattern.name)".
         """
       )
       return nil
@@ -409,11 +411,13 @@ internal final class LogMonitor: NSObject {
       Simmer stopped monitoring "\(patternName)" because "\(filePath)" is missing. \
       Restore the file or choose a new path in Settings, then re-enable the pattern.
       """
+
     case .permissionDenied:
       return """
       Simmer no longer has permission to read "\(filePath)" for pattern "\(patternName)". \
       Update permissions or select a new file in Settings before re-enabling the pattern.
       """
+
     case .fileDescriptorInvalid:
       return """
       Simmer hit an unexpected error while reading "\(filePath)" for pattern "\(patternName)". \
@@ -598,7 +602,10 @@ extension LogMonitor: FileWatcherDelegate {
     }
   }
 
-  func fileWatcher(_ watcher: FileWatching, didEncounterError error: FileWatcherError) {
+  func fileWatcher(
+    _ watcher: FileWatching,
+    didEncounterError error: FileWatcherError
+  ) {
     guard let patternID = patternID(for: watcher) else { return }
     processingQueue.async { [weak self] in
       self?.handleWatcherError(
@@ -681,7 +688,10 @@ extension LogMonitor: MatchEventHandlerDelegate {
   }
 
   @MainActor
-  func matchEventHandler(_ handler: MatchEventHandler, didUpdateWarnings warnings: [FrequentMatchWarning]) {
+  func matchEventHandler(
+    _ handler: MatchEventHandler,
+    didUpdateWarnings warnings: [FrequentMatchWarning]
+  ) {
     onWarningsUpdate?(warnings)
   }
 }

@@ -67,6 +67,7 @@ internal struct PatternEditorView: View {
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
           Button("Cancel", role: .cancel) {
+            ColorPickerView.closeActiveColorPanel()
             dismiss()
           }
         }
@@ -211,6 +212,7 @@ internal struct PatternEditorView: View {
     )
 
     onSave(updatedPattern)
+    ColorPickerView.closeActiveColorPanel()
     dismiss()
   }
 
@@ -253,6 +255,7 @@ extension PatternEditorView {
       switch self {
       case .create:
         return "New Pattern"
+
       case .edit:
         return "Edit Pattern"
       }
@@ -269,8 +272,10 @@ internal extension AnimationStyle {
     switch self {
     case .glow:
       return "Glow"
+
     case .pulse:
       return "Pulse"
+
     case .blink:
       return "Blink"
     }
@@ -288,15 +293,17 @@ internal enum ManualPathValidationError: LocalizedError {
     switch self {
     case .missing(let path):
       return """
-      “\(path)” does not exist. Use the Choose… button to select an existing log file.
+      "\(path)" does not exist. Use the Choose… button to select an existing log file.
       """
+
     case .directory(let path):
       return """
-      “\(path)” is a directory. Select a specific log file instead.
+      "\(path)" is a directory. Select a specific log file instead.
       """
+
     case .unreadable(let path):
       return """
-      Simmer does not have permission to read “\(path)”. Use the Choose… button so macOS can grant access.
+      Simmer does not have permission to read "\(path)". Use the Choose… button so macOS can grant access.
       """
     }
   }

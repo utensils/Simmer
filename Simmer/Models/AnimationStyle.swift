@@ -9,7 +9,7 @@ import Foundation
 
 /// Menu bar icon animation styles supported by Simmer.
 internal enum AnimationStyle: String, Codable, CaseIterable {
-  case glow
-  case pulse
-  case blink
+  case glow = "glow"
+  case pulse = "pulse"
+  case blink = "blink"
 }

@@ -5,8 +5,8 @@
 //  SwiftUI component for adjusting CodableColor values with a native picker and RGB sliders.
 //
 
-import SwiftUI
 import AppKit
+import SwiftUI
 
 /// Wraps SwiftUI's ColorPicker with RGB sliders to edit a `CodableColor`.
 internal struct ColorPickerView: View {
@@ -32,6 +32,9 @@ internal struct ColorPickerView: View {
       componentSlider(title: "Blue", value: sliderBinding(for: .blue), tint: .blue)
     }
     .padding(.vertical, 4)
+    .onDisappear {
+      Self.closeActiveColorPanel()
+    }
   }
 
   // MARK: - Subviews
@@ -66,7 +69,7 @@ internal struct ColorPickerView: View {
 
   // MARK: - Bindings
 
-  private var bindingForColorPicker: Binding<Color> {
+  internal var bindingForColorPicker: Binding<Color> {
     Binding<Color>(
       get: { currentColor },
       set: { newValue in
@@ -75,14 +78,16 @@ internal struct ColorPickerView: View {
     )
   }
 
-  private func sliderBinding(for component: RGBComponent) -> Binding<Double> {
+  internal func sliderBinding(for component: RGBComponent) -> Binding<Double> {
     Binding<Double>(
       get: {
         switch component {
         case .red:
           return color.red * 255
+
         case .green:
           return color.green * 255
+
         case .blue:
           return color.blue * 255
         }
@@ -97,8 +102,10 @@ internal struct ColorPickerView: View {
         switch component {
         case .red:
           red = normalized
+
         case .green:
           green = normalized
+
         case .blue:
           blue = normalized
         }
@@ -113,12 +120,12 @@ internal struct ColorPickerView: View {
     )
   }
 
-  private func updateColor(with color: Color) {
-    #if os(macOS)
-      if let cgColor = color.cgColor, let nsColor = NSColor(cgColor: cgColor) {
-        self.color = CodableColor(nsColor: nsColor)
-        return
-      }
+  internal func updateColor(with color: Color) {
+#if os(macOS)
+    if let cgColor = color.cgColor, let nsColor = NSColor(cgColor: cgColor) {
+      self.color = CodableColor(nsColor: nsColor)
+      return
+    }
     #endif
 
     guard let cgColor = color.cgColor, let components = cgColor.components, components.count >= 3 else {
@@ -133,10 +140,43 @@ internal struct ColorPickerView: View {
     )
   }
 
-  private enum RGBComponent {
+  internal enum RGBComponent {
     case red
     case green
     case blue
+  }
+
+  // MARK: - Color panel integration
+
+  internal static var isColorPanelVisible: () -> Bool = {
+#if os(macOS)
+    NSColorPanel.shared.isVisible
+#else
+    false
+#endif
+  }
+
+  internal static var dismissColorPanel: () -> Void = {
+#if os(macOS)
+    NSColorPanel.shared.orderOut(nil)
+#else
+    return
+#endif
+  }
+
+  internal static func closeActiveColorPanel() {
+#if os(macOS)
+    if isColorPanelVisible() {
+      dismissColorPanel()
+    }
+#endif
+  }
+
+  internal static func resetColorPanelHooks() {
+#if os(macOS)
+    isColorPanelVisible = { NSColorPanel.shared.isVisible }
+    dismissColorPanel = { NSColorPanel.shared.orderOut(nil) }
+#endif
   }
 }
 

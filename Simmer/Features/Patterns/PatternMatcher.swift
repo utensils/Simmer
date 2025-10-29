@@ -60,12 +60,12 @@ internal final class RegexPatternMatcher: PatternMatcherProtocol {
 
     do {
       let compiled = try NSRegularExpression(pattern: pattern, options: [])
-      cacheQueue.async(flags: .barrier) {
+      cacheQueue.sync(flags: .barrier) {
         self.cache.setObject(compiled, forKey: key)
       }
-      return compiled
-    } catch {
-      return nil
-    }
-  }
+     return compiled
+   } catch {
+     return nil
+   }
+ }
 }
