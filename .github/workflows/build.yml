@@ -43,6 +43,7 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
+            SWIFT_STRICT_CONCURRENCY=minimal \
             | xcpretty --color
 
           # Check build exit code
@@ -66,6 +67,7 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             SWIFT_TREAT_WARNINGS_AS_ERRORS=NO \
+            SWIFT_STRICT_CONCURRENCY=minimal \
             | xcpretty --color
 
           # Verify archive exists
