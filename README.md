@@ -2,7 +2,7 @@
 
 Passive log monitoring for macOS with subtle visual feedback.
 
-![Simmer Screenshot](docs/images/screenshot.png)
+![Simmer Logo](docs/images/logo.png)
 
 ## What is Simmer?
 
