@@ -7,19 +7,19 @@ import AppKit
 import XCTest
 @testable import Simmer
 
-// swiftlint:disable large_tuple
-
 internal final class LogMonitorTests: XCTestCase {
   func test_start_createsWatcherForEnabledPatternsOnly() async {
     let enabled = makePattern(name: "Error", enabled: true)
     let disabled = makePattern(name: "Info", enabled: false)
 
-    let (monitor, registry, _, _, _, _) = await MainActor.run {
+    let bundle = await MainActor.run {
       makeMonitor(
         patterns: [enabled, disabled],
         matcher: MockPatternMatcher()
       )
     }
+    let monitor = bundle.monitor
+    let registry = bundle.registry
 
     await MainActor.run {
       monitor.start()
@@ -41,9 +41,11 @@ internal final class LogMonitorTests: XCTestCase {
     let pattern = makePattern(name: "Boot", enabled: true)
     let matcher = MockPatternMatcher()
 
-    let (monitor, registry, _, _, _, _) = await MainActor.run {
+    let bundle = await MainActor.run {
       makeMonitor(patterns: [pattern], matcher: matcher)
     }
+    let monitor = bundle.monitor
+    let registry = bundle.registry
 
     XCTAssertNotNil(registry.watcher(for: pattern.id))
 
@@ -63,7 +65,7 @@ internal final class LogMonitorTests: XCTestCase {
       TestAlertPresenter(expectation: alertExpectation)
     }
 
-    let (monitor, registry, _, _, storeRef, queue) = await MainActor.run {
+    let bundle = await MainActor.run {
       makeMonitor(
         patterns: [pattern],
         matcher: matcher,
@@ -72,6 +74,10 @@ internal final class LogMonitorTests: XCTestCase {
         notificationCenter: notificationCenter
       )
     }
+    let monitor = bundle.monitor
+    let registry = bundle.registry
+    let storeRef = bundle.store
+    let queue = bundle.queue
 
     let notificationExpectation = expectation(description: "patterns change broadcast")
     var notificationFulfilled = false
@@ -124,12 +130,16 @@ internal final class LogMonitorTests: XCTestCase {
 
     let expectation = expectation(description: "animation started")
 
-    let (monitor, registry, handler, iconAnimator, _, _) = await MainActor.run {
+    let bundle = await MainActor.run {
       makeMonitor(
         patterns: [pattern],
         matcher: matcher
       )
     }
+    let monitor = bundle.monitor
+    let registry = bundle.registry
+    let handler = bundle.handler
+    let iconAnimator = bundle.iconAnimator
 
     let delegate = await MainActor.run { SpyIconAnimatorDelegate(onStart: { expectation.fulfill() }) }
     await MainActor.run { iconAnimator.delegate = delegate }
@@ -164,13 +174,16 @@ internal final class LogMonitorTests: XCTestCase {
     matcher.fallbackResult = MatchResult(range: NSRange(location: 0, length: 6), captureGroups: [])
     let dateProvider = TestDateProvider(now: Date(timeIntervalSince1970: 0))
 
-    let (monitor, registry, _, _, _, queue) = await MainActor.run {
+    let bundle = await MainActor.run {
       makeMonitor(
         patterns: [pattern],
         matcher: matcher,
         dateProvider: dateProvider
       )
     }
+    let monitor = bundle.monitor
+    let registry = bundle.registry
+    let queue = bundle.queue
 
     let latencyExpectation = expectation(description: "latency measured")
     var measuredLatency: TimeInterval = .infinity
@@ -205,12 +218,16 @@ internal final class LogMonitorTests: XCTestCase {
     let pattern = makePattern(name: "Batch", enabled: true)
     let matcher = MockPatternMatcher()
 
-    let (monitor, registry, handler, _, _, queue) = await MainActor.run {
+    let bundle = await MainActor.run {
       makeMonitor(
         patterns: [pattern],
         matcher: matcher
       )
     }
+    let monitor = bundle.monitor
+    let registry = bundle.registry
+    let handler = bundle.handler
+    let queue = bundle.queue
 
     let matchExpectation = expectation(description: "match recorded")
 
@@ -260,13 +277,16 @@ internal final class LogMonitorTests: XCTestCase {
     let matcher = MockPatternMatcher()
     let store = InMemoryStore(initialPatterns: [pattern])
 
-    let (monitor, registry, _, _, storeRef, _) = await MainActor.run {
+    let bundle = await MainActor.run {
       makeMonitor(
         patterns: [pattern],
         matcher: matcher,
         store: store
       )
     }
+    let monitor = bundle.monitor
+    let registry = bundle.registry
+    let storeRef = bundle.store
 
     await MainActor.run {
       monitor.start()
@@ -305,12 +325,14 @@ internal final class LogMonitorTests: XCTestCase {
 
     let expectation = expectation(description: "history updated")
 
-    let (monitor, registry, _, _, _, _) = await MainActor.run {
+    let bundle = await MainActor.run {
       makeMonitor(
         patterns: [pattern],
         matcher: matcher
       )
     }
+    let monitor = bundle.monitor
+    let registry = bundle.registry
 
     await MainActor.run {
       monitor.onHistoryUpdate = { _ in
@@ -342,9 +364,11 @@ internal final class LogMonitorTests: XCTestCase {
     }
     let matcher = MockPatternMatcher()
 
-    let (monitor, registry, _, _, _, _) = await MainActor.run {
+    let bundle = await MainActor.run {
       makeMonitor(patterns: patterns, matcher: matcher)
     }
+    let monitor = bundle.monitor
+    let registry = bundle.registry
 
     await MainActor.run {
       monitor.start()
@@ -370,13 +394,16 @@ internal final class LogMonitorTests: XCTestCase {
     let matcher = MockPatternMatcher()
     let alertPresenter = await MainActor.run { RecordingAlertPresenter() }
 
-    let (monitor, registry, _, _, storeRef, _) = await MainActor.run {
+    let bundle = await MainActor.run {
       makeMonitor(
         patterns: [pattern],
         matcher: matcher,
         alertPresenter: alertPresenter
       )
     }
+    let monitor = bundle.monitor
+    let registry = bundle.registry
+    let storeRef = bundle.store
 
     await MainActor.run {
       monitor.start()
@@ -403,13 +430,16 @@ internal final class LogMonitorTests: XCTestCase {
     let matcher = MockPatternMatcher()
     let store = InMemoryStore(initialPatterns: [pattern])
 
-    let (monitor, registry, _, _, storeRef, _) = await MainActor.run {
+    let bundle = await MainActor.run {
       makeMonitor(
         patterns: [pattern],
         matcher: matcher,
         store: store
       )
     }
+    let monitor = bundle.monitor
+    let registry = bundle.registry
+    let storeRef = bundle.store
 
     await MainActor.run {
       monitor.start()
@@ -445,7 +475,7 @@ internal final class LogMonitorTests: XCTestCase {
     let store = InMemoryStore(initialPatterns: [pattern])
     let alertPresenter = await MainActor.run { RecordingAlertPresenter() }
 
-    let (monitor, registry, _, _, storeRef, _) = await MainActor.run {
+    let bundle = await MainActor.run {
       makeMonitor(
         patterns: [pattern],
         matcher: matcher,
@@ -453,6 +483,9 @@ internal final class LogMonitorTests: XCTestCase {
         alertPresenter: alertPresenter
       )
     }
+    let monitor = bundle.monitor
+    let registry = bundle.registry
+    let storeRef = bundle.store
 
     XCTAssertNil(registry.watcher(for: pattern.id), "Watcher should not be created for missing file")
 
@@ -475,13 +508,16 @@ internal final class LogMonitorTests: XCTestCase {
     matcher.fallbackResult = MatchResult(range: NSRange(location: 0, length: 5), captureGroups: [])
     let dateProvider = TestDateProvider()
 
-    let (monitor, registry, _, iconAnimator, _, _) = await MainActor.run {
+    let bundle = await MainActor.run {
       makeMonitor(
         patterns: [high, low],
         matcher: matcher,
         dateProvider: dateProvider
       )
     }
+    let monitor = bundle.monitor
+    let registry = bundle.registry
+    let iconAnimator = bundle.iconAnimator
 
     let startExpectation = expectation(description: "high priority animation started")
     var startCount = 0
@@ -538,13 +574,17 @@ internal final class LogMonitorTests: XCTestCase {
     matcher.fallbackResult = MatchResult(range: NSRange(location: 0, length: 1), captureGroups: [])
     let dateProvider = TestDateProvider()
 
-    let (monitor, registry, handler, iconAnimator, _, _) = await MainActor.run {
+    let bundle = await MainActor.run {
       makeMonitor(
         patterns: patterns,
         matcher: matcher,
         dateProvider: dateProvider
       )
     }
+    let monitor = bundle.monitor
+    let registry = bundle.registry
+    let handler = bundle.handler
+    let iconAnimator = bundle.iconAnimator
 
     var startCount = 0
     let startExpectation = expectation(description: "highest priority animation started once")
@@ -598,13 +638,16 @@ internal final class LogMonitorTests: XCTestCase {
     matcher.fallbackResult = MatchResult(range: NSRange(location: 0, length: 3), captureGroups: [])
     let dateProvider = TestDateProvider()
 
-    let (monitor, registry, _, iconAnimator, _, _) = await MainActor.run {
+    let bundle = await MainActor.run {
       makeMonitor(
         patterns: [pattern],
         matcher: matcher,
         dateProvider: dateProvider
       )
     }
+    let monitor = bundle.monitor
+    let registry = bundle.registry
+    let iconAnimator = bundle.iconAnimator
 
     let initialStart = expectation(description: "initial animation")
     let restartExpectation = expectation(description: "animation restarted after debounce")
@@ -660,6 +703,15 @@ internal final class LogMonitorTests: XCTestCase {
 
   // MARK: - Helpers
 
+  private struct MonitorBundle {
+    let monitor: LogMonitor
+    let registry: TestWatcherRegistry
+    let handler: MatchEventHandler
+    let iconAnimator: IconAnimator
+    let store: InMemoryStore
+    let queue: DispatchQueue
+  }
+
   private func makePattern(
     name: String,
     enabled: Bool
@@ -690,7 +742,7 @@ internal final class LogMonitorTests: XCTestCase {
     notificationCenter: NotificationCenter = NotificationCenter(),
     processingQueue: DispatchQueue? = nil,
     watcherFactory customWatcherFactory: ((LogPattern) -> FileWatching)? = nil
-  ) -> (LogMonitor, TestWatcherRegistry, MatchEventHandler, IconAnimator, InMemoryStore, DispatchQueue) { // swiftlint:disable:this large_tuple
+  ) -> MonitorBundle {
     let handler = MatchEventHandler()
     let timer = TestAnimationTimer()
     let clock = TestAnimationClock()
@@ -713,11 +765,16 @@ internal final class LogMonitorTests: XCTestCase {
       notificationCenter: notificationCenter
     )
 
-    return (monitor, registry, handler, iconAnimator, backingStore, queue)
+    return MonitorBundle(
+      monitor: monitor,
+      registry: registry,
+      handler: handler,
+      iconAnimator: iconAnimator,
+      store: backingStore,
+      queue: queue
+    )
   }
 }
-
-// swiftlint:enable large_tuple
 
 // MARK: - Test Doubles
 
