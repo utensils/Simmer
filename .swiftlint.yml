@@ -7,8 +7,6 @@ excluded:
   - DerivedData
   - .build
 
-warning_threshold: 0
-
 disabled_rules:
   - file_length
   - todo

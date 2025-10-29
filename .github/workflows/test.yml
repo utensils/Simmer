@@ -28,6 +28,9 @@ jobs:
             -destination 'platform=macOS' \
             -enableCodeCoverage YES \
             -derivedDataPath DerivedData \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
             | xcpretty --color
 
       - name: Generate coverage report

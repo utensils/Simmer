@@ -39,6 +39,9 @@ jobs:
             -configuration Release \
             -destination 'platform=macOS' \
             -derivedDataPath DerivedData \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
             | xcpretty --color
 
           # Check build exit code
@@ -58,6 +61,9 @@ jobs:
             -configuration Release \
             -archivePath DerivedData/Simmer.xcarchive \
             -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
             | xcpretty --color
 
           # Verify archive exists
