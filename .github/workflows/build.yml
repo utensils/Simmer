@@ -36,7 +36,7 @@ jobs:
         run: |
           xcodebuild build \
             -scheme Simmer \
-            -configuration Release \
+            -configuration Debug \
             -destination 'platform=macOS' \
             -derivedDataPath DerivedData \
             CODE_SIGN_IDENTITY="" \
@@ -58,7 +58,7 @@ jobs:
         run: |
           xcodebuild archive \
             -scheme Simmer \
-            -configuration Release \
+            -configuration Debug \
             -archivePath DerivedData/Simmer.xcarchive \
             -destination 'platform=macOS' \
             CODE_SIGN_IDENTITY="" \
