@@ -1,4 +1,6 @@
-# Claude Code Instructions for Simmer
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Rule #1: Concise Documentation
 
@@ -88,10 +90,17 @@ Place code in appropriate feature directories:
 
 ## Quick Reference
 
-**Build**: Cmd+B
-**Run**: Cmd+R
-**Test**: Cmd+U
-**Lint**: SwiftLint from terminal
+```bash
+# Build and test
+xcodebuild -project Simmer.xcodeproj -scheme Simmer -configuration Debug build
+xcodebuild test -project Simmer.xcodeproj -scheme Simmer -destination 'platform=macOS'
+xcodebuild test -project Simmer.xcodeproj -scheme Simmer -only-testing:SimmerTests/PatternMatcherTests
+
+# Lint and format
+swiftlint
+swiftlint --fix
+swiftformat .
+```
 
 **Key files**:
 - `SimmerApp.swift`: App entry point
@@ -99,9 +108,31 @@ Place code in appropriate feature directories:
 - `LogMonitor.swift`: File watching coordinator
 - `PatternMatcher.swift`: Regex matching engine
 
-## Active Technologies
-- Swift 5.9+ + Foundation, AppKit (menu bar), SwiftUI (settings), Core Graphics (icon rendering) (001-mvp-core)
-- UserDefaults for pattern configurations with JSON encoding (001-mvp-core)
+## Architecture Overview
 
-## Recent Changes
-- 001-mvp-core: Added Swift 5.9+ + Foundation, AppKit (menu bar), SwiftUI (settings), Core Graphics (icon rendering)
+**Concurrency Model**:
+- LogMonitor and FileWatcher use background DispatchQueues for file I/O
+- Pattern matching happens off main thread
+- UI updates (MenuBarController, icon animations) must be on main thread
+- Use `@MainActor` or `DispatchQueue.main.async` for UI updates
+
+**Protocol-Based Design**:
+- `FileSystemProtocol`: Abstracts file system for testability (RealFileSystem vs MockFileSystem)
+- `PatternMatcherProtocol`: Allows mock pattern matching in tests
+- `ConfigurationStoreProtocol`: Enables in-memory stores for tests
+
+**Data Flow**:
+```
+LogMonitor → FileWatcher → New lines detected
+          ↓
+PatternMatcher → Match found
+          ↓
+MatchEventHandler → IconAnimator → MenuBarController (UI update on main thread)
+```
+
+## Active Technologies
+- Swift 5.9+ with strict concurrency checking
+- Foundation, AppKit (menu bar), SwiftUI (settings), Core Graphics (icon rendering)
+- DispatchSource for file monitoring
+- UserDefaults for pattern configurations with JSON encoding
+- XCTest with protocol-based mocking
