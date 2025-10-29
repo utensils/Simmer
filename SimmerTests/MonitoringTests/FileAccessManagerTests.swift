@@ -10,6 +10,7 @@ import UniformTypeIdentifiers
 import XCTest
 @testable import Simmer
 
+@MainActor
 final class FileAccessManagerTests: XCTestCase {
   func test_requestAccess_returnsSelectedURL() async throws {
     let temporaryURL = makeTemporaryFile()
@@ -22,7 +23,8 @@ final class FileAccessManagerTests: XCTestCase {
     let url = try await MainActor.run { try manager.requestAccess() }
 
     XCTAssertEqual(url, temporaryURL)
-    XCTAssertEqual(panel.runModalCallCount, 1)
+    let runModalCalls = panel.runModalCallCount
+    XCTAssertEqual(runModalCalls, 1)
   }
 
   func test_requestAccess_throwsWhenUserCancels() async {

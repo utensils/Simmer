@@ -7,51 +7,42 @@ import AppKit
 import XCTest
 @testable import Simmer
 
+@MainActor
 internal final class LogMonitorTests: XCTestCase {
   func test_start_createsWatcherForEnabledPatternsOnly() async {
     let enabled = makePattern(name: "Error", enabled: true)
     let disabled = makePattern(name: "Info", enabled: false)
 
-    let bundle = await MainActor.run {
-      makeMonitor(
-        patterns: [enabled, disabled],
-        matcher: MockPatternMatcher()
-      )
-    }
+    let bundle = makeMonitor(
+      patterns: [enabled, disabled],
+      matcher: MockPatternMatcher()
+    )
     let monitor = bundle.monitor
     let registry = bundle.registry
 
-    await MainActor.run {
-      monitor.start()
-    }
+    monitor.start()
 
-    let enabledID = await MainActor.run { enabled.id }
-    let disabledID = await MainActor.run { disabled.id }
+    let enabledID = enabled.id
+    let disabledID = disabled.id
 
     XCTAssertNotNil(registry.watcher(for: enabledID))
     XCTAssertNil(registry.watcher(for: disabledID))
     XCTAssertEqual(registry.watcher(for: enabledID)?.startCount, 1)
 
-    await MainActor.run {
-      monitor.stopAll()
-    }
+    monitor.stopAll()
   }
 
   func test_initCreatesWatchersForPersistedPatterns() async {
     let pattern = makePattern(name: "Boot", enabled: true)
     let matcher = MockPatternMatcher()
 
-    let bundle = await MainActor.run {
-      makeMonitor(patterns: [pattern], matcher: matcher)
-    }
+    let bundle = makeMonitor(patterns: [pattern], matcher: matcher)
     let monitor = bundle.monitor
     let registry = bundle.registry
 
     XCTAssertNotNil(registry.watcher(for: pattern.id))
 
-    await MainActor.run {
-      monitor.stopAll()
-    }
+    monitor.stopAll()
   }
 
   func test_fileWatcherErrorDisablesPatternAndShowsAlert() async {
@@ -61,19 +52,15 @@ internal final class LogMonitorTests: XCTestCase {
     let notificationCenter = NotificationCenter()
 
     let alertExpectation = expectation(description: "alert presented")
-    let alertPresenter = await MainActor.run {
-      TestAlertPresenter(expectation: alertExpectation)
-    }
+    let alertPresenter = TestAlertPresenter(expectation: alertExpectation)
 
-    let bundle = await MainActor.run {
-      makeMonitor(
-        patterns: [pattern],
-        matcher: matcher,
-        store: store,
-        alertPresenter: alertPresenter,
-        notificationCenter: notificationCenter
-      )
-    }
+    let bundle = makeMonitor(
+      patterns: [pattern],
+      matcher: matcher,
+      store: store,
+      alertPresenter: alertPresenter,
+      notificationCenter: notificationCenter
+    )
     let monitor = bundle.monitor
     let registry = bundle.registry
     let storeRef = bundle.store
@@ -84,26 +71,22 @@ internal final class LogMonitorTests: XCTestCase {
     let observer = notificationCenter.addObserver(
       forName: .logMonitorPatternsDidChange,
       object: nil,
-      queue: nil
+      queue: .main
     ) { _ in
       guard !notificationFulfilled else { return }
       notificationFulfilled = true
       notificationExpectation.fulfill()
     }
 
-    await MainActor.run {
-      monitor.start()
-    }
+    monitor.start()
 
-    let patternID = await MainActor.run { pattern.id }
+    let patternID = pattern.id
     guard let watcher = registry.watcher(for: patternID) else {
       XCTFail("Watcher not created for pattern")
       return
     }
 
-    await MainActor.run {
-      watcher.send(error: .permissionDenied(path: pattern.logPath))
-    }
+    watcher.send(error: .permissionDenied(path: pattern.logPath))
 
     queue.sync { }
 
@@ -114,13 +97,11 @@ internal final class LogMonitorTests: XCTestCase {
     let updated = storeRef.loadPatterns().first { $0.id == patternID }
     XCTAssertEqual(updated?.enabled, false)
 
-    let messages = await MainActor.run { alertPresenter.messages }
+    let messages = alertPresenter.messages
     XCTAssertEqual(messages.count, 1)
     XCTAssertTrue(messages.first?.message.contains(pattern.logPath) ?? false)
 
-    await MainActor.run {
-      monitor.stopAll()
-    }
+    monitor.stopAll()
   }
 
   func test_fileWatcherEventTriggersMatchAndAnimation() async {
@@ -130,42 +111,34 @@ internal final class LogMonitorTests: XCTestCase {
 
     let expectation = expectation(description: "animation started")
 
-    let bundle = await MainActor.run {
-      makeMonitor(
-        patterns: [pattern],
-        matcher: matcher
-      )
-    }
+    let bundle = makeMonitor(
+      patterns: [pattern],
+      matcher: matcher
+    )
     let monitor = bundle.monitor
     let registry = bundle.registry
     let handler = bundle.handler
     let iconAnimator = bundle.iconAnimator
 
-    let delegate = await MainActor.run { SpyIconAnimatorDelegate(onStart: { expectation.fulfill() }) }
-    await MainActor.run { iconAnimator.delegate = delegate }
+    let delegate = SpyIconAnimatorDelegate(onStart: { expectation.fulfill() })
+    iconAnimator.delegate = delegate
 
-    await MainActor.run {
-      monitor.start()
-    }
-    let patternID = await MainActor.run { pattern.id }
+    monitor.start()
+    let patternID = pattern.id
     guard let watcher = registry.watcher(for: patternID) else {
       XCTFail("Watcher not created for pattern")
       return
     }
 
-    await MainActor.run {
-      watcher.send(lines: ["ERROR detected"])
-    }
+    watcher.send(lines: ["ERROR detected"])
 
     await fulfillment(of: [expectation], timeout: 1.0)
-    let history = await MainActor.run { handler.history }
+    let history = handler.history
     XCTAssertEqual(history.count, 1)
-    let storedPatternID = await MainActor.run { history.first?.patternID }
+    let storedPatternID = history.first?.patternID
     XCTAssertEqual(storedPatternID, patternID)
     XCTAssertEqual(history.first?.lineNumber, 1)
-    await MainActor.run {
-      monitor.stopAll()
-    }
+    monitor.stopAll()
   }
 
   func test_latencyMeasurementReportedUnderFiveHundredMilliseconds() async {
@@ -174,13 +147,11 @@ internal final class LogMonitorTests: XCTestCase {
     matcher.fallbackResult = MatchResult(range: NSRange(location: 0, length: 6), captureGroups: [])
     let dateProvider = TestDateProvider(now: Date(timeIntervalSince1970: 0))
 
-    let bundle = await MainActor.run {
-      makeMonitor(
-        patterns: [pattern],
-        matcher: matcher,
-        dateProvider: dateProvider
-      )
-    }
+    let bundle = makeMonitor(
+      patterns: [pattern],
+      matcher: matcher,
+      dateProvider: dateProvider
+    )
     let monitor = bundle.monitor
     let registry = bundle.registry
     let queue = bundle.queue
@@ -188,18 +159,14 @@ internal final class LogMonitorTests: XCTestCase {
     let latencyExpectation = expectation(description: "latency measured")
     var measuredLatency: TimeInterval = .infinity
 
-    await MainActor.run {
-      monitor.onLatencyMeasured = { latency in
-        measuredLatency = latency
-        latencyExpectation.fulfill()
-      }
-      monitor.start()
+    monitor.onLatencyMeasured = { latency in
+      measuredLatency = latency
+      latencyExpectation.fulfill()
     }
+    monitor.start()
 
-    let watcher = await MainActor.run { registry.watcher(for: pattern.id) }
-    await MainActor.run {
-      watcher?.send(lines: ["ERROR: latency test"])
-    }
+    let watcher = registry.watcher(for: pattern.id)
+    watcher?.send(lines: ["ERROR: latency test"])
 
     dateProvider.advance(by: 0.005)
     queue.sync { }
@@ -209,21 +176,17 @@ internal final class LogMonitorTests: XCTestCase {
     XCTAssertLessThan(measuredLatency, 0.5)
     XCTAssertLessThan(measuredLatency, 0.010)
 
-    await MainActor.run {
-      monitor.stopAll()
-    }
+    monitor.stopAll()
   }
 
   func test_fileWatcherProcessesMultipleLinesInBatch() async {
     let pattern = makePattern(name: "Batch", enabled: true)
     let matcher = MockPatternMatcher()
 
-    let bundle = await MainActor.run {
-      makeMonitor(
-        patterns: [pattern],
-        matcher: matcher
-      )
-    }
+    let bundle = makeMonitor(
+      patterns: [pattern],
+      matcher: matcher
+    )
     let monitor = bundle.monitor
     let registry = bundle.registry
     let handler = bundle.handler
@@ -231,16 +194,14 @@ internal final class LogMonitorTests: XCTestCase {
 
     let matchExpectation = expectation(description: "match recorded")
 
-    await MainActor.run {
-      monitor.onHistoryUpdate = { events in
-        if !events.isEmpty {
-          matchExpectation.fulfill()
-        }
+    monitor.onHistoryUpdate = { events in
+      if !events.isEmpty {
+        matchExpectation.fulfill()
       }
-      monitor.start()
     }
+    monitor.start()
 
-    let patternID = await MainActor.run { pattern.id }
+    let patternID = pattern.id
 
     matcher.enqueue(nil, for: patternID)
     matcher.enqueue(
@@ -254,22 +215,18 @@ internal final class LogMonitorTests: XCTestCase {
       return
     }
 
-    await MainActor.run {
-      watcher.send(lines: ["miss", "test", "other"])
-    }
+    watcher.send(lines: ["miss", "test", "other"])
 
     await fulfillment(of: [matchExpectation], timeout: 1.0)
 
     queue.sync { }
 
-    let history = await MainActor.run { handler.history }
+    let history = handler.history
     XCTAssertEqual(history.count, 1)
     XCTAssertEqual(history.first?.lineNumber, 2)
     XCTAssertEqual(history.first?.matchedLine, "test")
 
-    await MainActor.run {
-      monitor.stopAll()
-    }
+    monitor.stopAll()
   }
 
   func test_reloadPatterns_disablesWatchersForDisabledPatterns() async {
@@ -277,22 +234,18 @@ internal final class LogMonitorTests: XCTestCase {
     let matcher = MockPatternMatcher()
     let store = InMemoryStore(initialPatterns: [pattern])
 
-    let bundle = await MainActor.run {
-      makeMonitor(
-        patterns: [pattern],
-        matcher: matcher,
-        store: store
-      )
-    }
+    let bundle = makeMonitor(
+      patterns: [pattern],
+      matcher: matcher,
+      store: store
+    )
     let monitor = bundle.monitor
     let registry = bundle.registry
     let storeRef = bundle.store
 
-    await MainActor.run {
-      monitor.start()
-    }
+    monitor.start()
 
-    let patternID = await MainActor.run { pattern.id }
+    let patternID = pattern.id
     guard let watcher = registry.watcher(for: patternID) else {
       XCTFail("Watcher not created for pattern")
       return
@@ -300,22 +253,18 @@ internal final class LogMonitorTests: XCTestCase {
 
     XCTAssertEqual(watcher.stopCount, 0)
 
-    await MainActor.run {
-      var disabled = pattern
-      disabled.enabled = false
-      do {
-        try storeRef.updatePattern(disabled)
-      } catch {
-        XCTFail("Failed to update pattern in store: \(error)")
-      }
-      monitor.reloadPatterns()
+    var disabled = pattern
+    disabled.enabled = false
+    do {
+      try storeRef.updatePattern(disabled)
+    } catch {
+      XCTFail("Failed to update pattern in store: \(error)")
     }
+    monitor.reloadPatterns()
 
     XCTAssertEqual(watcher.stopCount, 1)
 
-    await MainActor.run {
-      monitor.stopAll()
-    }
+    monitor.stopAll()
   }
 
   func test_historyUpdateClosureInvokedWhenHistoryUpdates() async {
@@ -325,37 +274,29 @@ internal final class LogMonitorTests: XCTestCase {
 
     let expectation = expectation(description: "history updated")
 
-    let bundle = await MainActor.run {
-      makeMonitor(
-        patterns: [pattern],
-        matcher: matcher
-      )
-    }
+    let bundle = makeMonitor(
+      patterns: [pattern],
+      matcher: matcher
+    )
     let monitor = bundle.monitor
     let registry = bundle.registry
 
-    await MainActor.run {
-      monitor.onHistoryUpdate = { _ in
-        expectation.fulfill()
-      }
-      monitor.start()
+    monitor.onHistoryUpdate = { _ in
+      expectation.fulfill()
     }
+    monitor.start()
 
-    let patternID = await MainActor.run { pattern.id }
+    let patternID = pattern.id
     guard let watcher = registry.watcher(for: patternID) else {
       XCTFail("Watcher not created for pattern")
       return
     }
 
-    await MainActor.run {
-      watcher.send(lines: ["History"])
-    }
+    watcher.send(lines: ["History"])
 
     await fulfillment(of: [expectation], timeout: 1.0)
 
-    await MainActor.run {
-      monitor.stopAll()
-    }
+    monitor.stopAll()
   }
 
   func test_start_respectsWatcherLimit() async {
@@ -364,64 +305,52 @@ internal final class LogMonitorTests: XCTestCase {
     }
     let matcher = MockPatternMatcher()
 
-    let bundle = await MainActor.run {
-      makeMonitor(patterns: patterns, matcher: matcher)
-    }
+    let bundle = makeMonitor(patterns: patterns, matcher: matcher)
     let monitor = bundle.monitor
     let registry = bundle.registry
 
-    await MainActor.run {
-      monitor.start()
-    }
+    monitor.start()
 
     for index in 0..<20 {
-      let id = await MainActor.run { patterns[index].id }
+      let id = patterns[index].id
       XCTAssertNotNil(registry.watcher(for: id), "Expected watcher for pattern index \(index)")
     }
 
     for index in 20..<25 {
-      let id = await MainActor.run { patterns[index].id }
+      let id = patterns[index].id
       XCTAssertNil(registry.watcher(for: id), "Did not expect watcher for pattern index \(index)")
     }
 
-    await MainActor.run {
-      monitor.stopAll()
-    }
+    monitor.stopAll()
   }
 
   func test_setPatternEnabledFalse_stopsWatcherWithoutAlert() async {
     let pattern = makePattern(name: "Toggle", enabled: true)
     let matcher = MockPatternMatcher()
-    let alertPresenter = await MainActor.run { RecordingAlertPresenter() }
+    let alertPresenter = RecordingAlertPresenter()
 
-    let bundle = await MainActor.run {
-      makeMonitor(
-        patterns: [pattern],
-        matcher: matcher,
-        alertPresenter: alertPresenter
-      )
-    }
+    let bundle = makeMonitor(
+      patterns: [pattern],
+      matcher: matcher,
+      alertPresenter: alertPresenter
+    )
     let monitor = bundle.monitor
     let registry = bundle.registry
     let storeRef = bundle.store
 
-    await MainActor.run {
-      monitor.start()
-    }
+    monitor.start()
 
-    let patternID = await MainActor.run { pattern.id }
+    let patternID = pattern.id
     XCTAssertEqual(registry.watcher(for: patternID)?.startCount, 1)
 
     var disabled = pattern
     disabled.enabled = false
     try? storeRef.updatePattern(disabled)
 
-    await MainActor.run {
-      monitor.setPatternEnabled(patternID, isEnabled: false)
-    }
+    monitor.setPatternEnabled(patternID, isEnabled: false)
 
     XCTAssertEqual(registry.watcher(for: patternID)?.stopCount, 1)
-    let messages = await MainActor.run { alertPresenter.messages }
+    let messages = alertPresenter.messages
     XCTAssertTrue(messages.isEmpty)
   }
 
@@ -430,29 +359,23 @@ internal final class LogMonitorTests: XCTestCase {
     let matcher = MockPatternMatcher()
     let store = InMemoryStore(initialPatterns: [pattern])
 
-    let bundle = await MainActor.run {
-      makeMonitor(
-        patterns: [pattern],
-        matcher: matcher,
-        store: store
-      )
-    }
+    let bundle = makeMonitor(
+      patterns: [pattern],
+      matcher: matcher,
+      store: store
+    )
     let monitor = bundle.monitor
     let registry = bundle.registry
     let storeRef = bundle.store
 
-    await MainActor.run {
-      monitor.start()
-    }
+    monitor.start()
 
     XCTAssertNil(registry.watcher(for: pattern.id))
 
     pattern.enabled = true
     try? storeRef.updatePattern(pattern)
 
-    await MainActor.run {
-      monitor.setPatternEnabled(pattern.id, isEnabled: true)
-    }
+    monitor.setPatternEnabled(pattern.id, isEnabled: true)
 
     guard let watcher = registry.watcher(for: pattern.id) else {
       XCTFail("Expected watcher after enabling pattern")
@@ -473,16 +396,14 @@ internal final class LogMonitorTests: XCTestCase {
     )
     let matcher = MockPatternMatcher()
     let store = InMemoryStore(initialPatterns: [pattern])
-    let alertPresenter = await MainActor.run { RecordingAlertPresenter() }
+    let alertPresenter = RecordingAlertPresenter()
 
-    let bundle = await MainActor.run {
-      makeMonitor(
-        patterns: [pattern],
-        matcher: matcher,
-        store: store,
-        alertPresenter: alertPresenter
-      )
-    }
+    let bundle = makeMonitor(
+      patterns: [pattern],
+      matcher: matcher,
+      store: store,
+      alertPresenter: alertPresenter
+    )
     let monitor = bundle.monitor
     let registry = bundle.registry
     let storeRef = bundle.store
@@ -492,13 +413,11 @@ internal final class LogMonitorTests: XCTestCase {
     let updatedPattern = storeRef.loadPatterns().first { $0.id == pattern.id }
     XCTAssertEqual(updatedPattern?.enabled, false, "Pattern should be disabled after validation failure")
 
-    let messages = await MainActor.run { alertPresenter.messages }
+    let messages = alertPresenter.messages
     XCTAssertEqual(messages.count, 1)
     XCTAssertTrue(messages.first?.message.contains("cannot find") ?? false, "Alert should explain missing file")
 
-    await MainActor.run {
-      monitor.stopAll()
-    }
+    monitor.stopAll()
   }
 
   func test_lowerPriorityMatchDoesNotOverrideActiveHighPriority() async {
@@ -508,35 +427,29 @@ internal final class LogMonitorTests: XCTestCase {
     matcher.fallbackResult = MatchResult(range: NSRange(location: 0, length: 5), captureGroups: [])
     let dateProvider = TestDateProvider()
 
-    let bundle = await MainActor.run {
-      makeMonitor(
-        patterns: [high, low],
-        matcher: matcher,
-        dateProvider: dateProvider
-      )
-    }
+    let bundle = makeMonitor(
+      patterns: [high, low],
+      matcher: matcher,
+      dateProvider: dateProvider
+    )
     let monitor = bundle.monitor
     let registry = bundle.registry
     let iconAnimator = bundle.iconAnimator
 
     let startExpectation = expectation(description: "high priority animation started")
     var startCount = 0
-    let delegate = await MainActor.run {
-      SpyIconAnimatorDelegate {
-        startCount += 1
-        if startCount == 1 {
-          startExpectation.fulfill()
-        }
+    let delegate = SpyIconAnimatorDelegate {
+      startCount += 1
+      if startCount == 1 {
+        startExpectation.fulfill()
       }
     }
 
-    await MainActor.run {
-      iconAnimator.delegate = delegate
-      monitor.start()
-    }
+    iconAnimator.delegate = delegate
+    monitor.start()
 
-    let highID = await MainActor.run { high.id }
-    let lowID = await MainActor.run { low.id }
+    let highID = high.id
+    let lowID = low.id
 
     guard
       let highWatcher = registry.watcher(for: highID),
@@ -546,24 +459,18 @@ internal final class LogMonitorTests: XCTestCase {
       return
     }
 
-    await MainActor.run {
-      highWatcher.send(lines: ["High"])
-    }
+    highWatcher.send(lines: ["High"])
 
     await fulfillment(of: [startExpectation], timeout: 1.0)
 
-    await MainActor.run {
-      dateProvider.advance(by: 0.2)
-      lowWatcher.send(lines: ["Low"])
-    }
+    dateProvider.advance(by: 0.2)
+    lowWatcher.send(lines: ["Low"])
 
     try? await Task.sleep(nanoseconds: 200_000_000)
 
     XCTAssertEqual(startCount, 1, "Lower priority match should not start animation while higher is active")
 
-    await MainActor.run {
-      monitor.stopAll()
-    }
+    monitor.stopAll()
   }
 
   func test_animationUsesHighestPriority_whenFivePatternsMatch() async {
@@ -574,13 +481,11 @@ internal final class LogMonitorTests: XCTestCase {
     matcher.fallbackResult = MatchResult(range: NSRange(location: 0, length: 1), captureGroups: [])
     let dateProvider = TestDateProvider()
 
-    let bundle = await MainActor.run {
-      makeMonitor(
-        patterns: patterns,
-        matcher: matcher,
-        dateProvider: dateProvider
-      )
-    }
+    let bundle = makeMonitor(
+      patterns: patterns,
+      matcher: matcher,
+      dateProvider: dateProvider
+    )
     let monitor = bundle.monitor
     let registry = bundle.registry
     let handler = bundle.handler
@@ -588,34 +493,24 @@ internal final class LogMonitorTests: XCTestCase {
 
     var startCount = 0
     let startExpectation = expectation(description: "highest priority animation started once")
-    let delegate = await MainActor.run {
-      SpyIconAnimatorDelegate {
-        startCount += 1
-        if startCount == 1 {
-          startExpectation.fulfill()
-        }
+    let delegate = SpyIconAnimatorDelegate {
+      startCount += 1
+      if startCount == 1 {
+        startExpectation.fulfill()
       }
     }
 
-    await MainActor.run {
-      iconAnimator.delegate = delegate
-      monitor.start()
-    }
+    iconAnimator.delegate = delegate
+    monitor.start()
 
-    let watchers: [StubFileWatcher] = await MainActor.run {
-      patterns.compactMap { pattern in
-        registry.watcher(for: pattern.id)
-      }
+    let watchers: [StubFileWatcher] = patterns.compactMap { pattern in
+      registry.watcher(for: pattern.id)
     }
     XCTAssertEqual(watchers.count, patterns.count, "Expected watcher for each pattern")
 
     for watcher in watchers {
-      await MainActor.run {
-        watcher.send(lines: ["match"])
-      }
-      await MainActor.run {
-        dateProvider.advance(by: 0.05)
-      }
+      watcher.send(lines: ["match"])
+      dateProvider.advance(by: 0.05)
     }
 
     await fulfillment(of: [startExpectation], timeout: 1.0)
@@ -623,13 +518,11 @@ internal final class LogMonitorTests: XCTestCase {
 
     XCTAssertEqual(startCount, 1, "Animation should only start once for highest priority pattern")
 
-    let history = await MainActor.run { handler.history }
+    let history = handler.history
     XCTAssertEqual(history.count, patterns.count, "All matches should be recorded")
     XCTAssertEqual(history.first?.patternName, patterns.first?.name, "Highest priority pattern should lead animations")
 
-    await MainActor.run {
-      monitor.stopAll()
-    }
+    monitor.stopAll()
   }
 
   func test_debounceSkipsRapidAnimationRestarts() async {
@@ -638,13 +531,11 @@ internal final class LogMonitorTests: XCTestCase {
     matcher.fallbackResult = MatchResult(range: NSRange(location: 0, length: 3), captureGroups: [])
     let dateProvider = TestDateProvider()
 
-    let bundle = await MainActor.run {
-      makeMonitor(
-        patterns: [pattern],
-        matcher: matcher,
-        dateProvider: dateProvider
-      )
-    }
+    let bundle = makeMonitor(
+      patterns: [pattern],
+      matcher: matcher,
+      dateProvider: dateProvider
+    )
     let monitor = bundle.monitor
     let registry = bundle.registry
     let iconAnimator = bundle.iconAnimator
@@ -653,52 +544,40 @@ internal final class LogMonitorTests: XCTestCase {
     let restartExpectation = expectation(description: "animation restarted after debounce")
     var startCount = 0
 
-    let delegate = await MainActor.run {
-      SpyIconAnimatorDelegate {
-        startCount += 1
-        if startCount == 1 {
-          initialStart.fulfill()
-        } else if startCount == 2 {
-          restartExpectation.fulfill()
-        }
+    let delegate = SpyIconAnimatorDelegate {
+      startCount += 1
+      if startCount == 1 {
+        initialStart.fulfill()
+      } else if startCount == 2 {
+        restartExpectation.fulfill()
       }
     }
 
-    await MainActor.run {
-      iconAnimator.delegate = delegate
-      monitor.start()
-    }
+    iconAnimator.delegate = delegate
+    monitor.start()
 
-    let patternID = await MainActor.run { pattern.id }
+    let patternID = pattern.id
     guard let watcher = registry.watcher(for: patternID) else {
       XCTFail("Expected watcher for pattern")
       return
     }
 
-    await MainActor.run {
-      watcher.send(lines: ["A"])
-    }
+    watcher.send(lines: ["A"])
 
     await fulfillment(of: [initialStart], timeout: 1.0)
 
-    await MainActor.run {
-      watcher.send(lines: ["B"])
-    }
+    watcher.send(lines: ["B"])
 
     try? await Task.sleep(nanoseconds: 150_000_000)
     XCTAssertEqual(startCount, 1, "Debounce should prevent immediate restart")
 
-    await MainActor.run {
-      dateProvider.advance(by: 0.2)
-      watcher.send(lines: ["C"])
-    }
+    dateProvider.advance(by: 0.2)
+    watcher.send(lines: ["C"])
 
     await fulfillment(of: [restartExpectation], timeout: 1.0)
     XCTAssertEqual(startCount, 2)
 
-    await MainActor.run {
-      monitor.stopAll()
-    }
+    monitor.stopAll()
   }
 
   // MARK: - Helpers
