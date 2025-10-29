@@ -1,0 +1,106 @@
+name: Automated Testing
+
+on:
+  pull_request:
+    branches: [main, 'feature/**']
+  push:
+    branches: [main, 'feature/**']
+
+jobs:
+  test:
+    name: Run Tests & Coverage
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Run tests with coverage
+        run: |
+          xcodebuild test \
+            -scheme Simmer \
+            -destination 'platform=macOS' \
+            -enableCodeCoverage YES \
+            -derivedDataPath DerivedData \
+            | xcpretty --color
+
+      - name: Generate coverage report
+        run: |
+          xcrun xcov \
+            --scheme Simmer \
+            --derived_data_path DerivedData \
+            --json_report \
+            --output_directory coverage \
+            || echo "xcov not installed, using xccov instead"
+
+          # Fallback to xccov if xcov not available
+          if [ ! -f coverage/index.json ]; then
+            xcrun xccov view \
+              --report \
+              --json \
+              DerivedData/Logs/Test/*.xcresult > coverage/coverage.json
+          fi
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 30
+
+      - name: Check coverage thresholds
+        run: |
+          # Extract coverage percentage from xccov report
+          COVERAGE_FILE="coverage/coverage.json"
+
+          if [ ! -f "$COVERAGE_FILE" ]; then
+            echo "❌ Coverage report not found"
+            exit 1
+          fi
+
+          # Parse overall coverage percentage
+          OVERALL_COVERAGE=$(xcrun xccov view --report DerivedData/Logs/Test/*.xcresult | grep -E "^\s+Simmer.app" | awk '{print $3}' | sed 's/%//')
+
+          echo "Overall coverage: ${OVERALL_COVERAGE}%"
+
+          # Check minimum 70% overall coverage
+          if (( $(echo "$OVERALL_COVERAGE < 70" | bc -l) )); then
+            echo "❌ FAIL: Overall coverage (${OVERALL_COVERAGE}%) is below 70% threshold"
+            exit 1
+          fi
+
+          echo "✅ PASS: Overall coverage meets 70% threshold"
+
+          # Check critical paths (PatternMatcher, FileWatcher) have 100% coverage
+          echo "Checking critical path coverage..."
+
+          PATTERN_MATCHER_COV=$(xcrun xccov view --report --files-for-target Simmer.app DerivedData/Logs/Test/*.xcresult | grep "PatternMatcher.swift" | awk '{print $4}' | sed 's/%//' || echo "0")
+          FILE_WATCHER_COV=$(xcrun xccov view --report --files-for-target Simmer.app DerivedData/Logs/Test/*.xcresult | grep "FileWatcher.swift" | awk '{print $4}' | sed 's/%//' || echo "0")
+
+          echo "PatternMatcher.swift coverage: ${PATTERN_MATCHER_COV}%"
+          echo "FileWatcher.swift coverage: ${FILE_WATCHER_COV}%"
+
+          CRITICAL_FAIL=0
+
+          if (( $(echo "$PATTERN_MATCHER_COV < 100" | bc -l) )); then
+            echo "⚠️  WARNING: PatternMatcher.swift coverage (${PATTERN_MATCHER_COV}%) is below 100%"
+            CRITICAL_FAIL=1
+          fi
+
+          if (( $(echo "$FILE_WATCHER_COV < 100" | bc -l) )); then
+            echo "⚠️  WARNING: FileWatcher.swift coverage (${FILE_WATCHER_COV}%) is below 100%"
+            CRITICAL_FAIL=1
+          fi
+
+          if [ $CRITICAL_FAIL -eq 1 ]; then
+            echo "❌ FAIL: Critical paths must have 100% coverage"
+            exit 1
+          fi
+
+          echo "✅ PASS: Critical paths meet 100% coverage requirement"

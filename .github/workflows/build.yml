@@ -1,0 +1,139 @@
+name: Build Verification
+
+on:
+  pull_request:
+    branches: [main, 'feature/**']
+  push:
+    branches: [main, 'feature/**']
+
+jobs:
+  build:
+    name: Build macOS App
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Show Xcode and macOS version
+        run: |
+          xcodebuild -version
+          sw_vers
+
+      - name: Verify macOS 14.0+ requirement
+        run: |
+          MACOS_VERSION=$(sw_vers -productVersion | cut -d '.' -f 1)
+          if [ "$MACOS_VERSION" -lt 14 ]; then
+            echo "❌ FAIL: macOS 14.0+ required (current: $(sw_vers -productVersion))"
+            exit 1
+          fi
+          echo "✅ PASS: Running on macOS $(sw_vers -productVersion)"
+
+      - name: Build Simmer
+        run: |
+          xcodebuild build \
+            -scheme Simmer \
+            -configuration Release \
+            -destination 'platform=macOS' \
+            -derivedDataPath DerivedData \
+            | xcpretty --color
+
+          # Check build exit code
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+
+          if [ "$BUILD_EXIT_CODE" -ne 0 ]; then
+            echo "❌ FAIL: Build failed with exit code $BUILD_EXIT_CODE"
+            exit 1
+          fi
+
+          echo "✅ PASS: Build succeeded"
+
+      - name: Archive .app bundle
+        run: |
+          xcodebuild archive \
+            -scheme Simmer \
+            -configuration Release \
+            -archivePath DerivedData/Simmer.xcarchive \
+            -destination 'platform=macOS' \
+            | xcpretty --color
+
+          # Verify archive exists
+          if [ ! -d "DerivedData/Simmer.xcarchive" ]; then
+            echo "❌ FAIL: Archive creation failed"
+            exit 1
+          fi
+
+          echo "✅ PASS: Archive created successfully"
+
+      - name: Create distributable .app
+        run: |
+          # Export the archived app
+          mkdir -p DerivedData/Export
+
+          # Create export options plist
+          cat > DerivedData/ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>mac-application</string>
+              <key>destination</key>
+              <string>export</string>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild -exportArchive \
+            -archivePath DerivedData/Simmer.xcarchive \
+            -exportPath DerivedData/Export \
+            -exportOptionsPlist DerivedData/ExportOptions.plist \
+            | xcpretty --color
+
+          # Verify .app exists
+          if [ ! -d "DerivedData/Export/Simmer.app" ]; then
+            echo "❌ FAIL: .app export failed"
+            exit 1
+          fi
+
+          echo "✅ PASS: .app bundle exported"
+
+      - name: Upload .app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Simmer-${{ github.sha }}
+          path: DerivedData/Export/Simmer.app
+          retention-days: 30
+
+      - name: Verify app bundle structure
+        run: |
+          # Check required app bundle structure
+          if [ ! -f "DerivedData/Export/Simmer.app/Contents/Info.plist" ]; then
+            echo "❌ FAIL: Missing Info.plist"
+            exit 1
+          fi
+
+          if [ ! -f "DerivedData/Export/Simmer.app/Contents/MacOS/Simmer" ]; then
+            echo "❌ FAIL: Missing executable"
+            exit 1
+          fi
+
+          echo "✅ PASS: App bundle structure valid"
+
+      - name: Check bundle identifier
+        run: |
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "DerivedData/Export/Simmer.app/Contents/Info.plist")
+          echo "Bundle Identifier: $BUNDLE_ID"
+
+          # Verify LSUIElement is set (menu bar-only app)
+          LSUIELEMENT=$(/usr/libexec/PlistBuddy -c "Print :LSUIElement" "DerivedData/Export/Simmer.app/Contents/Info.plist" 2>/dev/null || echo "false")
+          echo "LSUIElement: $LSUIELEMENT"
+
+          if [ "$LSUIELEMENT" != "true" ]; then
+            echo "⚠️  WARNING: LSUIElement not set to true (app may show in Dock)"
+          fi
+
+          echo "✅ PASS: Bundle metadata verified"
