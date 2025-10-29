@@ -2,6 +2,8 @@
 
 Passive log monitoring for macOS with subtle visual feedback.
 
+![Simmer Screenshot](docs/images/screenshot.png)
+
 ## What is Simmer?
 
 Simmer lives in your menu bar and watches log files for patterns you care about. When it finds a match, the icon subtly glows or pulses. No intrusive notifications, no terminal overload—just ambient awareness of your systems.
