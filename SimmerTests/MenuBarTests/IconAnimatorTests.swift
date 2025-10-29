@@ -105,6 +105,44 @@ final class IconAnimatorTests: XCTestCase {
     XCTAssertFalse(timer.isRunning)
   }
 
+  func test_frameBudgetExceededSetsDebugFlag() {
+    var warningCount = 0
+    let frameBudget: TimeInterval = 0.000001
+
+    let first = AnimationFrameBudgetEvaluator.evaluate(
+      duration: 0.003,
+      frameBudget: frameBudget,
+      lastWarning: 0,
+      timestamp: 10.0,
+      handler: { _ in warningCount += 1 }
+    )
+
+    XCTAssertTrue(first.exceeded)
+    XCTAssertEqual(warningCount, 1)
+
+    let second = AnimationFrameBudgetEvaluator.evaluate(
+      duration: 0.0000005,
+      frameBudget: frameBudget,
+      lastWarning: first.lastWarning,
+      timestamp: 10.5,
+      handler: { _ in warningCount += 1 }
+    )
+
+    XCTAssertFalse(second.exceeded)
+    XCTAssertEqual(warningCount, 1, "Warnings should not repeat when duration stays under budget")
+
+    let third = AnimationFrameBudgetEvaluator.evaluate(
+      duration: 0.002,
+      frameBudget: frameBudget,
+      lastWarning: first.lastWarning,
+      timestamp: 11.6,
+      handler: { _ in warningCount += 1 }
+    )
+
+    XCTAssertTrue(third.exceeded)
+    XCTAssertEqual(warningCount, 2)
+  }
+
   // MARK: - Helpers
 
   private func start(style: AnimationStyle) {

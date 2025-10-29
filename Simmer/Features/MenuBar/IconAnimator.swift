@@ -7,6 +7,7 @@
 
 import AppKit
 import QuartzCore
+import os
 
 @MainActor
 protocol IconAnimatorClock {
@@ -62,21 +63,39 @@ final class IconAnimator {
   private let clock: IconAnimatorClock
   private var timer: AnimationTimer?
   private var animationStart: TimeInterval = 0
+  private let logger = Logger(subsystem: "com.quantierra.Simmer", category: "IconAnimator")
+  private let frameBudget: TimeInterval
+  private var lastBudgetWarning: TimeInterval = 0
+  private let budgetExceededHandler: (TimeInterval) -> Void
 
   /// The idle icon image used when no animation is active
   let idleIcon: NSImage
 
   // Exposed for tests to assert frame progression.
   internal private(set) var debugLastParameters: FrameParameters?
+  internal private(set) var debugLastRenderDuration: TimeInterval?
+  internal private(set) var debugRenderBudgetExceeded = false
 
   init(
     iconSize: CGFloat = 18,
     timerFactory: (@MainActor () -> AnimationTimer)? = nil,
-    clock: IconAnimatorClock? = nil
+    clock: IconAnimatorClock? = nil,
+    frameBudget: TimeInterval = 0.002,
+    budgetExceededHandler: ((TimeInterval) -> Void)? = nil
   ) {
     self.iconSize = iconSize
     self.timerFactory = timerFactory ?? { TimerAnimationTimer() }
     self.clock = clock ?? SystemAnimationClock()
+    self.frameBudget = frameBudget
+    if let budgetExceededHandler {
+      self.budgetExceededHandler = budgetExceededHandler
+    } else {
+      self.budgetExceededHandler = { [logger] duration in
+        logger.warning(
+          "Icon frame rendering exceeded budget: \(duration * 1_000, format: .fixed(precision: 3)) ms"
+        )
+      }
+    }
     idleIcon = IconAnimator.renderIcon(
       size: iconSize,
       color: NSColor(calibratedWhite: 0.8, alpha: 1.0),
@@ -124,17 +143,42 @@ final class IconAnimator {
     debugLastParameters = parameters
 
     let image: NSImage
+    var currentTimestamp = CACurrentMediaTime()
+    var renderDuration: TimeInterval = 0
+
     if parameters.visible {
+      let renderStart = currentTimestamp
       image = IconAnimator.renderIcon(
         size: iconSize,
         color: codableColor.toNSColor(),
         parameters: parameters
       )
+      currentTimestamp = CACurrentMediaTime()
+      renderDuration = currentTimestamp - renderStart
     } else {
       image = idleIcon
     }
 
+    recordRenderDuration(renderDuration, timestamp: currentTimestamp)
+
     delegate?.updateIcon(image)
+  }
+
+  private func recordRenderDuration(_ duration: TimeInterval, timestamp: TimeInterval) {
+    debugLastRenderDuration = duration
+    let evaluation = AnimationFrameBudgetEvaluator.evaluate(
+      duration: duration,
+      frameBudget: frameBudget,
+      lastWarning: lastBudgetWarning,
+      timestamp: timestamp,
+      handler: budgetExceededHandler
+    )
+    debugRenderBudgetExceeded = evaluation.exceeded
+    lastBudgetWarning = evaluation.lastWarning
+  }
+
+  func simulateRenderDurationForTesting(_ duration: TimeInterval, timestamp: TimeInterval) {
+    recordRenderDuration(duration, timestamp: timestamp)
   }
 
   func frameParameters(for style: AnimationStyle, elapsed: TimeInterval) -> FrameParameters {
@@ -201,5 +245,31 @@ final class IconAnimator {
     }
 
     return image
+  }
+}
+
+struct AnimationFrameBudgetEvaluator {
+  struct Result {
+    let exceeded: Bool
+    let lastWarning: TimeInterval
+  }
+
+  static func evaluate(
+    duration: TimeInterval,
+    frameBudget: TimeInterval,
+    lastWarning: TimeInterval,
+    timestamp: TimeInterval,
+    handler: (TimeInterval) -> Void
+  ) -> Result {
+    guard duration > frameBudget else {
+      return Result(exceeded: false, lastWarning: lastWarning)
+    }
+
+    if timestamp - lastWarning > 1.0 {
+      handler(duration)
+      return Result(exceeded: true, lastWarning: timestamp)
+    }
+
+    return Result(exceeded: true, lastWarning: lastWarning)
   }
 }

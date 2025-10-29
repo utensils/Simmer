@@ -19,6 +19,9 @@ final class LogMonitor: NSObject {
   private let watcherFactory: WatcherFactory
   private let stateQueue = DispatchQueue(label: "com.quantierra.Simmer.log-monitor")
   private let logger = OSLog(subsystem: "com.quantierra.Simmer", category: "LogMonitor")
+  private let processingQueue: DispatchQueue
+  private let alertPresenter: LogMonitorAlertPresenting
+  private let notificationCenter: NotificationCenter
   private let maxWatcherCount = 20
   private let debounceInterval: TimeInterval = 0.1
   private let dateProvider: () -> Date
@@ -47,7 +50,13 @@ final class LogMonitor: NSObject {
     watcherFactory: @escaping WatcherFactory = { pattern in
       FileWatcher(path: pattern.logPath)
     },
-    dateProvider: @escaping () -> Date = Date.init
+    dateProvider: @escaping () -> Date = Date.init,
+    processingQueue: DispatchQueue = DispatchQueue(
+      label: "com.quantierra.Simmer.log-monitor.processing",
+      qos: .userInitiated
+    ),
+    alertPresenter: LogMonitorAlertPresenting = NSAlertPresenter(),
+    notificationCenter: NotificationCenter = .default
   ) {
     self.configurationStore = configurationStore
     self.patternMatcher = patternMatcher
@@ -55,6 +64,9 @@ final class LogMonitor: NSObject {
     self.iconAnimator = iconAnimator
     self.watcherFactory = watcherFactory
     self.dateProvider = dateProvider
+    self.processingQueue = processingQueue
+    self.alertPresenter = alertPresenter
+    self.notificationCenter = notificationCenter
     super.init()
     self.matchEventHandler.delegate = self
   }
@@ -72,6 +84,7 @@ final class LogMonitor: NSObject {
   func reloadPatterns() {
     let patterns = configurationStore.loadPatterns()
     configureWatchers(for: patterns.filter(\.enabled))
+    notifyPatternsDidChange()
   }
 
   deinit {
@@ -82,6 +95,7 @@ final class LogMonitor: NSObject {
   func start() {
     let patterns = configurationStore.loadPatterns().filter(\.enabled)
     configureWatchers(for: patterns)
+    notifyPatternsDidChange()
   }
 
   /// Stops all active watchers and clears internal state.
@@ -101,6 +115,10 @@ final class LogMonitor: NSObject {
     Task { @MainActor [iconAnimator] in
       iconAnimator.stopAnimation()
     }
+  }
+
+  private func notifyPatternsDidChange() {
+    notificationCenter.post(name: .logMonitorPatternsDidChange, object: self)
   }
 
   private func configureWatchers(for patterns: [LogPattern]) {
@@ -129,6 +147,113 @@ final class LogMonitor: NSObject {
     for pattern in limitedPatterns {
       if updatePattern(pattern) { continue }
       addWatcher(for: pattern)
+    }
+  }
+
+  private func process(
+    lines: [String],
+    patternID: UUID,
+    filePath: String
+  ) {
+    guard let context = context(for: patternID) else { return }
+
+    var nextLineNumber = context.lineCount
+    var matches: [(line: String, lineNumber: Int)] = []
+
+    for line in lines {
+      nextLineNumber += 1
+      if patternMatcher.match(line: line, pattern: context.pattern) != nil {
+        matches.append((line: line, lineNumber: nextLineNumber))
+      }
+    }
+
+    updateLineCount(for: patternID, count: nextLineNumber)
+
+    guard !matches.isEmpty else { return }
+
+    DispatchQueue.main.async { [weak self] in
+      guard let self else { return }
+      for match in matches {
+        self.handleMatch(
+          patternID: patternID,
+          line: match.line,
+          lineNumber: match.lineNumber,
+          filePath: filePath
+        )
+      }
+    }
+  }
+
+  private func handleWatcherError(
+    patternID: UUID,
+    error: FileWatcherError,
+    filePath: String
+  ) {
+    guard let entry = removeWatcher(forPatternID: patternID) else { return }
+
+    var pattern = entry.context.pattern
+    let patternName = pattern.name
+
+    os_log(
+      .error,
+      log: logger,
+      "Watcher error for pattern '%{public}@' at path '%{public}@': %{public}@",
+      patternName,
+      pattern.logPath,
+      String(describing: error)
+    )
+
+    if pattern.enabled {
+      pattern.enabled = false
+      do {
+        try configurationStore.updatePattern(pattern)
+      } catch {
+        os_log(
+          .error,
+          log: logger,
+          "Failed to disable pattern '%{public}@' after watcher error: %{public}@",
+          patternName,
+          String(describing: error)
+        )
+      }
+    }
+
+    DispatchQueue.main.async { [weak self] in
+      guard let self else { return }
+      let message = self.alertMessage(
+        for: error,
+        patternName: patternName,
+        filePath: filePath
+      )
+      self.alertPresenter.presentAlert(
+        title: "Monitoring paused for \(patternName)",
+        message: message
+      )
+      self.reloadPatterns()
+    }
+  }
+
+  private func alertMessage(
+    for error: FileWatcherError,
+    patternName: String,
+    filePath: String
+  ) -> String {
+    switch error {
+    case .fileDeleted:
+      return """
+      Simmer stopped monitoring "\(patternName)" because "\(filePath)" is missing. \
+      Restore the file or choose a new path in Settings, then re-enable the pattern.
+      """
+    case .permissionDenied:
+      return """
+      Simmer no longer has permission to read "\(filePath)" for pattern "\(patternName)". \
+      Update permissions or select a new file in Settings before re-enabling the pattern.
+      """
+    case .fileDescriptorInvalid:
+      return """
+      Simmer hit an unexpected error while reading "\(filePath)" for pattern "\(patternName)". \
+      Verify the file is accessible and try re-enabling the pattern from Settings.
+      """
     }
   }
 
@@ -190,7 +315,8 @@ final class LogMonitor: NSObject {
     return true
   }
 
-  private func removeWatcher(forPatternID patternID: UUID) {
+  @discardableResult
+  private func removeWatcher(forPatternID patternID: UUID) -> WatchEntry? {
     let entry: WatchEntry? = stateQueue.sync {
       guard let entry = entriesByPatternID.removeValue(forKey: patternID) else { return nil }
       watcherIdentifiers.removeValue(forKey: ObjectIdentifier(entry.watcher))
@@ -202,6 +328,7 @@ final class LogMonitor: NSObject {
     }
 
     entry?.watcher.stop()
+    return entry
   }
 
   private func hasWatcher(for patternID: UUID) -> Bool {
@@ -276,39 +403,26 @@ final class LogMonitor: NSObject {
 
 extension LogMonitor: FileWatcherDelegate {
   func fileWatcher(_ watcher: FileWatching, didReadLines lines: [String]) {
-    guard
-      !lines.isEmpty,
-      let patternID = patternID(for: watcher),
-      var context = context(for: patternID)
-    else { return }
+    guard !lines.isEmpty, let patternID = patternID(for: watcher) else { return }
 
-    var nextLineNumber = context.lineCount
-
-    for line in lines {
-      nextLineNumber += 1
-      guard patternMatcher.match(line: line, pattern: context.pattern) != nil else { continue }
-
-      let capturedLine = line
-      let lineNumber = nextLineNumber
-      let filePath = watcher.path
-
-      DispatchQueue.main.async { [weak self] in
-        guard let self else { return }
-        self.handleMatch(
-          patternID: patternID,
-          line: capturedLine,
-          lineNumber: lineNumber,
-          filePath: filePath
-        )
-      }
+    processingQueue.async { [weak self] in
+      self?.process(
+        lines: lines,
+        patternID: patternID,
+        filePath: watcher.path
+      )
     }
-
-    updateLineCount(for: patternID, count: nextLineNumber)
   }
 
   func fileWatcher(_ watcher: FileWatching, didEncounterError error: FileWatcherError) {
     guard let patternID = patternID(for: watcher) else { return }
-    removeWatcher(forPatternID: patternID)
+    processingQueue.async { [weak self] in
+      self?.handleWatcherError(
+        patternID: patternID,
+        error: error,
+        filePath: watcher.path
+      )
+    }
   }
 }
 

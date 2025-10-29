@@ -177,7 +177,7 @@
 
 - [X] T086 [P] Implement file deletion handling in FileWatcher: catch .delete DispatchSource event, notify delegate with FileWatcherError.fileDeleted
 - [X] T087 [P] Implement permission error handling in FileWatcher: catch open() errors, notify delegate with FileWatcherError.permissionDenied
-- [ ] T088 Implement error UI alerts in LogMonitor for FileWatcherError cases: show NSAlert, disable affected pattern, update settings UI
+- [X] T088 Implement error UI alerts in LogMonitor for FileWatcherError cases: show NSAlert, disable affected pattern, update settings UI
 - [X] T089 [P] Implement path expansion in PathExpander: replace ~ with NSHomeDirectory(), expand environment variables via ProcessInfo
 - [X] T090 Integrate PathExpander in PatternEditorView to expand logPath before saving
 - [X] T091 Integrate PathExpander in FileWatcher to expand path before opening file descriptor
@@ -187,9 +187,9 @@
 ### Performance Optimization
 
 - [X] T094 Implement regex pre-compilation in LogPattern: compile NSRegularExpression once on init, cache in property
-- [ ] T095 Implement batch pattern matching in LogMonitor: evaluate all enabled patterns per line in single background queue pass
-- [ ] T096 Add background queue to LogMonitor for all file I/O and pattern matching (DispatchQueue with .userInitiated QoS)
-- [ ] T097 Implement animation frame budget verification in IconAnimator: log warning if Core Graphics rendering exceeds 2ms
+- [X] T095 Implement batch pattern matching in LogMonitor: evaluate all enabled patterns per line in single background queue pass
+- [X] T096 Add background queue to LogMonitor for all file I/O and pattern matching (DispatchQueue with .userInitiated QoS)
+- [X] T097 Implement animation frame budget verification in IconAnimator: log warning if Core Graphics rendering exceeds 2ms
 - [ ] T098 Profile idle CPU usage with Activity Monitor: verify <1% with 10 patterns, no matches for 5 minutes
 - [ ] T099 Profile active CPU usage with Activity Monitor: verify <5% with 10 patterns, 100 matches/second
 - [ ] T100 Profile memory usage with Activity Monitor: verify <50MB with 20 patterns, 1000 match history

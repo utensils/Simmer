@@ -28,7 +28,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   func applicationDidFinishLaunching(_ notification: Notification) {
-    let isRunningUITests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    let configurationPath = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"]
+    let environment = ProcessInfo.processInfo.environment
+    let isRunningUnitTests = configurationPath?.contains("SimmerTests") == true
+      || environment["XCInjectBundleInto"] != nil
+    let isRunningUITests = configurationPath?.contains("SimmerUITests") == true
+      || environment["XCTestBundleInjectPath"]?.contains("SimmerUITests") == true
     let shouldShowSettings = isRunningUITests
       || ProcessInfo.processInfo.environment["SIMMER_UI_TEST_SHOW_SETTINGS"] == "1"
       || CommandLine.arguments.contains("--show-settings")
@@ -38,11 +43,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       NSApp.setActivationPolicy(.accessory)
     }
 
+    let isUsingXCTestRuntime = NSClassFromString("XCTestCase") != nil
+
+    if isRunningUnitTests || (isUsingXCTestRuntime && !isRunningUITests) {
+      return
+    }
+
+    let alertPresenter: LogMonitorAlertPresenting = isRunningUITests
+      ? SilentAlertPresenter()
+      : NSAlertPresenter()
+
     let logMonitor = LogMonitor(
       configurationStore: configurationStore,
       patternMatcher: patternMatcher,
       matchEventHandler: matchEventHandler,
-      iconAnimator: iconAnimator
+      iconAnimator: iconAnimator,
+      alertPresenter: alertPresenter
     )
     self.logMonitor = logMonitor
 

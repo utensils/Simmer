@@ -16,6 +16,7 @@ class PatternListViewModel: ObservableObject {
 
   private let store: any ConfigurationStoreProtocol
   private let logMonitor: LogMonitor?
+  private var patternsObserver: NSObjectProtocol?
 
   init(
     store: any ConfigurationStoreProtocol,
@@ -23,6 +24,19 @@ class PatternListViewModel: ObservableObject {
   ) {
     self.store = store
     self.logMonitor = logMonitor
+    patternsObserver = NotificationCenter.default.addObserver(
+      forName: .logMonitorPatternsDidChange,
+      object: nil,
+      queue: .main
+    ) { [weak self] _ in
+      self?.loadPatterns()
+    }
+  }
+
+  deinit {
+    if let observer = patternsObserver {
+      NotificationCenter.default.removeObserver(observer)
+    }
   }
 
   /// Loads all patterns from persistent storage.
