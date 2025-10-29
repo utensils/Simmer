@@ -28,7 +28,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   func applicationDidFinishLaunching(_ notification: Notification) {
-    NSApp.setActivationPolicy(.accessory)
+    let isRunningUITests = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
+    let shouldShowSettings = isRunningUITests
+      || ProcessInfo.processInfo.environment["SIMMER_UI_TEST_SHOW_SETTINGS"] == "1"
+      || CommandLine.arguments.contains("--show-settings")
+    if shouldShowSettings {
+      NSApp.setActivationPolicy(.regular)
+    } else {
+      NSApp.setActivationPolicy(.accessory)
+    }
 
     let logMonitor = LogMonitor(
       configurationStore: configurationStore,
@@ -67,6 +75,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     logMonitor.start()
+
+    if shouldShowSettings {
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+        self?.settingsCoordinator?.show()
+      }
+    }
   }
 
   func applicationWillTerminate(_ notification: Notification) {

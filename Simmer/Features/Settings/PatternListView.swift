@@ -64,6 +64,7 @@ struct PatternListView: View {
         Text(message)
       }
     }
+    .frame(minWidth: 640, minHeight: 480)
   }
 
   // MARK: - Subviews

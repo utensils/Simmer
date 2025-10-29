@@ -26,22 +26,30 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
   }
 
   func show() {
+    NSLog("[SettingsCoordinator] show() invoked")
     prepareActivationPolicyIfNeeded()
 
     if let controller = windowController {
+      NSLog("[SettingsCoordinator] reusing existing window")
       controller.window?.orderFrontRegardless()
       NSApp.activate(ignoringOtherApps: true)
       return
     }
+
+    let defaultContentSize = NSSize(width: 720, height: 520)
+    let minimumContentSize = NSSize(width: 640, height: 480)
 
     let view = PatternListView(
       store: configurationStore,
       logMonitor: logMonitor
     )
     let hostingController = NSHostingController(rootView: view)
+    hostingController.view.translatesAutoresizingMaskIntoConstraints = true
+    hostingController.view.autoresizingMask = [.width, .height]
+    hostingController.view.frame = NSRect(origin: .zero, size: defaultContentSize)
 
     let window = NSWindow(
-      contentRect: NSRect(x: 0, y: 0, width: 720, height: 520),
+      contentRect: NSRect(origin: .zero, size: defaultContentSize),
       styleMask: [.titled, .closable, .miniaturizable, .resizable],
       backing: .buffered,
       defer: false
@@ -51,6 +59,8 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
     window.isReleasedWhenClosed = false
     window.collectionBehavior = [.fullScreenAuxiliary, .moveToActiveSpace]
     window.contentViewController = hostingController
+    window.setContentSize(defaultContentSize)
+    window.contentMinSize = minimumContentSize
     window.delegate = self
 
     let controller = NSWindowController(window: window)
@@ -60,6 +70,7 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
 
     window.makeKeyAndOrderFront(nil)
     NSApp.activate(ignoringOtherApps: true)
+    NSLog("[SettingsCoordinator] window presented")
   }
 
   // MARK: - NSWindowDelegate
@@ -76,9 +87,10 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
 
   private func prepareActivationPolicyIfNeeded() {
     let app = NSApplication.shared
-    guard app.activationPolicy != .regular else { return }
+    let currentPolicy = app.activationPolicy()
+    guard currentPolicy != .regular else { return }
 
-    previousActivationPolicy = app.activationPolicy
+    previousActivationPolicy = currentPolicy
     managesActivationPolicy = true
     app.setActivationPolicy(.regular)
   }

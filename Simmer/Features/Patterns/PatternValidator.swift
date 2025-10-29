@@ -37,7 +37,7 @@ struct PatternValidator {
             return .valid
         } catch let error as NSError {
             // Extract meaningful error message from NSError
-            let errorMessage = extractErrorMessage(from: error)
+            let errorMessage = extractErrorMessage(from: error, pattern: pattern)
             return .invalid(error: errorMessage)
         }
     }
@@ -51,7 +51,15 @@ struct PatternValidator {
 
     // MARK: - Private Helpers
 
-    private static func extractErrorMessage(from error: NSError) -> String {
+    private static func extractErrorMessage(from error: NSError, pattern: String) -> String {
+        if pattern.hasSuffix("\\") {
+            return "Invalid escape sequence (trailing backslash)"
+        }
+
+        if let first = pattern.first, "*+?".contains(first) {
+            return "Quantifier (*, +, ?, {}) has nothing to repeat"
+        }
+
         // NSRegularExpression errors are in the NSCocoaErrorDomain
         // The localized description usually contains useful info
         let description = error.localizedDescription
