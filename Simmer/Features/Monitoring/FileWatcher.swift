@@ -8,14 +8,14 @@
 import Darwin
 import Foundation
 
-protocol FileSystemEventSource: AnyObject {
+internal protocol FileSystemEventSource: AnyObject {
   func setEventHandler(handler: @escaping () -> Void)
   func setCancelHandler(handler: @escaping () -> Void)
   func resume()
   func cancel()
 }
 
-final class DispatchSourceFileSystemWrapper: FileSystemEventSource {
+internal final class DispatchSourceFileSystemWrapper: FileSystemEventSource {
   private let source: DispatchSourceFileSystemObject
 
   init(fileDescriptor: Int32, mask: DispatchSource.FileSystemEvent, queue: DispatchQueue) {
@@ -43,7 +43,7 @@ final class DispatchSourceFileSystemWrapper: FileSystemEventSource {
   }
 }
 
-final class FileWatcher: FileWatching {
+internal final class FileWatcher: FileWatching {
   typealias SourceFactory = (Int32, DispatchSource.FileSystemEvent, DispatchQueue) -> FileSystemEventSource
 
   weak var delegate: FileWatcherDelegate?

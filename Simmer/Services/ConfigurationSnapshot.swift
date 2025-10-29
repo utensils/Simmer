@@ -8,7 +8,7 @@
 import Foundation
 
 /// Serializable payload representing an exported set of log pattern configurations.
-struct ConfigurationSnapshot: Codable {
+internal struct ConfigurationSnapshot: Codable {
   static let currentVersion = 1
 
   let version: Int

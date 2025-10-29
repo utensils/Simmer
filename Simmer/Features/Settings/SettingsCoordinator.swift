@@ -41,16 +41,36 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
       return
     }
 
-    let view = PatternListView(
+    let view = createPatternListView()
+    let hostingController = createHostingController(with: view)
+    let window = createWindow(with: hostingController)
+    let controller = NSWindowController(window: window)
+    controller.shouldCascadeWindows = true
+    controller.showWindow(nil)
+    window.contentMinSize = minimumContentSize
+    windowController = controller
+
+    presentWindow(window)
+    NSLog("[SettingsCoordinator] window presented")
+  }
+
+  private func createPatternListView() -> PatternListView {
+    PatternListView(
       store: configurationStore,
       logMonitor: logMonitor,
       launchAtLoginController: launchAtLoginController
     )
-    let hostingController = NSHostingController(rootView: view)
-    hostingController.view.translatesAutoresizingMaskIntoConstraints = true
-    hostingController.view.autoresizingMask = [.width, .height]
-    hostingController.view.frame = NSRect(origin: .zero, size: defaultContentSize)
+  }
 
+  private func createHostingController(with view: PatternListView) -> NSHostingController<PatternListView> {
+    let controller = NSHostingController(rootView: view)
+    controller.view.translatesAutoresizingMaskIntoConstraints = true
+    controller.view.autoresizingMask = [.width, .height]
+    controller.view.frame = NSRect(origin: .zero, size: defaultContentSize)
+    return controller
+  }
+
+  private func createWindow(with hostingController: NSHostingController<PatternListView>) -> NSWindow {
     let window = NSWindow(
       contentRect: NSRect(origin: .zero, size: defaultContentSize),
       styleMask: [.titled, .closable, .miniaturizable, .resizable],
@@ -65,13 +85,10 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
     window.setContentSize(defaultContentSize)
     window.contentMinSize = minimumContentSize
     window.delegate = self
+    return window
+  }
 
-    let controller = NSWindowController(window: window)
-    controller.shouldCascadeWindows = true
-    controller.showWindow(nil)
-    window.contentMinSize = minimumContentSize
-    windowController = controller
-
+  private func presentWindow(_ window: NSWindow) {
     window.makeKeyAndOrderFront(nil)
     DispatchQueue.main.async { [weak self, weak window] in
       guard
@@ -81,7 +98,6 @@ final class SettingsCoordinator: NSObject, NSWindowDelegate {
       window.contentMinSize = minimumContentSize
     }
     NSApp.activate(ignoringOtherApps: true)
-    NSLog("[SettingsCoordinator] window presented")
   }
 
   // MARK: - NSWindowDelegate

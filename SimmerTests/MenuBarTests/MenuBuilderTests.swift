@@ -10,7 +10,7 @@ import XCTest
 @testable import Simmer
 
 @MainActor
-final class MenuBuilderTests: XCTestCase {
+internal final class MenuBuilderTests: XCTestCase {
   func test_buildMatchHistoryMenu_whenNoMatches_showsEmptyStateAndDisabledClear() {
     let handler = MatchEventHandler()
     let builder = MenuBuilder(matchEventHandler: handler, dateProvider: { Date(timeIntervalSince1970: 0) })

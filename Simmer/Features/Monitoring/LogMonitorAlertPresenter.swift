@@ -7,12 +7,12 @@
 
 import AppKit
 
-protocol LogMonitorAlertPresenting: AnyObject {
+internal protocol LogMonitorAlertPresenting: AnyObject {
   @MainActor
   func presentAlert(title: String, message: String)
 }
 
-final class NSAlertPresenter: LogMonitorAlertPresenting {
+internal final class NSAlertPresenter: LogMonitorAlertPresenting {
   @MainActor
   func presentAlert(title: String, message: String) {
     let alert = NSAlert()
@@ -24,7 +24,7 @@ final class NSAlertPresenter: LogMonitorAlertPresenting {
   }
 }
 
-final class SilentAlertPresenter: LogMonitorAlertPresenting {
+internal final class SilentAlertPresenter: LogMonitorAlertPresenting {
   @MainActor
   func presentAlert(title: String, message: String) {}
 }

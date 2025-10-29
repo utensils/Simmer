@@ -7,7 +7,7 @@ import AppKit
 import XCTest
 @testable import Simmer
 
-final class LogMonitorTests: XCTestCase {
+internal final class LogMonitorTests: XCTestCase {
   func test_start_createsWatcherForEnabledPatternsOnly() async {
     let enabled = makePattern(name: "Error", enabled: true)
     let disabled = makePattern(name: "Info", enabled: false)

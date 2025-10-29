@@ -9,7 +9,7 @@ import AppKit
 import SwiftUI
 
 /// Editor view that captures all fields required for a `LogPattern`.
-struct PatternEditorView: View {
+internal struct PatternEditorView: View {
   @Environment(\.dismiss) private var dismiss
 
   private let mode: Mode
@@ -264,7 +264,7 @@ extension PatternEditorView {
   }
 }
 
-private extension AnimationStyle {
+internal extension AnimationStyle {
   var displayName: String {
     switch self {
     case .glow:
@@ -279,7 +279,7 @@ private extension AnimationStyle {
 
 // MARK: - Manual Path Validation
 
-private enum ManualPathValidationError: LocalizedError {
+internal enum ManualPathValidationError: LocalizedError {
   case missing(path: String)
   case directory(path: String)
   case unreadable(path: String)
@@ -302,7 +302,7 @@ private enum ManualPathValidationError: LocalizedError {
   }
 }
 
-private func validateManualPath(_ path: String) throws {
+internal func validateManualPath(_ path: String) throws {
   let fileManager = FileManager.default
   var isDirectory: ObjCBool = false
 
@@ -332,8 +332,8 @@ private func validateManualPath(_ path: String) throws {
 }
 
 #if DEBUG
-struct PatternEditorView_Previews: PreviewProvider {
-  static var previews: some View {
+internal struct PatternEditorView_Previews: PreviewProvider {
+  internal static var previews: some View {
     PatternEditorView(pattern: nil, onSave: { _ in })
       .frame(width: 720, height: 680)
   }

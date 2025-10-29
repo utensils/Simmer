@@ -8,7 +8,7 @@
 import Foundation
 
 /// Describes a warning when a pattern matches excessively, indicating the regex may be too broad.
-struct FrequentMatchWarning: Identifiable, Equatable {
+internal struct FrequentMatchWarning: Identifiable, Equatable {
   let id: UUID
   let patternID: UUID
   let patternName: String
@@ -20,6 +20,7 @@ struct FrequentMatchWarning: Identifiable, Equatable {
     self.patternID = patternID
     self.patternName = patternName
     self.triggeredAt = triggeredAt
-    self.message = "Pattern '\(patternName)' matching frequently - consider refining regex"
+    self.message =
+      "Pattern '\(patternName)' matching frequently - consider refining regex"
   }
 }

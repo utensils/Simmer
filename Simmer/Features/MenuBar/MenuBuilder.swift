@@ -10,7 +10,7 @@ import AppKit
 
 /// Produces menu items for the Simmer status item using match history data.
 @MainActor
-final class MenuBuilder: NSObject {
+internal final class MenuBuilder: NSObject {
   private let matchEventHandler: MatchEventHandler
   private let dateProvider: () -> Date
   private let historyLimit: Int

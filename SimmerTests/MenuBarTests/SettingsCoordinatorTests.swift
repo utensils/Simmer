@@ -8,7 +8,7 @@ import XCTest
 @testable import Simmer
 
 @MainActor
-final class SettingsCoordinatorTests: XCTestCase {
+internal final class SettingsCoordinatorTests: XCTestCase {
   override func tearDown() async throws {
     // Close any leftover settings windows to avoid bleeding into other tests.
     NSApp.windows

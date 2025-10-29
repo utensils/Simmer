@@ -7,7 +7,7 @@
 
 import Foundation
 
-final class RegexPatternMatcher: PatternMatcherProtocol {
+internal final class RegexPatternMatcher: PatternMatcherProtocol {
   // Cache retained for backwards compatibility, but prefer pattern.compiledRegex()
   private let cache: NSCache<NSString, NSRegularExpression> = {
     let cache = NSCache<NSString, NSRegularExpression>()

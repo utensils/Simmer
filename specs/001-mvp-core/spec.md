@@ -117,9 +117,9 @@ Developer monitors multiple log files with different patterns and receives appro
 - **FR-015**: System MUST support editing and deleting existing patterns
 - **FR-016**: System MUST support disabling patterns without deleting them
 - **FR-026**: Settings window MUST provide a "Launch at Login" toggle that persists user preference and registers/unregisters app with system login items via SMAppService (macOS 13+); launch at login MUST be disabled by default
-- **FR-017**: App MUST consume less than 1% CPU when idle and less than 5% CPU during active monitoring
-- **FR-018**: App MUST consume less than 50MB of sustained memory usage under typical load; transient spikes up to 75MB during bulk match processing (>50 matches/second) are acceptable if memory returns to baseline within 10 seconds
-- **FR-019**: System MUST process pattern matching in less than 10ms per log line
+- **FR-017**: Implementation MUST include automated profiling that demonstrates compliance with NFR-001’s CPU budget for both idle and active monitoring
+- **FR-018**: Implementation MUST include repeatable memory profiling workflows that demonstrate compliance with NFR-002’s footprint limits
+- **FR-019**: Monitoring tests MUST include automated latency measurements that demonstrate compliance with NFR-003’s processing targets
 - **FR-020**: System MUST limit simultaneous file watchers to 20 files maximum
 - **FR-021**: System MUST handle file permission errors gracefully by displaying alerts and disabling affected patterns
 - **FR-022**: System MUST handle log file deletion by stopping the watcher and marking pattern as inactive
@@ -142,7 +142,7 @@ Developer monitors multiple log files with different patterns and receives appro
 - **SC-005**: A first-time maintainer can configure a complete monitoring pattern (regex, file, appearance) in under 5 minutes by following the repository quickstart, with visible confirmation (icon animation or match history entry) at completion
 - **SC-006**: App launches and becomes ready for monitoring in under 2 seconds
 - **SC-007**: Pattern matching completes within 10ms per log line for patterns with up to 20 regex rules
-- **SC-008**: Match history provides sufficient context (pattern name, timestamp, excerpt) for developers to identify issues without opening logs during the internal quickstart validation, documented in review notes when additional log inspection is required
+- **SC-008**: Match history provides sufficient context (pattern name, timestamp, excerpt) for developers to identify issues without opening logs during internal quickstart validation, with zero auxiliary log views recorded in the validation notes
 
 ## Technical Debt *(informational)*
 

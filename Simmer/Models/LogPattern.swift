@@ -27,7 +27,8 @@ struct LogPattern: Codable, Identifiable, Equatable {
     logPath: String,
     color: CodableColor,
     animationStyle: AnimationStyle = .glow,
-    enabled: Bool = true
+    enabled: Bool = true,
+    precompileRegex: Bool = true
   ) {
     self.id = id
     self.name = name
@@ -36,7 +37,11 @@ struct LogPattern: Codable, Identifiable, Equatable {
     self.color = color
     self.animationStyle = animationStyle
     self.enabled = enabled
-    self._compiledRegex = try? NSRegularExpression(pattern: regex, options: [])
+    if precompileRegex {
+      self._compiledRegex = try? NSRegularExpression(pattern: regex, options: [])
+    } else {
+      self._compiledRegex = nil
+    }
   }
 
   /// Returns the pre-compiled regex, compiling if needed

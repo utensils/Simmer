@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum ConfigurationImportError: LocalizedError {
+internal enum ConfigurationImportError: LocalizedError {
   case failedToRead(underlying: Error)
   case decodingFailed(underlying: Error)
   case unsupportedVersion(Int)
@@ -27,11 +27,11 @@ enum ConfigurationImportError: LocalizedError {
   }
 }
 
-protocol ConfigurationImporting {
+internal protocol ConfigurationImporting {
   func importPatterns(from url: URL) throws -> [LogPattern]
 }
 
-struct ConfigurationImporter: ConfigurationImporting {
+internal struct ConfigurationImporter: ConfigurationImporting {
   private let maxPatternCount = 20
   private let patternLimitMessage = "Maximum 20 patterns supported"
   private let decoder: JSONDecoder

@@ -7,7 +7,7 @@
 
 import Foundation
 
-enum ConfigurationExportError: LocalizedError {
+internal enum ConfigurationExportError: LocalizedError {
   case writeFailed(underlying: Error)
 
   var errorDescription: String? {
@@ -18,11 +18,11 @@ enum ConfigurationExportError: LocalizedError {
   }
 }
 
-protocol ConfigurationExporting {
+internal protocol ConfigurationExporting {
   func export(patterns: [LogPattern], to url: URL) throws
 }
 
-struct ConfigurationExporter: ConfigurationExporting {
+internal struct ConfigurationExporter: ConfigurationExporting {
   private let encoder: JSONEncoder
   private let dateProvider: () -> Date
 

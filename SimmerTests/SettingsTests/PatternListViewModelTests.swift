@@ -7,7 +7,7 @@ import XCTest
 @testable import Simmer
 
 @MainActor
-final class PatternListViewModelTests: XCTestCase {
+internal final class PatternListViewModelTests: XCTestCase {
   func test_toggleEnabled_updatesStoreAndMonitor() {
     let pattern = LogPattern(
       name: "Toggleable",

@@ -6,7 +6,7 @@
 import XCTest
 @testable import Simmer
 
-final class PatternMatcherTests: XCTestCase {
+internal final class PatternMatcherTests: XCTestCase {
   private var matcher: RegexPatternMatcher!
 
   override func setUp() {
@@ -80,13 +80,35 @@ final class PatternMatcherTests: XCTestCase {
     XCTAssertNotNil(second)
   }
 
+  func test_match_whenCompiledRegexUnavailable_compilesAndCachesExpression() {
+    let pattern = logPattern(regex: "INFO (\\d+)", precompile: false)
+
+    let first = matcher.match(line: "INFO 99", pattern: pattern)
+    XCTAssertEqual(first?.captureGroups.first, "99")
+
+    // Change line to ensure cached expression is reused without recompile failure.
+    let second = matcher.match(line: "INFO 123", pattern: pattern)
+    XCTAssertEqual(second?.captureGroups.first, "123")
+  }
+
+  func test_match_whenCaptureGroupMissing_appendsEmptyString() {
+    let pattern = logPattern(regex: #"ERROR:? (?:code: (\d+))?"#)
+    let line = "ERROR without code"
+
+    let result = matcher.match(line: line, pattern: pattern)
+
+    XCTAssertEqual(result?.captureGroups.count, 1)
+    XCTAssertEqual(result?.captureGroups.first, "")
+  }
+
   // MARK: - Helpers
 
   private func logPattern(
     regex: String,
     enabled: Bool = true,
     name: String = "Test Pattern",
-    filePath: String = "/tmp/test.log"
+    filePath: String = "/tmp/test.log",
+    precompile: Bool = true
   ) -> LogPattern {
     LogPattern(
       name: name,
@@ -94,7 +116,8 @@ final class PatternMatcherTests: XCTestCase {
       logPath: filePath,
       color: CodableColor(red: 1, green: 0, blue: 0),
       animationStyle: .glow,
-      enabled: enabled
+      enabled: enabled,
+      precompileRegex: precompile
     )
   }
 }

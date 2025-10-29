@@ -7,7 +7,7 @@
 
 import XCTest
 
-final class SimmerUITestsLaunchTests: XCTestCase {
+internal final class SimmerUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true

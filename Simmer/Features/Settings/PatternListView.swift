@@ -8,7 +8,7 @@
 import SwiftUI
 
 /// Displays user-configured log patterns with add, edit, delete, and toggle actions.
-struct PatternListView: View {
+internal struct PatternListView: View {
   @StateObject private var viewModel: PatternListViewModel
   @State private var showingAddSheet = false
   @State private var editingPattern: LogPattern?
@@ -228,7 +228,7 @@ private struct PatternRow: View {
   }
 
 /// Mock store for previews with sample data.
-private struct PreviewConfigurationStore: ConfigurationStoreProtocol {
+internal struct PreviewConfigurationStore: ConfigurationStoreProtocol {
   func loadPatterns() -> [LogPattern] {
     [
       LogPattern(

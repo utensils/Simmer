@@ -8,7 +8,7 @@
 import Foundation
 @testable import Simmer
 
-final class MockPatternMatcher: PatternMatcherProtocol {
+internal final class MockPatternMatcher: PatternMatcherProtocol {
   private var queuedResults: [UUID: [MatchResult?]] = [:]
   private(set) var evaluatedLines: [String] = []
 

@@ -10,7 +10,7 @@ import Foundation
 import UniformTypeIdentifiers
 
 /// Errors that can occur during file access operations
-enum FileAccessError: Error, LocalizedError, Equatable {
+internal enum FileAccessError: Error, LocalizedError, Equatable {
     case userCancelled
     case fileNotAccessible(path: String)
 
@@ -25,13 +25,13 @@ enum FileAccessError: Error, LocalizedError, Equatable {
 }
 
 /// Protocol for file selection via file picker (for testing)
-protocol FileAccessManaging: AnyObject {
+internal protocol FileAccessManaging: AnyObject {
     func requestAccess(allowedFileTypes: [String]?) throws -> URL
 }
 
 /// Manages file selection via system file picker for non-sandboxed apps
 @MainActor
-final class FileAccessManager: FileAccessManaging {
+internal final class FileAccessManager: FileAccessManaging {
     /// Requests user to select a file via file picker
     /// - Parameter allowedFileTypes: Optional array of allowed file extensions (e.g., ["log", "txt"])
     /// - Returns: URL of the selected file

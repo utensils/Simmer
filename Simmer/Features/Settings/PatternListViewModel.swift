@@ -12,7 +12,7 @@ import UniformTypeIdentifiers
 
 /// View model managing pattern CRUD operations and state for PatternListView.
 @MainActor
-class PatternListViewModel: ObservableObject {
+internal final class PatternListViewModel: ObservableObject {
   private static let maxPatternCount = 20
   private static let patternLimitMessage = "Maximum 20 patterns supported"
 

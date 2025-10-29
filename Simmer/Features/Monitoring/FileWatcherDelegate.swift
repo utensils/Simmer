@@ -7,19 +7,19 @@
 
 import Foundation
 
-protocol FileWatching: AnyObject {
+internal protocol FileWatching: AnyObject {
   var path: String { get }
   var delegate: FileWatcherDelegate? { get set }
   func start() throws
   func stop()
 }
 
-protocol FileWatcherDelegate: AnyObject {
+internal protocol FileWatcherDelegate: AnyObject {
   func fileWatcher(_ watcher: FileWatching, didReadLines lines: [String])
   func fileWatcher(_ watcher: FileWatching, didEncounterError error: FileWatcherError)
 }
 
-enum FileWatcherError: Error, Equatable {
+internal enum FileWatcherError: Error, Equatable {
   case fileDeleted(path: String)
   case permissionDenied(path: String)
   case fileDescriptorInvalid

@@ -7,7 +7,7 @@
 import XCTest
 @testable import Simmer
 
-final class ConfigurationExportImportTests: XCTestCase {
+internal final class ConfigurationExportImportTests: XCTestCase {
   private var temporaryDirectoryURL: URL!
 
   override func setUpWithError() throws {

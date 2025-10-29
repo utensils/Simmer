@@ -8,7 +8,7 @@
 import Foundation
 
 /// Immutable record describing a pattern match occurrence.
-struct MatchEvent: Codable, Identifiable, Equatable {
+internal struct MatchEvent: Codable, Identifiable, Equatable {
   let id: UUID
   let patternID: UUID
   let patternName: String

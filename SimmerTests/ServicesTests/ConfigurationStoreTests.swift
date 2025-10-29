@@ -7,7 +7,7 @@ import XCTest
 @testable import Simmer
 
 @MainActor
-final class ConfigurationStoreTests: XCTestCase {
+internal final class ConfigurationStoreTests: XCTestCase {
   private var suiteName: String!
   private var userDefaults: UserDefaults!
   private var store: ConfigurationStore!

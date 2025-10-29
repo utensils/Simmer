@@ -9,7 +9,7 @@ import Foundation
 @testable import Simmer
 
 /// Mock DispatchSource factory to drive FileWatcher tests deterministically.
-final class MockFileSystemEventSource: FileSystemEventSource {
+internal final class MockFileSystemEventSource: FileSystemEventSource {
     private(set) var dataValue: DispatchSource.FileSystemEvent = []
     private var eventHandler: (() -> Void)?
     private var cancelHandler: (() -> Void)?
@@ -44,7 +44,7 @@ final class MockFileSystemEventSource: FileSystemEventSource {
     }
 }
 
-final class MockFileSystemEventSourceFactory {
+internal final class MockFileSystemEventSourceFactory {
     private let source: MockFileSystemEventSource
 
     private(set) var lastDescriptor: Int32?

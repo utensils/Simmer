@@ -7,7 +7,7 @@
 
 import AppKit
 
-protocol IconAnimatorDelegate: AnyObject {
+internal protocol IconAnimatorDelegate: AnyObject {
   func animationDidStart(style: AnimationStyle, color: CodableColor)
   func animationDidEnd()
   func updateIcon(_ image: NSImage)

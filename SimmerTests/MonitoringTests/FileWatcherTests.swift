@@ -6,7 +6,7 @@
 import XCTest
 @testable import Simmer
 
-final class FileWatcherTests: XCTestCase {
+internal final class FileWatcherTests: XCTestCase {
   private let path = "/tmp/test.log"
   private var fileSystem: MockFileSystem!
   private var eventSource: TestFileSystemEventSource!
@@ -99,6 +99,58 @@ final class FileWatcherTests: XCTestCase {
 
     wait(for: [noErrorExpectation], timeout: 0.1)
     XCTAssertTrue(delegate.receivedErrors.isEmpty)
+  }
+
+  func test_handleFileEvent_whenPartialLineBuffered_emitsAfterCompletion() {
+    fileSystem.append("partial", to: path)
+    eventSource.trigger()
+    XCTAssertTrue(delegate.receivedLines.isEmpty)
+
+    delegate.linesExpectation = expectation(description: "Emits completed line")
+    fileSystem.append(" line\n", to: path)
+    eventSource.trigger()
+
+    waitForExpectations(timeout: 1)
+    XCTAssertEqual(delegate.receivedLines.last, ["partial line"])
+  }
+
+  func test_handleFileEvent_whenLseekFails_reportsErrorAndStops() {
+    delegate.errorExpectation = expectation(description: "Reported lseek failure")
+    let descriptor = fileSystem.descriptor(forPath: path)!
+    fileSystem.lseekFailures[descriptor] = EBADF
+
+    eventSource.trigger()
+    waitForExpectations(timeout: 1)
+
+    XCTAssertEqual(delegate.receivedErrors.last, .fileDescriptorInvalid)
+    XCTAssertNil(fileSystem.descriptor(forPath: path))
+  }
+
+  func test_handleFileEvent_whenReadReturnsNoData_doesNotEmitLines() {
+    eventSource.trigger()
+    XCTAssertTrue(delegate.receivedLines.isEmpty)
+  }
+
+  func test_handleFileEvent_whenReadFailsWithEPERM_reportsPermissionDenied() {
+    delegate.errorExpectation = expectation(description: "Reported EPERM")
+    let descriptor = fileSystem.descriptor(forPath: path)!
+    fileSystem.readFailures[descriptor] = EPERM
+
+    eventSource.trigger()
+    waitForExpectations(timeout: 1)
+
+    XCTAssertEqual(delegate.receivedErrors.last, .permissionDenied(path: path))
+  }
+
+  func test_handleFileEvent_whenReadFailsWithUnknownError_reportsDescriptorInvalid() {
+    delegate.errorExpectation = expectation(description: "Reported default error")
+    let descriptor = fileSystem.descriptor(forPath: path)!
+    fileSystem.readFailures[descriptor] = EIO
+
+    eventSource.trigger()
+    waitForExpectations(timeout: 1)
+
+    XCTAssertEqual(delegate.receivedErrors.last, .fileDescriptorInvalid)
   }
 }
 

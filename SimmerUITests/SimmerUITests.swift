@@ -7,7 +7,7 @@
 
 import XCTest
 
-final class SimmerUITests: XCTestCase {
+internal final class SimmerUITests: XCTestCase {
   override func setUpWithError() throws {
     continueAfterFailure = false
   }

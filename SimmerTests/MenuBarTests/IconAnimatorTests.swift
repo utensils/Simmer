@@ -7,7 +7,7 @@ import XCTest
 @testable import Simmer
 
 @MainActor
-final class IconAnimatorTests: XCTestCase {
+internal final class IconAnimatorTests: XCTestCase {
   private var timer: TestAnimationTimer!
   private var clock: TestAnimationClock!
   private var animator: IconAnimator!

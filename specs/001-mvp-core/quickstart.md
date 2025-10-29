@@ -49,7 +49,7 @@ Follow prioritized user stories (P1→P4) for incremental delivery:
 - `PatternsTests/MatchEventHandlerTests.swift` - History pruning logic
 - `MenuBarTests/MenuBuilderTests.swift` - Menu structure validation
 
-**Success Criteria**: FR-007, FR-008, SC-008 (match context sufficient 80% of time)
+**Success Criteria**: FR-007, FR-008, SC-008 (no auxiliary log views required during validation)
 
 ---
 
@@ -64,14 +64,14 @@ Follow prioritized user stories (P1→P4) for incremental delivery:
 4. `Features/Settings/ColorPickerView.swift` - RGB color selection
 5. `Features/Patterns/PatternValidator.swift` - Regex syntax validation
 6. `Utilities/CodableColor.swift` - NSColor wrapper for Codable
-7. `Features/Monitoring/FileAccessManager.swift` - Security-scoped bookmarks
+7. `Features/Monitoring/FileAccessManager.swift` - NSOpenPanel path selection (no sandbox bookmarks)
 
 **Testing**:
 - `PatternsTests/PatternValidatorTests.swift` - Invalid regex handling
 - `ServicesTests/ConfigurationStoreTests.swift` - Persistence verification
-- Manual testing for NSOpenPanel file selection
+- Manual testing for NSOpenPanel file selection and path validation
 
-**Success Criteria**: FR-010 through FR-016, SC-001 (configure pattern <60s), SC-005 (95% success without docs)
+**Success Criteria**: FR-010 through FR-016, SC-001 (configure pattern <60s on first attempt), SC-005 (quickstart completed <5 minutes)
 
 ---
 
@@ -148,9 +148,32 @@ xcodebuild -scheme Simmer -configuration Debug run
 # Profile with Instruments
 xcodebuild -scheme Simmer -configuration Release \
   -derivedDataPath build && \
-  instruments -t "Time Profiler" \
-  build/Build/Products/Release/Simmer.app
+instruments -t "Time Profiler" \
+build/Build/Products/Release/Simmer.app
 ```
+
+---
+
+## Validation Checklist (T133/T134)
+
+1. **60-second configuration attempt (SC-001)**  
+   - Start with a clean run (no stored patterns).  
+   - Begin timer when launching the app.  
+   - Complete pattern creation (regex, file, appearance) in ≤60 seconds.  
+   - Record actual time, success/failure, and blockers in `research.md`.
+
+2. **Full quickstart flow (SC-005)**  
+   - Reset baseline and follow the repository quickstart end-to-end.  
+   - Confirm visible feedback (icon animation or match history entry) within 5 minutes.  
+   - Note any deviations or assistance required.
+
+3. **Match history context check (SC-008)**  
+   - During the quickstart flow, capture whether auxiliary log views were required.  
+   - Validation passes only if zero external log inspections occur; document evidence in `research.md` and summarize in this quickstart.
+
+4. **Publish findings**  
+   - Update `research.md` with raw measurements and observations.  
+   - Add a brief summary and any remediation tasks to this quickstart and `tasks.md` (T134).
 
 ---
 
@@ -168,7 +191,7 @@ xcodebuild -scheme Simmer -configuration Release \
 
 ### Configuration
 - `Simmer/Services/ConfigurationStore.swift` - UserDefaults persistence
-- `Simmer/Features/Monitoring/FileAccessManager.swift` - Security-scoped bookmarks
+- `Simmer/Features/Monitoring/FileAccessManager.swift` - NSOpenPanel integration and path validation
 
 ### UI
 - `Simmer/Features/MenuBar/MenuBarController.swift` - NSStatusItem
@@ -186,7 +209,7 @@ xcodebuild -scheme Simmer -configuration Release \
 
 **Animation jank**: Ensure Core Graphics rendering completes <2ms per frame, profile with Instruments
 
-**Security-scoped bookmark staleness**: Always check `isStale` on bookmark resolution, prompt user to re-select file
+**File path churn**: Validate existence/readability after rotations; disable patterns and alert users when paths stop resolving
 
 **Pattern compilation cost**: Pre-compile NSRegularExpression when LogPattern created, reuse instance
 

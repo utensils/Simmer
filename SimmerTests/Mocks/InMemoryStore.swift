@@ -8,7 +8,7 @@
 import Foundation
 @testable import Simmer
 
-final class InMemoryStore: ConfigurationStoreProtocol {
+internal final class InMemoryStore: ConfigurationStoreProtocol {
   private var storage: [LogPattern]
 
   init(initialPatterns: [LogPattern] = []) {

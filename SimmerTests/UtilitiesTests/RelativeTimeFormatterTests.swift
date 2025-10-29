@@ -1,7 +1,7 @@
 import XCTest
 @testable import Simmer
 
-final class RelativeTimeFormatterTests: XCTestCase {
+internal final class RelativeTimeFormatterTests: XCTestCase {
     // MARK: - Seconds Tests
 
     func testJustNow_ZeroSeconds() {

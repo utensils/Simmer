@@ -7,13 +7,13 @@
 
 import Foundation
 
-enum ConfigurationStoreError: Error, Equatable {
+internal enum ConfigurationStoreError: Error, Equatable {
   case encodingFailed
   case decodingFailed
   case patternNotFound
 }
 
-struct ConfigurationStore: ConfigurationStoreProtocol {
+internal struct ConfigurationStore: ConfigurationStoreProtocol {
   private let patternsKey = "patterns"
   private let userDefaults: UserDefaults
   private let encoder: JSONEncoder

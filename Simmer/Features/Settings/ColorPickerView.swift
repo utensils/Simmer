@@ -9,7 +9,7 @@ import SwiftUI
 import AppKit
 
 /// Wraps SwiftUI's ColorPicker with RGB sliders to edit a `CodableColor`.
-struct ColorPickerView: View {
+internal struct ColorPickerView: View {
   @Binding var color: CodableColor
 
   private var currentColor: Color {
@@ -143,8 +143,8 @@ struct ColorPickerView: View {
 // MARK: - Preview
 
 #if DEBUG
-struct ColorPickerView_Previews: PreviewProvider {
-  struct PreviewWrapper: View {
+internal struct ColorPickerView_Previews: PreviewProvider {
+  internal struct PreviewWrapper: View {
     @State private var color = CodableColor(red: 0.4, green: 0.6, blue: 0.9)
 
     var body: some View {
@@ -154,7 +154,7 @@ struct ColorPickerView_Previews: PreviewProvider {
     }
   }
 
-  static var previews: some View {
+  internal static var previews: some View {
     PreviewWrapper()
       .previewLayout(.sizeThatFits)
   }

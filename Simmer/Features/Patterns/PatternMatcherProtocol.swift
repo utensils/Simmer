@@ -7,12 +7,12 @@
 
 import Foundation
 
-struct MatchResult: Equatable {
+internal struct MatchResult: Equatable {
   let range: NSRange
   let captureGroups: [String]
 }
 
 /// Defines a contract for evaluating log lines against persisted patterns.
-protocol PatternMatcherProtocol {
+internal protocol PatternMatcherProtocol {
   func match(line: String, pattern: LogPattern) -> MatchResult?
 }

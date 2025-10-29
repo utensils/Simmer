@@ -10,7 +10,7 @@ import os.log
 import ServiceManagement
 
 /// Internal representation of the launch agent status returned by `SMAppService`.
-enum LaunchAtLoginServiceStatus: Equatable {
+internal enum LaunchAtLoginServiceStatus: Equatable {
   case enabled
   case notRegistered
   case requiresApproval
@@ -18,7 +18,7 @@ enum LaunchAtLoginServiceStatus: Equatable {
 }
 
 /// Abstraction over `SMAppService` so tests can inject fakes without touching system state.
-protocol LaunchAtLoginService {
+internal protocol LaunchAtLoginService {
   var status: LaunchAtLoginServiceStatus { get }
   func register() throws
   func unregister() throws
@@ -26,7 +26,7 @@ protocol LaunchAtLoginService {
 
 /// Adapter that bridges `SMAppService` to `LaunchAtLoginService`.
 @available(macOS 13, *)
-final class SMAppServiceAdapter: LaunchAtLoginService {
+internal final class SMAppServiceAdapter: LaunchAtLoginService {
   private let service: SMAppService
 
   init(service: SMAppService = .mainApp) {
@@ -56,7 +56,7 @@ final class SMAppServiceAdapter: LaunchAtLoginService {
 }
 
 /// Errors that can occur while configuring launch at login support.
-enum LaunchAtLoginError: LocalizedError, Equatable {
+internal enum LaunchAtLoginError: LocalizedError, Equatable {
   case notSupported
   case operationFailed(message: String)
 
@@ -73,7 +73,7 @@ enum LaunchAtLoginError: LocalizedError, Equatable {
 }
 
 /// Abstraction for enabling or disabling Launch at Login.
-protocol LaunchAtLoginControlling: AnyObject {
+internal protocol LaunchAtLoginControlling: AnyObject {
   /// Whether Launch at Login can be configured on the current OS.
   var isAvailable: Bool { get }
 
@@ -86,7 +86,7 @@ protocol LaunchAtLoginControlling: AnyObject {
 
 /// Default implementation that persists the preference in `UserDefaults`
 /// and calls through to `SMAppService` on macOS 13+.
-final class LaunchAtLoginController: LaunchAtLoginControlling {
+internal final class LaunchAtLoginController: LaunchAtLoginControlling {
   private enum Constants {
     static let preferenceKey = "launchAtLoginEnabled"
     static let logger = OSLog(subsystem: "io.utensils.Simmer", category: "LaunchAtLogin")

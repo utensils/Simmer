@@ -9,14 +9,14 @@ on:
 jobs:
   test:
     name: Run Tests & Coverage
-    runs-on: macos-14
+    runs-on: macos-15
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode.app
+        run: sudo xcode-select -s /Applications/Xcode_16.1.app
 
       - name: Show Xcode version
         run: xcodebuild -version
@@ -32,6 +32,10 @@ jobs:
 
       - name: Generate coverage report
         run: |
+          # Create coverage directory
+          mkdir -p coverage
+
+          # Try xcov first (likely not installed on runner)
           xcrun xcov \
             --scheme Simmer \
             --derived_data_path DerivedData \

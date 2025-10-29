@@ -1,7 +1,7 @@
 import Foundation
 
 /// Expands file paths by resolving tilde (~) and environment variables
-struct PathExpander {
+internal struct PathExpander {
     /// Expands a file path by resolving tilde and environment variables
     /// - Parameter path: The path to expand (e.g., "~/logs/app.log" or "$HOME/logs/app.log")
     /// - Returns: The expanded path (e.g., "/Users/username/logs/app.log")
@@ -69,7 +69,9 @@ struct PathExpander {
                 let varName = String(result[varRange])
                 if let value = environment[varName] {
                     // Replace the entire match (including the $)
-                    let fullRange = result.index(matchRange.lowerBound, offsetBy: 0)..<result.index(matchRange.lowerBound, offsetBy: varName.count + 1)
+                    let startIndex = result.index(matchRange.lowerBound, offsetBy: 0)
+                    let endIndex = result.index(matchRange.lowerBound, offsetBy: varName.count + 1)
+                    let fullRange = startIndex..<endIndex
                     result.replaceSubrange(fullRange, with: value)
                 }
             }

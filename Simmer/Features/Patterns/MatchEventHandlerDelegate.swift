@@ -8,7 +8,7 @@
 import Foundation
 
 /// Callback protocol for MatchEventHandler to notify consumers of new matches and history updates.
-protocol MatchEventHandlerDelegate: AnyObject {
+internal protocol MatchEventHandlerDelegate: AnyObject {
     /// Called when a pattern match is detected and prioritized for animation.
     func matchEventHandler(_ handler: MatchEventHandler, didDetectMatch event: MatchEvent)
 

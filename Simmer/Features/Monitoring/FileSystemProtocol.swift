@@ -8,7 +8,7 @@
 import Foundation
 
 /// Contracts the minimal file operations required by ``FileWatcher``.
-protocol FileSystemProtocol {
+internal protocol FileSystemProtocol {
   /// Opens a file descriptor for the provided path using the supplied flags.
   func open(_ path: String, _ oflag: Int32) -> Int32
 

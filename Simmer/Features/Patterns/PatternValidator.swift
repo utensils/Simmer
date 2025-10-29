@@ -1,9 +1,9 @@
 import Foundation
 
 /// Validates regex patterns for syntax correctness
-struct PatternValidator {
+internal struct PatternValidator {
     /// Validation result for a regex pattern
-    enum ValidationResult {
+    internal enum ValidationResult {
         case valid
         case invalid(error: String)
 

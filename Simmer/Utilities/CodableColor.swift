@@ -9,7 +9,7 @@ import AppKit
 import SwiftUI
 
 /// Encapsulates RGBA components so colors can be encoded and decoded safely.
-struct CodableColor: Codable, Equatable {
+internal struct CodableColor: Codable, Equatable {
   let red: Double
   let green: Double
   let blue: Double

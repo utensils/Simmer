@@ -9,7 +9,7 @@ import Darwin
 import Foundation
 @testable import Simmer
 
-final class MockFileSystem: FileSystemProtocol {
+internal final class MockFileSystem: FileSystemProtocol {
   private struct DescriptorState {
     let path: String
     var offset: off_t

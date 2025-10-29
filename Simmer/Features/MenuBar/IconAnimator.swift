@@ -10,18 +10,18 @@ import QuartzCore
 import os
 
 @MainActor
-protocol IconAnimatorClock {
+internal protocol IconAnimatorClock {
   func now() -> TimeInterval
 }
 
 @MainActor
-protocol AnimationTimer: AnyObject {
+internal protocol AnimationTimer: AnyObject {
   func start(interval: TimeInterval, handler: @escaping @MainActor () -> Void)
   func stop()
 }
 
 @MainActor
-final class TimerAnimationTimer: AnimationTimer {
+internal final class TimerAnimationTimer: AnimationTimer {
   private var timer: Timer?
 
   func start(interval: TimeInterval, handler: @escaping @MainActor () -> Void) {
@@ -39,20 +39,20 @@ final class TimerAnimationTimer: AnimationTimer {
   }
 }
 
-struct SystemAnimationClock: IconAnimatorClock {
+internal struct SystemAnimationClock: IconAnimatorClock {
   func now() -> TimeInterval {
     CACurrentMediaTime()
   }
 }
 
 @MainActor
-final class IconAnimator {
+internal final class IconAnimator {
   private enum PerformanceState {
     case normal
     case reduced
   }
 
-  struct FrameParameters: Equatable {
+  internal struct FrameParameters: Equatable {
     let scale: CGFloat
     let opacity: CGFloat
     let visible: Bool
@@ -346,8 +346,8 @@ final class IconAnimator {
   }
 }
 
-struct AnimationFrameBudgetEvaluator {
-  struct Result {
+internal struct AnimationFrameBudgetEvaluator {
+  internal struct Result {
     let exceeded: Bool
     let lastWarning: TimeInterval
   }

@@ -1,7 +1,7 @@
 import XCTest
 @testable import Simmer
 
-final class PatternValidatorTests: XCTestCase {
+internal final class PatternValidatorTests: XCTestCase {
     // MARK: - Valid Patterns
 
     func testValidPattern_SimpleText() {

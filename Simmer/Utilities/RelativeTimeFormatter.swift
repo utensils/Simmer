@@ -1,7 +1,7 @@
 import Foundation
 
 /// Formats timestamps as relative time strings (e.g., "2m ago", "1h ago")
-struct RelativeTimeFormatter {
+internal struct RelativeTimeFormatter {
     /// Formats a date as a relative time string from now
     /// - Parameter date: The date to format
     /// - Returns: A string like "2m ago", "1h ago", "3d ago"

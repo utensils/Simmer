@@ -6,7 +6,7 @@
 import Foundation
 @testable import Simmer
 
-final class LaunchAtLoginControllerSpy: LaunchAtLoginControlling {
+internal final class LaunchAtLoginControllerSpy: LaunchAtLoginControlling {
   var isAvailable: Bool
   private(set) var storedPreference: Bool
   private(set) var setEnabledCalls: [Bool] = []

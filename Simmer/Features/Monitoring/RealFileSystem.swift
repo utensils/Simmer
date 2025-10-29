@@ -8,7 +8,7 @@
 import Darwin
 import Foundation
 
-struct RealFileSystem: FileSystemProtocol {
+internal struct RealFileSystem: FileSystemProtocol {
   func open(_ path: String, _ oflag: Int32) -> Int32 {
     path.withCString { pointer in
       Darwin.open(pointer, oflag)
