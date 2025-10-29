@@ -15,12 +15,12 @@ class PatternListViewModel: ObservableObject {
   @Published var errorMessage: String?
 
   private let store: any ConfigurationStoreProtocol
-  private let logMonitor: LogMonitor?
+  private let logMonitor: LogMonitoring?
   private var patternsObserver: NSObjectProtocol?
 
   init(
     store: any ConfigurationStoreProtocol,
-    logMonitor: LogMonitor? = nil
+    logMonitor: LogMonitoring? = nil
   ) {
     self.store = store
     self.logMonitor = logMonitor

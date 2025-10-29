@@ -9,6 +9,11 @@ import Foundation
 import os.log
 
 /// Central coordinator that listens to file changes, evaluates patterns, and triggers visual feedback.
+protocol LogMonitoring: AnyObject {
+  func reloadPatterns()
+  func setPatternEnabled(_ patternID: UUID, isEnabled: Bool)
+}
+
 final class LogMonitor: NSObject {
   typealias WatcherFactory = (LogPattern) -> FileWatching
 
@@ -721,3 +726,5 @@ extension LogMonitor: MatchEventHandlerDelegate {
     onHistoryUpdate?(historyDidUpdate)
   }
 }
+
+extension LogMonitor: LogMonitoring {}

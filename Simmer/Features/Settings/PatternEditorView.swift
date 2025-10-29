@@ -99,6 +99,8 @@ struct PatternEditorView: View {
           validateRegex()
         }
       }
+      .formStyle(.grouped)
+      .frame(minWidth: 520)
     }
   }
 
@@ -132,6 +134,8 @@ struct PatternEditorView: View {
           TextField("Path", text: $logPath)
             .textFieldStyle(.roundedBorder)
             .fontDesign(.monospaced)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .lineLimit(1)
 
           Button {
             openFilePicker()
@@ -146,6 +150,9 @@ struct PatternEditorView: View {
           Text("Access granted for \(bookmark.filePath)")
             .font(.footnote)
             .foregroundStyle(.secondary)
+            .textSelection(.enabled)
+            .lineLimit(nil)
+            .fixedSize(horizontal: false, vertical: true)
         }
       }
     }

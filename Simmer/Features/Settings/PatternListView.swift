@@ -15,7 +15,7 @@ struct PatternListView: View {
 
   init(
     store: any ConfigurationStoreProtocol = ConfigurationStore(),
-    logMonitor: LogMonitor? = nil
+    logMonitor: LogMonitoring? = nil
   ) {
     _viewModel = StateObject(
       wrappedValue: PatternListViewModel(
@@ -87,11 +87,18 @@ struct PatternListView: View {
   private var patternListView: some View {
     List {
       ForEach(viewModel.patterns) { pattern in
-        PatternRow(pattern: pattern) {
-          editingPattern = pattern
-        } onToggle: {
-          viewModel.toggleEnabled(id: pattern.id)
-        }
+        PatternRow(
+          pattern: pattern,
+          onEdit: {
+            editingPattern = pattern
+          },
+          onToggle: {
+            viewModel.toggleEnabled(id: pattern.id)
+          },
+          onDelete: {
+            viewModel.deletePattern(id: pattern.id)
+          }
+        )
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
           Button(role: .destructive) {
             viewModel.deletePattern(id: pattern.id)
@@ -112,6 +119,7 @@ private struct PatternRow: View {
   let pattern: LogPattern
   let onEdit: () -> Void
   let onToggle: () -> Void
+  let onDelete: () -> Void
 
   var body: some View {
     HStack(spacing: 12) {
@@ -150,6 +158,15 @@ private struct PatternRow: View {
         set: { _ in onToggle() }
       ))
       .labelsHidden()
+      .toggleStyle(.switch)
+
+      Button(role: .destructive) {
+        onDelete()
+      } label: {
+        Image(systemName: "trash")
+      }
+      .buttonStyle(.borderless)
+      .accessibilityLabel("Delete pattern")
     }
     .contentShape(Rectangle())
     .onTapGesture {
