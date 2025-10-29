@@ -303,7 +303,8 @@ internal enum ManualPathValidationError: LocalizedError {
 
     case .unreadable(let path):
       return """
-      Simmer does not have permission to read "\(path)". Use the Choose… button so macOS can grant access.
+      Simmer does not have permission to read "\(path)". \
+      Use the Choose… button so macOS can grant access.
       """
     }
   }

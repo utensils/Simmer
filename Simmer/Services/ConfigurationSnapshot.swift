@@ -15,7 +15,11 @@ internal struct ConfigurationSnapshot: Codable {
   let exportedAt: Date
   let patterns: [LogPattern]
 
-  init(version: Int = ConfigurationSnapshot.currentVersion, exportedAt: Date = Date(), patterns: [LogPattern]) {
+  init(
+    version: Int = ConfigurationSnapshot.currentVersion,
+    exportedAt: Date = Date(),
+    patterns: [LogPattern]
+  ) {
     self.version = version
     self.exportedAt = exportedAt
     self.patterns = patterns

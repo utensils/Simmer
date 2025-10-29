@@ -36,9 +36,12 @@ internal struct PatternListView: View {
       .navigationTitle("Log Patterns")
       .toolbar {
         ToolbarItem(placement: .primaryAction) {
-          Button(action: { showingAddSheet = true }) {
-            Label("Add Pattern", systemImage: "plus")
-          }
+          Button(
+            action: { showingAddSheet = true },
+            label: {
+              Label("Add Pattern", systemImage: "plus")
+            }
+          )
         }
         ToolbarItem(placement: .secondaryAction) {
           Menu {
@@ -66,7 +69,11 @@ internal struct PatternListView: View {
           editingPattern = nil
         }
       }
-      .alert("Error", isPresented: .constant(viewModel.errorMessage != nil), presenting: viewModel.errorMessage) { _ in
+      .alert(
+        "Error",
+        isPresented: .constant(viewModel.errorMessage != nil),
+        presenting: viewModel.errorMessage
+      ) { _ in
         Button("OK") {
           viewModel.clearError()
         }

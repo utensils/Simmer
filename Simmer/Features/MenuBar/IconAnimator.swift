@@ -179,8 +179,9 @@ internal final class IconAnimator {
       self.budgetExceededHandler = budgetExceededHandler
     } else {
       self.budgetExceededHandler = { [logger] duration in
+        let durationMs = duration * 1_000
         logger.warning(
-          "Icon frame rendering exceeded budget: \(duration * 1_000, format: .fixed(precision: 3)) ms"
+          "Icon frame rendering exceeded budget: \(durationMs, format: .fixed(precision: 3)) ms"
         )
       }
     }

@@ -52,7 +52,10 @@ internal final class FileWatcherTests: XCTestCase {
 
   func test_handleFileEvent_whenFileDeleted_reportsError() {
     delegate.errorExpectation = expectation(description: "Reported deleted file")
-    let descriptor = fileSystem.descriptor(forPath: path)!
+    guard let descriptor = fileSystem.descriptor(forPath: path) else {
+      XCTFail("Failed to get descriptor for path")
+      return
+    }
     fileSystem.readFailures[descriptor] = ENOENT
 
     eventSource.trigger()
@@ -63,7 +66,10 @@ internal final class FileWatcherTests: XCTestCase {
 
   func test_handleFileEvent_whenPermissionDenied_reportsError() {
     delegate.errorExpectation = expectation(description: "Reported permission denied")
-    let descriptor = fileSystem.descriptor(forPath: path)!
+    guard let descriptor = fileSystem.descriptor(forPath: path) else {
+      XCTFail("Failed to get descriptor for path")
+      return
+    }
     fileSystem.readFailures[descriptor] = EACCES
 
     eventSource.trigger()
@@ -116,7 +122,10 @@ internal final class FileWatcherTests: XCTestCase {
 
   func test_handleFileEvent_whenLseekFails_reportsErrorAndStops() {
     delegate.errorExpectation = expectation(description: "Reported lseek failure")
-    let descriptor = fileSystem.descriptor(forPath: path)!
+    guard let descriptor = fileSystem.descriptor(forPath: path) else {
+      XCTFail("Failed to get descriptor for path")
+      return
+    }
     fileSystem.lseekFailures[descriptor] = EBADF
 
     eventSource.trigger()
@@ -133,7 +142,10 @@ internal final class FileWatcherTests: XCTestCase {
 
   func test_handleFileEvent_whenReadFailsWithEPERM_reportsPermissionDenied() {
     delegate.errorExpectation = expectation(description: "Reported EPERM")
-    let descriptor = fileSystem.descriptor(forPath: path)!
+    guard let descriptor = fileSystem.descriptor(forPath: path) else {
+      XCTFail("Failed to get descriptor for path")
+      return
+    }
     fileSystem.readFailures[descriptor] = EPERM
 
     eventSource.trigger()
@@ -144,7 +156,10 @@ internal final class FileWatcherTests: XCTestCase {
 
   func test_handleFileEvent_whenReadFailsWithUnknownError_reportsDescriptorInvalid() {
     delegate.errorExpectation = expectation(description: "Reported default error")
-    let descriptor = fileSystem.descriptor(forPath: path)!
+    guard let descriptor = fileSystem.descriptor(forPath: path) else {
+      XCTFail("Failed to get descriptor for path")
+      return
+    }
     fileSystem.readFailures[descriptor] = EIO
 
     eventSource.trigger()

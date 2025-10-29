@@ -26,7 +26,7 @@ internal final class ConfigurationExportImportTests: XCTestCase {
   }
 
   func test_exportThenImportRoundTrip_preservesPatterns() throws {
-    let patterns = [makePattern(name: "Errors"), makePattern(name: "Warnings", regex: "WARN"),]
+    let patterns = [makePattern(name: "Errors"), makePattern(name: "Warnings", regex: "WARN")]
     let exporter = ConfigurationExporter(dateProvider: { Date(timeIntervalSince1970: 1_000) })
     let importer = ConfigurationImporter()
     let destination = temporaryDirectoryURL.appendingPathComponent("patterns.json")

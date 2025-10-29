@@ -65,13 +65,13 @@ internal final class ConfigurationStoreTests: XCTestCase {
   }
 
   func test_deletePattern_whenPatternExists_removesItFromStorage() throws {
-    let p1 = makePattern(name: "One")
-    let p2 = makePattern(name: "Two")
-    try store.savePatterns([p1, p2])
+    let pattern1 = makePattern(name: "One")
+    let pattern2 = makePattern(name: "Two")
+    try store.savePatterns([pattern1, pattern2])
 
-    try store.deletePattern(id: p1.id)
+    try store.deletePattern(id: pattern1.id)
     let loaded = store.loadPatterns()
-    XCTAssertEqual(loaded, [p2])
+    XCTAssertEqual(loaded, [pattern2])
   }
 
   func test_deletePattern_whenPatternMissing_throwsPatternNotFound() {

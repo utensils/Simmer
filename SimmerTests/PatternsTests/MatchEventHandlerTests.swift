@@ -10,7 +10,7 @@ import XCTest
 
 @MainActor
 internal final class MatchEventHandlerTests: XCTestCase {
-    override class func setUp() {
+    override static func setUp() {
         super.setUp()
         setenv("XCTestCaseDisableMemoryChecker", "YES", 1)
     }
