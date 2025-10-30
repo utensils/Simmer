@@ -413,9 +413,9 @@ internal final class LogMonitorTests: XCTestCase {
     let updatedPattern = storeRef.loadPatterns().first { $0.id == pattern.id }
     XCTAssertEqual(updatedPattern?.enabled, false, "Pattern should be disabled after validation failure")
 
-    let messages = alertPresenter.messages
-    XCTAssertEqual(messages.count, 1)
-    XCTAssertTrue(messages.first?.message.contains("cannot find") ?? false, "Alert should explain missing file")
+    let prompts = alertPresenter.missingFilePrompts
+    XCTAssertEqual(prompts.count, 1, "Missing file prompt should be shown once")
+    XCTAssertTrue(alertPresenter.messages.isEmpty, "Missing file prompt replaces legacy alert copy")
 
     monitor.stopAll()
   }
@@ -674,9 +674,18 @@ private final class TestWatcherRegistry {
 @MainActor
 private final class RecordingAlertPresenter: LogMonitorAlertPresenting {
   private(set) var messages: [(title: String, message: String)] = []
+  private(set) var missingFilePrompts: [(pattern: String, path: String)] = []
 
   func presentAlert(title: String, message: String) {
     messages.append((title: title, message: message))
+  }
+
+  func presentMissingFilePrompt(
+    patternName: String,
+    missingPath: String
+  ) -> MissingFileAlertAction {
+    missingFilePrompts.append((pattern: patternName, path: missingPath))
+    return .disable
   }
 }
 
@@ -716,12 +725,20 @@ private final class StubFileWatcher: FileWatching {
 @MainActor
 private final class NoOpAlertPresenter: LogMonitorAlertPresenting {
   func presentAlert(title: String, message: String) {}
+
+  func presentMissingFilePrompt(
+    patternName: String,
+    missingPath: String
+  ) -> MissingFileAlertAction {
+    .disable
+  }
 }
 
 @MainActor
 private final class TestAlertPresenter: LogMonitorAlertPresenting {
   private let expectation: XCTestExpectation?
   private(set) var messages: [(title: String, message: String)] = []
+  private(set) var missingFilePrompts: [(pattern: String, path: String)] = []
 
   init(expectation: XCTestExpectation? = nil) {
     self.expectation = expectation
@@ -730,6 +747,14 @@ private final class TestAlertPresenter: LogMonitorAlertPresenting {
   func presentAlert(title: String, message: String) {
     messages.append((title, message))
     expectation?.fulfill()
+  }
+
+  func presentMissingFilePrompt(
+    patternName: String,
+    missingPath: String
+  ) -> MissingFileAlertAction {
+    missingFilePrompts.append((pattern: patternName, path: missingPath))
+    return .disable
   }
 }
 
