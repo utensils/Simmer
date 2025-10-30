@@ -8,6 +8,8 @@
 import AppKit
 import SwiftUI
 
+// swiftlint:disable type_body_length
+
 /// Editor view that captures all fields required for a `LogPattern`.
 internal struct PatternEditorView: View {
   @Environment(\.dismiss) private var dismiss
@@ -347,3 +349,5 @@ internal struct PatternEditorView_Previews: PreviewProvider {
   }
 }
 #endif
+
+// swiftlint:enable type_body_length

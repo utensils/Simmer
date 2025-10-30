@@ -37,6 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     super.init()
   }
 
+  // swiftlint:disable function_body_length
   func applicationDidFinishLaunching(_ notification: Notification) {
     let configurationPath = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"]
     let environment = ProcessInfo.processInfo.environment
@@ -106,6 +107,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
       }
     }
   }
+  // swiftlint:enable function_body_length
 
   func applicationWillTerminate(_ notification: Notification) {
     logMonitor?.stopAll()

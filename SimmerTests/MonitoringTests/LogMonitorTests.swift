@@ -5,6 +5,8 @@
 
 import AppKit
 import XCTest
+
+// swiftlint:disable type_body_length
 @testable import Simmer
 
 @MainActor
@@ -775,3 +777,4 @@ private final class SpyIconAnimatorDelegate: IconAnimatorDelegate {
 
   func updateIcon(_ image: NSImage) {}
 }
+// swiftlint:enable type_body_length

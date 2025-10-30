@@ -99,37 +99,15 @@ internal struct IconAnimationPerformanceGovernor {
         return nil
       }
     }
-  }
+}
 }
 
 @MainActor
 internal final class IconAnimator {
-  private enum AnimationConstants {
-    // Glow: 2s ease keeps motion gentle yet visible in peripheral vision.
-    static let glowCycleDuration: TimeInterval = 2.0
-    static let glowMinimumOpacity: CGFloat = 0.5
-    static let glowOpacityRange: CGFloat = 0.5
-    // Pulse: 1.5s cadence mimics a heartbeat with gentle scale/opacity offsets.
-    static let pulseCycleDuration: TimeInterval = 1.5
-    static let pulseBaseScale: CGFloat = 1.0
-    static let pulseScaleAmplitude: CGFloat = 0.15
-    static let pulseBaseOpacity: CGFloat = 0.85
-    static let pulseOpacityRange: CGFloat = 0.15
-    // Blink: half-second toggle provides urgency for high-priority matches.
-    static let blinkInterval: TimeInterval = 0.5
-  }
-
-  internal struct FrameParameters: Equatable {
-    let scale: CGFloat
-    let opacity: CGFloat
-    let visible: Bool
-  }
-
   weak var delegate: IconAnimatorDelegate?
 
   private(set) var state: IconAnimationState = .idle
 
-  private let iconSize: CGFloat
   private let normalFrameInterval: TimeInterval = 1.0 / 60.0
   private let reducedFrameInterval: TimeInterval
   private let timerFactory: @MainActor () -> AnimationTimer
@@ -141,12 +119,14 @@ internal final class IconAnimator {
   private var lastBudgetWarning: TimeInterval = 0
   private let budgetExceededHandler: (TimeInterval) -> Void
   private var performanceGovernor: IconAnimationPerformanceGovernor
+  private let frameCalculator: IconAnimationFrameCalculator
+  private let renderer: IconAnimationRenderer
 
   /// The idle icon image displayed when no animation is active.
   let idleIcon: NSImage
 
   // Exposed for tests to assert frame progression.
-  internal private(set) var debugLastParameters: FrameParameters?
+  internal private(set) var debugLastParameters: IconAnimationFrameParameters?
   internal private(set) var debugLastRenderDuration: TimeInterval?
   internal private(set) var debugRenderBudgetExceeded = false
   internal var debugPerformanceStateDescription: String {
@@ -171,7 +151,6 @@ internal final class IconAnimator {
     recoveryFrameThreshold: Int = 30,
     reducedFrameInterval: TimeInterval = 1.0 / 30.0
   ) {
-    self.iconSize = iconSize
     self.timerFactory = timerFactory ?? { TimerAnimationTimer() }
     self.clock = clock ?? SystemAnimationClock()
     self.frameBudget = frameBudget
@@ -190,11 +169,9 @@ internal final class IconAnimator {
       recoveryFrameThreshold: recoveryFrameThreshold
     )
     self.reducedFrameInterval = reducedFrameInterval
-    idleIcon = IconAnimator.renderIcon(
-      size: iconSize,
-      color: NSColor(calibratedWhite: 0.8, alpha: 1.0),
-      parameters: FrameParameters(scale: 1.0, opacity: 1.0, visible: true)
-    )
+    frameCalculator = IconAnimationFrameCalculator()
+    renderer = IconAnimationRenderer(iconSize: iconSize)
+    idleIcon = renderer.idleIcon()
   }
 
   func startAnimation(style: AnimationStyle, color: CodableColor) {
@@ -245,7 +222,7 @@ internal final class IconAnimator {
     }
 
     let elapsed = clock.now() - animationStart
-    let parameters = frameParameters(for: style, elapsed: elapsed)
+    let parameters = frameCalculator.parameters(for: style, elapsed: elapsed)
     debugLastParameters = parameters
 
     let image: NSImage
@@ -254,8 +231,7 @@ internal final class IconAnimator {
 
     if parameters.visible {
       let renderStart = currentTimestamp
-      image = IconAnimator.renderIcon(
-        size: iconSize,
+      image = renderer.renderIcon(
         color: codableColor.toNSColor(),
         parameters: parameters
       )
@@ -309,81 +285,6 @@ internal final class IconAnimator {
   private func restartTimerForPerformanceChange() {
     guard case .animating = state else { return }
     startTimer()
-  }
-
-  func frameParameters(for style: AnimationStyle, elapsed: TimeInterval) -> FrameParameters {
-    switch style {
-    case .glow:
-      let cycle = normalizedCycle(
-        elapsed: elapsed,
-        duration: AnimationConstants.glowCycleDuration
-      )
-      let opacity = AnimationConstants.glowMinimumOpacity +
-        cycle * AnimationConstants.glowOpacityRange
-      return FrameParameters(scale: 1.0, opacity: opacity, visible: true)
-
-    case .pulse:
-      let cycle = normalizedCycle(
-        elapsed: elapsed,
-        duration: AnimationConstants.pulseCycleDuration
-      )
-      let scale = AnimationConstants.pulseBaseScale +
-        cycle * AnimationConstants.pulseScaleAmplitude
-      let opacity = AnimationConstants.pulseBaseOpacity +
-        cycle * AnimationConstants.pulseOpacityRange
-      return FrameParameters(scale: scale, opacity: opacity, visible: true)
-
-    case .blink:
-      let isOn = Int((elapsed / AnimationConstants.blinkInterval).rounded(.down)) % 2 == 0
-      return FrameParameters(scale: 1.0, opacity: isOn ? 1.0 : 0.0, visible: isOn)
-    }
-  }
-
-  private func normalizedCycle(elapsed: TimeInterval, duration: TimeInterval) -> CGFloat {
-    let position = elapsed.truncatingRemainder(dividingBy: duration) / duration
-    let normalized: Double
-    if position <= 0.5 {
-      normalized = position / 0.5
-    } else {
-      normalized = 1.0 - ((position - 0.5) / 0.5)
-    }
-    return CGFloat(max(0.0, min(1.0, normalized)))
-  }
-
-  private static func renderIcon(
-    size: CGFloat,
-    color: NSColor,
-    parameters: FrameParameters
-  ) -> NSImage {
-    let dimension = CGSize(width: size, height: size)
-    let image = NSImage(size: dimension)
-
-    image.lockFocus()
-    defer { image.unlockFocus() }
-
-    guard let context = NSGraphicsContext.current?.cgContext else {
-      return image
-    }
-
-    context.clear(CGRect(origin: .zero, size: dimension))
-
-    let baseDiameter = size * 0.6 * parameters.scale
-    let origin = (size - baseDiameter) / 2.0
-    let rect = CGRect(x: origin, y: origin, width: baseDiameter, height: baseDiameter)
-
-    if parameters.opacity > 0 {
-      let shadowColor = color.withAlphaComponent(parameters.opacity * 0.6).cgColor
-      context.setShadow(
-        offset: .zero,
-        blur: size * 0.4 * parameters.scale,
-        color: shadowColor
-      )
-
-      context.setFillColor(color.withAlphaComponent(parameters.opacity).cgColor)
-      context.fillEllipse(in: rect)
-    }
-
-    return image
   }
 }
 

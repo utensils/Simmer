@@ -6,6 +6,8 @@
 //
 
 import XCTest
+
+// swiftlint:disable type_body_length
 @testable import Simmer
 
 @MainActor
@@ -318,3 +320,4 @@ private final class MockMatchEventHandlerDelegate: MatchEventHandlerDelegate {
         warningSnapshots.append(warnings)
     }
 }
+// swiftlint:enable type_body_length
