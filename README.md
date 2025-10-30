@@ -18,7 +18,7 @@ Perfect for monitoring verbose worker queues, background jobs, or any logs that 
 
 ## Status
 
-**MVP Release Candidate** - Core features implemented and tested. Preparing for initial release.
+**v0.1.0 Released** - Initial release with core functionality. [Download now](https://github.com/utensils/Simmer/releases/latest)
 
 ## Features
 
@@ -35,12 +35,12 @@ Perfect for monitoring verbose worker queues, background jobs, or any logs that 
 
 ## Requirements
 
-- macOS 14.0+ (Sonoma)
-- Xcode 15.0+
+- macOS 14.0+ (Sonoma or later)
+- **Universal Binary** - Runs natively on both Intel and Apple Silicon Macs
 
 ## Quick Start
 
-1. Download the latest release from [Releases](https://github.com/utensils/simmer/releases)
+1. Download the latest universal DMG from [Releases](https://github.com/utensils/Simmer/releases/latest)
 2. Open the DMG and drag Simmer to Applications
 3. Launch Simmer from Applications
 4. Click the menu bar icon → Settings to configure your first pattern
