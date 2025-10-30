@@ -18,17 +18,21 @@ internal final class LogMonitorPatternAccessValidator {
   private let alertPresenter: LogMonitorAlertPresenting
   private let logger: OSLog
   private let notifyPatternsDidChange: @MainActor () -> Void
+  private let fileAccessManager: FileAccessManaging
 
+  @MainActor
   init(
     configurationStore: ConfigurationStoreProtocol,
     alertPresenter: LogMonitorAlertPresenting,
     logger: OSLog,
-    notifyPatternsDidChange: @escaping @MainActor () -> Void
+    notifyPatternsDidChange: @escaping @MainActor () -> Void,
+    fileAccessManager: FileAccessManaging? = nil
   ) {
     self.configurationStore = configurationStore
     self.alertPresenter = alertPresenter
     self.logger = logger
     self.notifyPatternsDidChange = notifyPatternsDidChange
+    self.fileAccessManager = fileAccessManager ?? FileAccessManager()
   }
 
   @MainActor
@@ -59,14 +63,10 @@ internal final class LogMonitorPatternAccessValidator {
     var isDirectory: ObjCBool = false
 
     guard fileManager.fileExists(atPath: expandedPath, isDirectory: &isDirectory) else {
-      disable(
+      return handleMissingFile(
         pattern: updatedPattern,
-        message: """
-        Simmer cannot find "\(expandedPath)". Verify the file exists, then re-enable
-        "\(updatedPattern.name)" in Settings.
-        """
+        missingPath: expandedPath
       )
-      return PatternValidationOutcome(pattern: nil, didChangeConfiguration: true)
     }
 
     if isDirectory.boolValue {
@@ -142,9 +142,109 @@ internal final class LogMonitorPatternAccessValidator {
       )
     }
   }
+}
+
+// MARK: - Missing File Handling
+
+private extension LogMonitorPatternAccessValidator {
+  @MainActor
+  func handleMissingFile(
+    pattern: LogPattern,
+    missingPath: String
+  ) -> PatternValidationOutcome {
+    while true {
+      let action = alertPresenter.presentMissingFilePrompt(
+        patternName: pattern.name,
+        missingPath: missingPath
+      )
+
+      switch action {
+      case .locate:
+        if let outcome = processLocateAction(for: pattern) {
+          return outcome
+        }
+
+      case .disable, .cancel:
+        disable(pattern: pattern, message: nil)
+        return PatternValidationOutcome(pattern: nil, didChangeConfiguration: true)
+      }
+    }
+  }
 
   @MainActor
-  private func disable(pattern: LogPattern, message: String) {
+  func processLocateAction(for pattern: LogPattern) -> PatternValidationOutcome? {
+    do {
+      let url = try fileAccessManager.requestAccess(allowedFileTypes: nil)
+      let newPath = PathExpander.expand(url.path)
+      let (updatedPattern, didChange) = persistUpdatedPath(
+        for: pattern,
+        newPath: newPath
+      )
+      if didChange {
+        notifyPatternsDidChange()
+      }
+      return PatternValidationOutcome(
+        pattern: updatedPattern,
+        didChangeConfiguration: didChange
+      )
+    } catch let accessError as FileAccessError {
+      presentLocateError(for: accessError)
+      return nil
+    } catch {
+      alertPresenter.presentAlert(
+        title: "Unable to read file",
+        message: "Simmer failed to open the selected file. Choose a different file and try again."
+      )
+      return nil
+    }
+  }
+
+  @MainActor
+  func persistUpdatedPath(
+    for pattern: LogPattern,
+    newPath: String
+  ) -> (LogPattern, Bool) {
+    var updatedPattern = pattern
+    let didChange = newPath != pattern.logPath
+    guard didChange else { return (pattern, false) }
+
+    updatedPattern.logPath = newPath
+    do {
+      try configurationStore.updatePattern(updatedPattern)
+    } catch {
+      os_log(
+        .error,
+        log: logger,
+        "Failed to update pattern '%{public}@' with new path '%{public}@': %{public}@",
+        pattern.name,
+        newPath,
+        String(describing: error)
+      )
+    }
+    return (updatedPattern, true)
+  }
+
+  @MainActor
+  func presentLocateError(for error: FileAccessError) {
+    switch error {
+    case .userCancelled:
+      break
+    case .fileNotAccessible(let path):
+      alertPresenter.presentAlert(
+        title: "Unable to read file",
+        message: """
+        Simmer cannot read "\(path)". Choose a different file to continue monitoring.
+        """
+      )
+    }
+  }
+
+  @MainActor
+  func disable(
+    pattern: LogPattern,
+    message: String?,
+    alertTitle: String = "File access required"
+  ) {
     var updatedPattern = pattern
     if updatedPattern.enabled {
       updatedPattern.enabled = false
@@ -161,10 +261,12 @@ internal final class LogMonitorPatternAccessValidator {
       }
     }
 
-    alertPresenter.presentAlert(
-      title: "File access required",
-      message: message
-    )
+    if let message {
+      alertPresenter.presentAlert(
+        title: alertTitle,
+        message: message
+      )
+    }
 
     notifyPatternsDidChange()
   }
