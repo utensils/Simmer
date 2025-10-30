@@ -1,7 +1,6 @@
 import Foundation
 
 /// Validates regex patterns for syntax correctness
-// swiftlint:disable:next type_body_length
 internal struct PatternValidator {
     /// Validation result for a regex pattern
     internal enum ValidationResult {

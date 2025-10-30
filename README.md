@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/images/logo-light-stacked-transparent.png" alt="Simmer Logo" width="200"/>
+</p>
+
 # Simmer
 
 [![Build](https://github.com/utensils/Simmer/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/utensils/Simmer/actions/workflows/build.yml)

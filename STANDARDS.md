@@ -24,6 +24,13 @@
 - Explicit `self` only when required
 - Warnings as errors in CI
 - Disabled rules: `line_length` in comments
+- Type bodies should stay under 200 lines (lint warns at 200 and errors at 300)
+- Function bodies should target 50 lines or fewer (lint warns at 50 and errors at 80)
+- Type bodies should stay under 200 lines (lint warns at 200 and errors at 300)
+- Function bodies should target 50 lines or fewer (lint warns at 50 and errors at 80)
+- Trailing commas are required in multiline collection literals
+- Explicit access control is required on all top-level declarations
+- Vertical whitespace is enforced between switch cases
 
 **ShellCheck** for all shell scripts:
 - All `.sh` files must pass `shellcheck` with zero warnings

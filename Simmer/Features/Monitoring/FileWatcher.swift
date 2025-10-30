@@ -56,7 +56,6 @@ internal func makeDispatchSourceFileSystemWrapper(
   )
 }
 
-// swiftlint:disable:next type_body_length
 internal final class FileWatcher: FileWatching {
   typealias SourceFactory = (
     Int32,
@@ -143,6 +142,7 @@ internal final class FileWatcher: FileWatching {
     cleanup()
   }
 
+  // swiftlint:disable:next function_body_length
   private func handleFileEvent() {
     guard isRunning else {
       return

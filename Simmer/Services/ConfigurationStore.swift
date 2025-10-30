@@ -15,7 +15,6 @@ internal enum ConfigurationStoreError: Error, Equatable {
   case patternNotFound
 }
 
-// swiftlint:disable:next type_body_length
 internal struct ConfigurationStore: ConfigurationStoreProtocol {
   private let patternsKey = "patterns"
   private let userDefaults: UserDefaults

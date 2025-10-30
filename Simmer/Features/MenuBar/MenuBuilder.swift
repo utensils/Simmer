@@ -157,7 +157,7 @@ internal final class MenuBuilder: NSObject {
       string: item.title,
       attributes: [
         .foregroundColor: NSColor.systemYellow,
-        .font: NSFont.boldSystemFont(ofSize: NSFont.systemFontSize)
+        .font: NSFont.boldSystemFont(ofSize: NSFont.systemFontSize),
       ]
     )
     return item
