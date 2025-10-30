@@ -3,8 +3,18 @@ name: Automated Testing
 on:
   pull_request:
     branches: [main, 'feature/**']
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
   push:
     branches: [main, 'feature/**']
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
+      - '.gitignore'
 
 jobs:
   test:
@@ -13,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Select Xcode version
         run: sudo xcode-select -s /Applications/Xcode_16.1.app
