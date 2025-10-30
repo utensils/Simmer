@@ -108,6 +108,47 @@ final class LogMonitorPatternAccessValidatorTests: XCTestCase {
     XCTAssertTrue(alerts.first?.message.contains(unreadablePath) ?? false)
   }
 
+  func test_validateAccess_doesNotPersist_whenLocatedPathMatchesExisting() async {
+    let existingPath = makeUniqueMissingPath()
+    let pattern = LogPattern(
+      name: "Same Path",
+      regex: ".*",
+      logPath: existingPath,
+      color: CodableColor(red: 0.1, green: 0.2, blue: 0.3)
+    )
+    let result = await runValidation(
+      for: pattern,
+      alertActions: [.locate],
+      accessResults: [.success(URL(fileURLWithPath: existingPath))]
+    )
+
+    XCTAssertEqual(result.returnedPatternPath, existingPath)
+    XCTAssertFalse(result.didChangeConfiguration)
+    XCTAssertEqual(result.persistedPatterns.first?.logPath, existingPath)
+    XCTAssertFalse(result.didNotify)
+  }
+
+  func test_validateAccess_showsGenericError_whenLocateThrowsUnknownError() async {
+    let missingPath = makeUniqueMissingPath()
+    let pattern = LogPattern(
+      name: "Generic Error",
+      regex: ".*",
+      logPath: missingPath,
+      color: CodableColor(red: 0.6, green: 0.4, blue: 0.2)
+    )
+    let result = await runValidation(
+      for: pattern,
+      alertActions: [.locate, .disable],
+      accessResults: [.failure(GenericError())]
+    )
+
+    XCTAssertNil(result.returnedPatternPath)
+    XCTAssertTrue(result.didChangeConfiguration)
+    XCTAssertEqual(result.alerts.count, 1)
+    XCTAssertEqual(result.alerts.first?.title, "Unable to read file")
+    XCTAssertEqual(result.prompts.count, 2)
+  }
+
   // MARK: - Helpers
 
   private func makeUniqueMissingPath() -> String {
@@ -129,6 +170,8 @@ final class LogMonitorPatternAccessValidatorTests: XCTestCase {
     return url
   }
 }
+
+private struct GenericError: Error {}
 
 // MARK: - Test Doubles
 

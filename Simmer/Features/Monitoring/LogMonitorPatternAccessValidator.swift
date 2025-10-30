@@ -180,7 +180,9 @@ private extension LogMonitorPatternAccessValidator {
         for: pattern,
         newPath: newPath
       )
-      notifyPatternsDidChange()
+      if didChange {
+        notifyPatternsDidChange()
+      }
       return PatternValidationOutcome(
         pattern: updatedPattern,
         didChangeConfiguration: didChange
