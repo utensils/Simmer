@@ -15,6 +15,7 @@ internal protocol LogMonitoring: AnyObject {
   func setPatternEnabled(_ patternID: UUID, isEnabled: Bool)
 }
 
+@MainActor
 internal final class LogMonitor: NSObject {
   typealias WatcherFactory = (LogPattern) -> FileWatching
 
